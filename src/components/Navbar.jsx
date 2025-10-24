@@ -1,0 +1,187 @@
+import React, { useContext, useState, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FaUserCircle, FaSignInAlt, FaBars, FaTimes } from "react-icons/fa";
+import { AuthContext } from "../context/AuthContext";
+
+const Navbar = () => {
+  const { user, logout } = useContext(AuthContext);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  // Role-based links
+  const adminLinks = [
+    { name: "Team Management", to: "/admin/teams" },
+    { name: "Meeting Records", to: "/admin/meetings" },
+    { name: "Task Tracking", to: "/admin/tasks" },
+    { name: "Reports", to: "/admin/reports" },
+  ];
+  const studentLinks = [
+    { name: "Dashboard", to: "/student/dashboard" },
+    { name: "My Tasks", to: "/student/tasks" },
+    { name: "Upcoming Meetings", to: "/student/meetings" },
+  ];
+  const roleLinks = user
+    ? user.role?.toUpperCase() === "ADMIN"
+      ? adminLinks
+      : studentLinks
+    : [];
+
+  return (
+    <nav className="bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        {/* Logo */}
+        <Link
+          to="/"
+          className="flex items-center gap-2 text-xl font-bold tracking-wide hover:text-sky-400 transition-colors"
+        >
+          <FaUserCircle className="text-sky-400 text-2xl" />
+          Team Manager
+        </Link>
+
+        {/* Center Role Links */}
+        {user && (
+          <div className="hidden md:flex items-center gap-6">
+            {roleLinks.map((link) => (
+              <Link
+                key={link.name}
+                to={link.to}
+                className="hover:text-sky-400 transition-colors font-medium"
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Right User Avatar / Auth Buttons */}
+        <div className="hidden md:flex items-center gap-4">
+          {!user ? (
+            <>
+              <Link
+                to="/login"
+                className="flex items-center gap-1 bg-sky-600 px-3 py-1.5 rounded-lg hover:bg-sky-700 transition"
+              >
+                <FaSignInAlt /> Sign In
+              </Link>
+              <Link
+                to="/register"
+                className="px-4 py-1.5 border border-sky-500 text-sky-400 rounded-lg hover:bg-sky-500 hover:text-white transition"
+              >
+                Get Started
+              </Link>
+            </>
+          ) : (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="flex items-center gap-2 focus:outline-none"
+              >
+                <img
+                  src={
+                    user.avatar ||
+                    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                  }
+                  alt="User Avatar"
+                  className="w-9 h-9 rounded-full border-2 border-sky-500"
+                />
+                <span className="hidden md:inline">{user.name}</span>
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-44 bg-gray-800 rounded-xl shadow-lg py-2">
+                  <Link
+                    to={user.role === "ADMIN" ? "/admin/dashboard" : "/student/dashboard"}
+                    className="block px-4 py-2 hover:bg-gray-700 transition"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 hover:bg-gray-700 transition"
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 transition"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Toggle */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden text-2xl text-sky-400"
+        >
+          {mobileMenuOpen ? <FaTimes /> : <FaBars />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-gray-800 py-3 space-y-2">
+          {!user ? (
+            <>
+              <Link
+                to="/login"
+                className="block text-center py-2 bg-sky-600 rounded-md mx-4"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                className="block text-center py-2 border border-sky-500 text-sky-400 rounded-md mx-4"
+              >
+                Get Started
+              </Link>
+            </>
+          ) : (
+            <>
+              {roleLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.to}
+                  className="block px-4 py-2 hover:bg-gray-700 transition"
+                >
+                  {link.name}
+                </Link>
+              ))}
+              <Link
+                to={user.role === "ADMIN" ? "/admin/dashboard" : "/student/dashboard"}
+                className="block px-4 py-2 hover:bg-gray-700 transition"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/profile"
+                className="block px-4 py-2 hover:bg-gray-700 transition"
+              >
+                Profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 transition"
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </nav>
+  );
+};
+
+export default Navbar;

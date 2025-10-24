@@ -1,1 +1,34 @@
 @import "tailwindcss";
+
+
+/* App.css */
+
+/* Entire scrollbar width */
+::-webkit-scrollbar {
+  width: 10px; /* vertical scrollbar width */
+  height: 10px; /* horizontal scrollbar height */
+}
+
+/* Scrollbar track (background) */
+::-webkit-scrollbar-track {
+  background: #1f2937; /* dark gray track */
+  border-radius: 8px;
+}
+
+/* Scrollbar thumb (the draggable part) */
+::-webkit-scrollbar-thumb {
+  background: #3b82f6; /* sky blue */
+  border-radius: 8px;
+  border: 2px solid #1f2937; /* optional: space around thumb */
+}
+
+/* Scrollbar thumb hover effect */
+::-webkit-scrollbar-thumb:hover {
+  background: #60a5fa; /* lighter blue on hover */
+}
+
+/* Optional: corner between horizontal & vertical scrollbar */
+::-webkit-scrollbar-corner {
+  background: #1f2937;
+}
+/* Firefox */
