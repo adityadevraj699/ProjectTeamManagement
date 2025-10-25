@@ -15,21 +15,34 @@ const Navbar = () => {
     navigate("/login");
   };
 
-  // Role-based links
-  const adminLinks = [
-    { name: "Team Management", to: "/admin/teams" },
-    { name: "Meeting Records", to: "/admin/meetings" },
-    { name: "Task Tracking", to: "/admin/tasks" },
-    { name: "Reports", to: "/admin/reports" },
+  // 🎯 Role-based links
+  const guideLinks = [
+    { name: "Team Management", to: "/guide/teams" },
+    { name: "Meeting Records", to: "/guide/meetings" },
+    { name: "Task Tracking", to: "/guide/tasks" },
+    { name: "Reports", to: "/guide/reports" },
   ];
+
   const studentLinks = [
     { name: "Dashboard", to: "/student/dashboard" },
     { name: "My Tasks", to: "/student/tasks" },
     { name: "Upcoming Meetings", to: "/student/meetings" },
   ];
+
+  const adminLinks = [
+    { name: "Create Course", to: "/admin/create-course" },
+    { name: "Add Branch", to: "/admin/add-branch" },
+    { name: "Add Semester", to: "/admin/add-semester" },
+    { name: "Add Section", to: "/admin/add-section" },
+    { name: "Add Teacher", to: "/admin/add-teacher" },
+  ];
+
+  // 🎯 Determine current role
   const roleLinks = user
     ? user.role?.toUpperCase() === "ADMIN"
       ? adminLinks
+      : user.role?.toUpperCase() === "GUIDE"
+      ? guideLinks
       : studentLinks
     : [];
 
@@ -97,7 +110,13 @@ const Navbar = () => {
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-44 bg-gray-800 rounded-xl shadow-lg py-2">
                   <Link
-                    to={user.role === "ADMIN" ? "/admin/dashboard" : "/student/dashboard"}
+                    to={
+                      user.role === "ADMIN"
+                        ? "/admin/dashboard"
+                        : user.role === "GUIDE"
+                        ? "/guide/dashboard"
+                        : "/student/dashboard"
+                    }
                     className="block px-4 py-2 hover:bg-gray-700 transition"
                   >
                     Dashboard
@@ -159,7 +178,13 @@ const Navbar = () => {
                 </Link>
               ))}
               <Link
-                to={user.role === "ADMIN" ? "/admin/dashboard" : "/student/dashboard"}
+                to={
+                  user.role === "ADMIN"
+                    ? "/admin/dashboard"
+                    : user.role === "GUIDE"
+                    ? "/guide/dashboard"
+                    : "/student/dashboard"
+                }
                 className="block px-4 py-2 hover:bg-gray-700 transition"
               >
                 Dashboard

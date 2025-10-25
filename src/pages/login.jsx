@@ -11,6 +11,19 @@ export default function Login() {
   const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // 🎯 Helper: Get redirect path based on role
+  const getRedirectPath = (role) => {
+    switch (role?.toUpperCase()) {
+      case "ADMIN":
+        return "/admin/dashboard";
+      case "GUIDE":
+        return "/guide/dashboard";
+      case "STUDENT":
+      default:
+        return "/student/dashboard";
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -18,7 +31,10 @@ export default function Login() {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/login`,
         { email, password },
-        { headers: { "Content-Type": "application/json" }, withCredentials: true }
+        {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        }
       );
 
       const userData = response.data.user;
@@ -26,9 +42,16 @@ export default function Login() {
 
       login(userData, tokenData);
 
+      const redirectPath = getRedirectPath(userData.role);
+
       Swal.fire({
         title: `Welcome, ${userData.name}!`,
-        text: userData.role === "ADMIN" ? "Redirecting to Admin Dashboard..." : "Redirecting to Student Dashboard...",
+        text:
+          userData.role === "ADMIN"
+            ? "Redirecting to Admin Dashboard..."
+            : userData.role === "GUIDE"
+            ? "Redirecting to Guide Dashboard..."
+            : "Redirecting to Student Dashboard...",
         icon: "success",
         background: "#0f172a",
         color: "#fff",
@@ -36,7 +59,7 @@ export default function Login() {
       });
 
       setTimeout(() => {
-        navigate(userData.role === "ADMIN" ? "/admin/dashboard" : "/student/dashboard");
+        navigate(redirectPath);
       }, 1200);
     } catch (err) {
       Swal.fire({
@@ -52,7 +75,11 @@ export default function Login() {
     }
   };
 
-  if (user) navigate(user.role === "ADMIN" ? "/admin/dashboard" : "/student/dashboard");
+  // 🎯 Auto-redirect if already logged in
+  if (user) {
+    const redirectPath = getRedirectPath(user.role);
+    navigate(redirectPath);
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-black px-4">

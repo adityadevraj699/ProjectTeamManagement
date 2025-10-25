@@ -7,8 +7,10 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
-import TeamManagement from "./pages/admin/TeamManagement";
+import TeamManagement from "./pages/guide/TeamManagement";
 import "./App.css"
+import Course from "./pages/admin/Course";
+import Batch from "./pages/admin/Batch";
 
 function App() {
   return (
@@ -29,14 +31,35 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/admin/teams"
+
+             <Route
+              path="/admin/create-course"
               element={
                 <ProtectedRoute role="ADMIN">
+                  <Course />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/add-branch"
+              element={
+                <ProtectedRoute role="ADMIN">
+                  <Batch />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/guide/teams"
+              element={
+                <ProtectedRoute role="GUIDE">
                   <TeamManagement />
                 </ProtectedRoute>
               }
             />
+
+           
 
             {/* Add student routes similarly */}
           </Routes>
