@@ -11,6 +11,9 @@ import TeamManagement from "./pages/guide/TeamManagement";
 import "./App.css"
 import Course from "./pages/admin/Course";
 import Batch from "./pages/admin/Batch";
+import Semester from "./pages/admin/Semester";
+import Section from "./pages/admin/section";
+import Teacher from "./pages/admin/Teacher";
 
 function App() {
   return (
@@ -46,6 +49,30 @@ function App() {
               element={
                 <ProtectedRoute role="ADMIN">
                   <Batch />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/add-semester"
+              element={
+                <ProtectedRoute role="ADMIN">
+                  <Semester />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/add-section"
+              element={
+                <ProtectedRoute role="ADMIN">
+                  <Section />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/add-teacher"
+              element={
+                <ProtectedRoute role="ADMIN">
+                  <Teacher />
                 </ProtectedRoute>
               }
             />

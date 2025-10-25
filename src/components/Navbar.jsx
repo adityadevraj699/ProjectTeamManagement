@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef } from "react";
+import React, { useContext, useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaUserCircle, FaSignInAlt, FaBars, FaTimes } from "react-icons/fa";
 import { AuthContext } from "../context/AuthContext";
@@ -8,6 +8,7 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -37,7 +38,6 @@ const Navbar = () => {
     { name: "Add Teacher", to: "/admin/add-teacher" },
   ];
 
-  // 🎯 Determine current role
   const roleLinks = user
     ? user.role?.toUpperCase() === "ADMIN"
       ? adminLinks
@@ -45,6 +45,34 @@ const Navbar = () => {
       ? guideLinks
       : studentLinks
     : [];
+
+  // 🔹 Close menus if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
+        setMenuOpen(false);
+      }
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target)
+      ) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // 🔹 Close mobile menu when a link is clicked
+  const handleMobileLinkClick = () => {
+    setMobileMenuOpen(false);
+  };
 
   return (
     <nav className="bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-md sticky top-0 z-50">
@@ -117,18 +145,23 @@ const Navbar = () => {
                         ? "/guide/dashboard"
                         : "/student/dashboard"
                     }
+                    onClick={() => setMenuOpen(false)}
                     className="block px-4 py-2 hover:bg-gray-700 transition"
                   >
                     Dashboard
                   </Link>
                   <Link
                     to="/profile"
+                    onClick={() => setMenuOpen(false)}
                     className="block px-4 py-2 hover:bg-gray-700 transition"
                   >
                     Profile
                   </Link>
                   <button
-                    onClick={handleLogout}
+                    onClick={() => {
+                      handleLogout();
+                      setMenuOpen(false);
+                    }}
                     className="w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 transition"
                   >
                     Logout
@@ -150,17 +183,19 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-gray-800 py-3 space-y-2">
+        <div ref={mobileMenuRef} className="md:hidden bg-gray-800 py-3 space-y-2">
           {!user ? (
             <>
               <Link
                 to="/login"
+                onClick={handleMobileLinkClick}
                 className="block text-center py-2 bg-sky-600 rounded-md mx-4"
               >
                 Sign In
               </Link>
               <Link
                 to="/register"
+                onClick={handleMobileLinkClick}
                 className="block text-center py-2 border border-sky-500 text-sky-400 rounded-md mx-4"
               >
                 Get Started
@@ -172,6 +207,7 @@ const Navbar = () => {
                 <Link
                   key={link.name}
                   to={link.to}
+                  onClick={handleMobileLinkClick}
                   className="block px-4 py-2 hover:bg-gray-700 transition"
                 >
                   {link.name}
@@ -185,18 +221,23 @@ const Navbar = () => {
                     ? "/guide/dashboard"
                     : "/student/dashboard"
                 }
+                onClick={handleMobileLinkClick}
                 className="block px-4 py-2 hover:bg-gray-700 transition"
               >
                 Dashboard
               </Link>
               <Link
                 to="/profile"
+                onClick={handleMobileLinkClick}
                 className="block px-4 py-2 hover:bg-gray-700 transition"
               >
                 Profile
               </Link>
               <button
-                onClick={handleLogout}
+                onClick={() => {
+                  handleLogout();
+                  handleMobileLinkClick();
+                }}
                 className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 transition"
               >
                 Logout
