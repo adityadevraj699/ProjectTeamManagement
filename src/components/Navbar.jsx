@@ -17,12 +17,15 @@ const Navbar = () => {
   };
 
   // 🎯 Role-based links
-  const guideLinks = [
-    { name: "Team Management", to: "/guide/teams" },
-    { name: "Meeting Records", to: "/guide/meetings" },
-    { name: "Task Tracking", to: "/guide/tasks" },
-    { name: "Reports", to: "/guide/reports" },
-  ];
+const guideLinks = [
+  { name: "Team Management", to: "/guide/teams" },
+  { name: "Meeting Records", to: "/guide/meetings" },
+  { name: "Task Tracking", to: "/guide/tasks" },
+  { name: "Reports", to: "/guide/reports" },
+  { name: "Add Project", to: "/guide/add-project" },  // 🆕 Added
+  { name: "Add Student", to: "/guide/add-student" },  // 🆕 Added
+];
+
 
   const studentLinks = [
     { name: "Dashboard", to: "/student/dashboard" },

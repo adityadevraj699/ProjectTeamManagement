@@ -1,171 +1,266 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { motion } from "framer-motion";
 
-// Reusable Team Member Input
-const TeamMemberInput = ({ member, index, handleChange, removeMember, canRemove }) => (
-  <div className="flex gap-2 items-center mb-2">
-    <input
-      type="email"
-      placeholder="Email"
-      value={member.email}
-      onChange={(e) => handleChange(index, "email", e.target.value)}
-      className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white"
-      required
-    />
-    <input
-      type="text"
-      placeholder="Role (e.g., Frontend, Backend)"
-      value={member.role}
-      onChange={(e) => handleChange(index, "role", e.target.value)}
-      className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white"
-      required
-    />
-    <label className="flex items-center gap-1 whitespace-nowrap">
+// Component for a single team member input row
+const TeamMemberInput = ({ member, index, handleChange, removeMember, canRemove, branches, semesters, sections }) => (
+  <div className="flex flex-col gap-2 mb-4 border-b border-gray-600 pb-3">
+    <div className="flex gap-2 items-center flex-wrap">
       <input
-        type="checkbox"
-        checked={member.isLeader}
-        onChange={(e) => handleChange(index, "isLeader", e.target.checked)}
+        type="email"
+        placeholder="Email"
+        value={member.email}
+        onChange={e => handleChange(index, "email", e.target.value)}
+        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+        required
       />
-      Leader
-    </label>
-    {canRemove && (
-      <button
-        type="button"
-        onClick={() => removeMember(index)}
-        className="bg-red-600 px-3 py-1 rounded hover:bg-red-700 transition-colors"
+      <input
+        type="text"
+        placeholder="Roll Number"
+        value={member.rollNumber}
+        onChange={e => handleChange(index, "rollNumber", e.target.value)}
+        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+        required
+      />
+      <input
+        type="text"
+        placeholder="Role"
+        value={member.role}
+        onChange={e => handleChange(index, "role", e.target.value)}
+        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+        required
+      />
+      <label className="flex items-center gap-1">
+        <input
+          type="checkbox"
+          checked={member.isLeader}
+          onChange={e => handleChange(index, "isLeader", e.target.checked)}
+        />
+        Leader
+      </label>
+      {canRemove && (
+        <button
+          type="button"
+          onClick={() => removeMember(index)}
+          className="bg-red-600 px-3 py-1 rounded hover:bg-red-700 transition-colors"
+        >
+          X
+        </button>
+      )}
+    </div>
+
+    <div className="flex gap-2 flex-wrap">
+      <select
+        value={member.branchId || ""}
+        onChange={e => handleChange(index, "branchId", e.target.value)}
+        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+        required
       >
-        X
-      </button>
-    )}
+        <option value="">Select Branch</option>
+        {branches.map(b => <option key={b.id} value={b.id}>{b.branchName}</option>)}
+      </select>
+      <select
+        value={member.semesterId || ""}
+        onChange={e => handleChange(index, "semesterId", e.target.value)}
+        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+        required
+      >
+        <option value="">Select Semester</option>
+        {semesters.map(s => <option key={s.id} value={s.id}>{s.semesterName}</option>)}
+      </select>
+      <select
+        value={member.sectionId || ""}
+        onChange={e => handleChange(index, "sectionId", e.target.value)}
+        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+        required
+      >
+        <option value="">Select Section</option>
+        {sections.map(s => <option key={s.id} value={s.id}>{s.sectionName}</option>)}
+      </select>
+    </div>
   </div>
 );
 
-function TeamManagement() {
-  const initialProject = { title: "", description: "", technologies: "", startDate: "", endDate: "" };
-  const initialMembers = [{ email: "", role: "", isLeader: false }];
-
-  const [project, setProject] = useState(initialProject);
+// Main Team Management Component
+export default function TeamManagement() {
+  const [project, setProject] = useState({ title: "", description: "", technologies: "", startDate: "", endDate: "" });
   const [teamName, setTeamName] = useState("");
-  const [members, setMembers] = useState(initialMembers);
+  const [members, setMembers] = useState([{ email: "", rollNumber: "", role: "", isLeader: false, branchId: "", semesterId: "", sectionId: "" }]);
+  const [branches, setBranches] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem("token");
+  const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [bRes, sRes, secRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_API_URL}/branches`, axiosConfig),
+          axios.get(`${import.meta.env.VITE_API_URL}/semesters`, axiosConfig),
+          axios.get(`${import.meta.env.VITE_API_URL}/sections`, axiosConfig)
+        ]);
+        setBranches(bRes.data);
+        setSemesters(sRes.data);
+        setSections(secRes.data);
+      } catch {
+        Swal.fire("Error", "Failed to load branches/semesters/sections", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleProjectChange = (field, value) => setProject({ ...project, [field]: value });
-
   const handleMemberChange = (index, field, value) => {
-    const updatedMembers = [...members];
-    if (field === "isLeader" && value) updatedMembers.forEach((m, i) => { if (i !== index) m.isLeader = false; });
-    updatedMembers[index][field] = value;
-    setMembers(updatedMembers);
+    const updated = [...members];
+    if (field === "isLeader" && value) updated.forEach((m, i) => m.isLeader = i === index);
+    updated[index][field] = value;
+    setMembers(updated);
   };
-
-  const addMember = () => setMembers([...members, { email: "", role: "", isLeader: false }]);
-  const removeMember = (index) => setMembers(members.filter((_, i) => i !== index));
+  const addMember = () => setMembers([...members, { email: "", rollNumber: "", role: "", isLeader: false, branchId: "", semesterId: "", sectionId: "" }]);
+  const removeMember = index => setMembers(members.filter((_, i) => i !== index));
 
   const validateForm = () => {
-    if (!project.title.trim() || !teamName.trim()) { Swal.fire("Error", "Project title and team name are required", "error"); return false; }
-    if (members.filter((m) => m.isLeader).length !== 1) { Swal.fire("Error", "There must be exactly 1 leader", "error"); return false; }
+    if (!project.title || !teamName) {
+      Swal.fire("Error", "Project title & team name required", "error");
+      return false;
+    }
+    if (members.filter(m => m.isLeader).length !== 1) {
+      Swal.fire("Error", "Select exactly one leader", "error");
+      return false;
+    }
     return true;
   };
 
-  const resetForm = () => { setProject(initialProject); setTeamName(""); setMembers(initialMembers); };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const payloadMembers = members.map(m => ({
+      email: m.email,
+      rollNumber: m.rollNumber,
+      role: m.role,
+      isLeader: m.isLeader,
+      branchId: m.branchId,
+      semesterId: m.semesterId,
+      sectionId: m.sectionId
+    }));
+
     const payload = {
-      project: {
-        projectTitle: project.title,
-        description: project.description,
-        technologiesUsed: project.technologies,
-        startDate: project.startDate,
-        endDate: project.endDate,
-      },
-      team: { teamName, members },
+      projectTitle: project.title,
+      description: project.description,
+      technologiesUsed: project.technologies,
+      startDate: project.startDate || null,
+      endDate: project.endDate || null,
+      teamName,
+      members: payloadMembers
     };
 
     try {
-      await axios.post("/api/teamsManager", payload);
-      Swal.fire("Success", "Project & Team created successfully!", "success");
-      resetForm();
-    } catch (error) {
-      Swal.fire("Error", error.response?.data || "Something went wrong", "error");
+      await axios.post(`${import.meta.env.VITE_API_URL}/guide/teams`, payload, axiosConfig);
+      Swal.fire("Success", "Project & Team created!", "success");
+      setProject({ title: "", description: "", technologies: "", startDate: "", endDate: "" });
+      setTeamName("");
+      setMembers([{ email: "", rollNumber: "", role: "", isLeader: false, branchId: "", semesterId: "", sectionId: "" }]);
+    } catch (err) {
+      Swal.fire("Error", err.response?.data || "Something went wrong", "error");
     }
   };
 
+  if (loading) return <p className="text-white">Loading...</p>;
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-gray-900 via-gray-800 to-black p-6 flex justify-center items-start text-white">
-      <div className="w-full max-w-5xl">
-        {/* Header with Motion Animation */}
-        <div className="flex justify-between items-center mb-6">
-          <motion.h1
-            className="text-3xl font-bold text-sky-400"
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            whileHover={{ scale: 1.05, color: "#60a5fa" }}
-          >
-            Create Project & Team
-          </motion.h1>
+    <div className="min-h-screen bg-slate-900 text-gray-200 p-10">
+      <motion.h1
+        className="text-3xl font-bold mb-6 text-sky-400"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        Create Project & Team
+      </motion.h1>
 
-          <button
-            type="button"
-            className="bg-yellow-600 px-4 py-2 rounded hover:bg-yellow-700 transition-colors"
-            onClick={() => alert("Manage Projects & Teams - Future Feature")}
-          >
-            + Manage
-          </button>
-        </div>
+      <form onSubmit={handleSubmit} className="bg-slate-800 border border-sky-600 rounded-2xl p-6 shadow-lg">
+        <h2 className="text-xl font-semibold mb-4 text-sky-300">Project Info</h2>
+        <input
+          type="text"
+          placeholder="Project Title"
+          value={project.title}
+          onChange={e => handleProjectChange("title", e.target.value)}
+          className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
+          required
+        />
+        <textarea
+          placeholder="Description"
+          value={project.description}
+          onChange={e => handleProjectChange("description", e.target.value)}
+          className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
+        />
+        <input
+          type="text"
+          placeholder="Technologies Used"
+          value={project.technologies}
+          onChange={e => handleProjectChange("technologies", e.target.value)}
+          className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
+        />
+       <div className="flex gap-3 mb-3 flex-wrap">
+  {/* Start Date */}
+  <input
+    type="date"
+    value={project.startDate}
+    onChange={e => handleProjectChange("startDate", e.target.value)}
+    className="p-3 rounded-lg bg-slate-900 border border-white/20 flex-1"
+    min={new Date().toISOString().split("T")[0]} // aaj se pehle disable
+  />
 
-        {/* Form */}
-        <motion.form
-          onSubmit={handleSubmit}
-          className="space-y-6 bg-gray-900/80 p-6 rounded-2xl shadow-xl backdrop-blur-md border border-gray-700"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          {/* Project Section */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold border-b border-gray-600 pb-1">Project Info</h2>
-            <input type="text" placeholder="Project Title" value={project.title} onChange={(e) => handleProjectChange("title", e.target.value)} className="w-full p-3 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white" required />
-            <textarea placeholder="Project Description" value={project.description} onChange={(e) => handleProjectChange("description", e.target.value)} className="w-full p-3 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white" />
-            <input type="text" placeholder="Technologies Used (e.g., Java, React)" value={project.technologies} onChange={(e) => handleProjectChange("technologies", e.target.value)} className="w-full p-3 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white" />
-            <div className="flex gap-4">
-              <input type="date" value={project.startDate} onChange={(e) => { handleProjectChange("startDate", e.target.value); if (project.endDate && e.target.value > project.endDate) handleProjectChange("endDate", e.target.value); }} className="flex-1 p-3 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white" min={new Date().toISOString().split("T")[0]} />
-              <input type="date" value={project.endDate} onChange={(e) => handleProjectChange("endDate", e.target.value)} className="flex-1 p-3 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white" min={project.startDate || new Date().toISOString().split("T")[0]} />
-            </div>
-          </section>
+  {/* End Date */}
+  <input
+    type="date"
+    value={project.endDate}
+    onChange={e => handleProjectChange("endDate", e.target.value)}
+    className="p-3 rounded-lg bg-slate-900 border border-white/20 flex-1"
+    min={project.startDate || new Date().toISOString().split("T")[0]} // start date ya aaj
+  />
+</div>
 
-          {/* Team Section */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold border-b border-gray-600 pb-1">Team Info</h2>
-            <input type="text" placeholder="Team Name" value={teamName} onChange={(e) => setTeamName(e.target.value)} className="w-full p-3 rounded bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white" required />
-            <h3 className="text-xl mt-2">Team Members</h3>
-            {members.map((member, index) => (
-              <TeamMemberInput key={index} member={member} index={index} handleChange={handleMemberChange} removeMember={removeMember} canRemove={members.length > 1} />
-            ))}
-            <motion.button
-  type="button"
-  onClick={addMember}
-  className="flex items-center gap-2 bg-sky-600 px-5 py-2 rounded hover:bg-sky-700 transition-colors shadow-lg"
-  whileHover={{ scale: 1.05 }}
-  whileTap={{ scale: 0.95 }}
->
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-  </svg>
-  Team Member
-</motion.button>
 
-          </section>
+        <h2 className="text-xl font-semibold mb-4 text-sky-300">Team Info</h2>
+        <input
+          type="text"
+          placeholder="Team Name"
+          value={teamName}
+          onChange={e => setTeamName(e.target.value)}
+          className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
+          required
+        />
 
-          <button type="submit" className="bg-green-600 px-6 py-3 rounded mt-4 hover:bg-green-700 transition-colors w-full text-lg font-semibold">Create Team</button>
-        </motion.form>
-      </div>
+        <h3 className="text-lg font-semibold mb-2 text-sky-400">Members</h3>
+        {members.map((member, idx) => (
+          <TeamMemberInput
+            key={idx}
+            member={member}
+            index={idx}
+            handleChange={handleMemberChange}
+            removeMember={removeMember}
+            canRemove={members.length > 1}
+            branches={branches}
+            semesters={semesters}
+            sections={sections}
+          />
+        ))}
+
+        <button type="button" onClick={addMember} className="bg-sky-600 px-5 py-2 rounded hover:bg-sky-700 transition-colors mb-4">
+          Add Member
+        </button>
+        <br />
+        <button type="submit" className="bg-green-600 px-6 py-3 rounded hover:bg-green-700 transition-colors">
+          Create Project & Team
+        </button>
+      </form>
     </div>
   );
 }
-
-export default TeamManagement;
