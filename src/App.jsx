@@ -14,6 +14,12 @@ import Batch from "./pages/admin/Batch";
 import Semester from "./pages/admin/Semester";
 import Section from "./pages/admin/section";
 import Teacher from "./pages/admin/Teacher";
+import Team from "./pages/guide/Team";
+import Student from "./pages/guide/Student";
+import TeamDetail from "./pages/guide/TeamDetail";
+import EditTeamDetail from "./pages/guide/EditTeamDetail";
+import UserProfile from "./components/UserProfile";
+import Unauthorized from "./context/Unauthorized";
 
 function App() {
   return (
@@ -86,9 +92,53 @@ function App() {
               }
             />
 
-           
+            <Route
+              path="/guide/add-student"
+              element={
+                <ProtectedRoute role="GUIDE">
+                  <Student />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/guide/team"
+              element={
+                <ProtectedRoute role="GUIDE">
+                  <Team />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+  path="/guide/TeamDetail/:id"
+  element={
+    <ProtectedRoute role="GUIDE">
+      <TeamDetail />
+    </ProtectedRoute>
+  }
+/>
+            <Route
+              path="/guide/EditTeamDetail/:id"
+              element={
+                <ProtectedRoute role="GUIDE">
+                  <EditTeamDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+  path="/profile/:email"
+  element={
+    <ProtectedRoute role={["ADMIN", "GUIDE", "STUDENT"]}>
+      <UserProfile />
+    </ProtectedRoute>
+  }
+/>
+
 
             {/* Add student routes similarly */}
+            <Route path="/unauthorized" element={<Unauthorized />} />
+
           </Routes>
         </main>
         <Footer />

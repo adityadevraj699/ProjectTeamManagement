@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useContext(AuthContext);
 
+  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -13,9 +14,17 @@ const ProtectedRoute = ({ children, role }) => {
     );
   }
 
+  // If user not logged in, redirect to login
   if (!user) return <Navigate to="/login" replace />;
 
-  if (role && user.role !== role) return <Navigate to="/" replace />;
+  // 🔥 Handle single or multiple allowed roles
+  if (role) {
+    const allowedRoles = Array.isArray(role) ? role : [role];
+    if (!allowedRoles.includes(user.role)) {
+      // Redirect unauthorized roles to a dedicated page
+      return <Navigate to="/unauthorized" replace />;
+    }
+  }
 
   return children;
 };
