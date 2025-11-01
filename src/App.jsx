@@ -20,6 +20,8 @@ import TeamDetail from "./pages/guide/TeamDetail";
 import EditTeamDetail from "./pages/guide/EditTeamDetail";
 import UserProfile from "./components/UserProfile";
 import Unauthorized from "./context/Unauthorized";
+import GuideMeetings from "./pages/guide/GuideMeetings";
+import MON from "./pages/guide/MON";
 
 function App() {
   return (
@@ -134,6 +136,17 @@ function App() {
     </ProtectedRoute>
   }
 />
+<Route
+  path="/guide/meetings"
+  element={
+    <ProtectedRoute role="GUIDE">
+      <GuideMeetings />
+    </ProtectedRoute>
+  }
+/>
+
+<Route path="/guide/:meetingId" element={<MON />} />
+
 
 
             {/* Add student routes similarly */}
