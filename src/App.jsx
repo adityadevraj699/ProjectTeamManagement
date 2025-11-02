@@ -22,6 +22,7 @@ import UserProfile from "./components/UserProfile";
 import Unauthorized from "./context/Unauthorized";
 import GuideMeetings from "./pages/guide/GuideMeetings";
 import MON from "./pages/guide/MON";
+import ViewMom from "./pages/guide/ViewMom";
 
 function App() {
   return (
@@ -145,9 +146,8 @@ function App() {
   }
 />
 
-<Route path="/guide/:meetingId" element={<MON />} />
-
-
+<Route path="/guide/meeting/:meetingId" element={<MON />} />
+<Route path="/guide/viewmom/:meetingId" element={<ViewMom />} />
 
             {/* Add student routes similarly */}
             <Route path="/unauthorized" element={<Unauthorized />} />

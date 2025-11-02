@@ -8,6 +8,18 @@ export default function GuideMeetings() {
 
   const navigate = useNavigate();
 
+// For creating MOM (Mark Done)
+const handleMarkDone = (meetingId) => {
+  navigate(`/guide/meeting/${meetingId}`);
+};
+
+// For viewing existing MOM
+const handleViewMom = (meetingId) => {
+  navigate(`/guide/viewmom/${meetingId}`);
+};
+
+
+
   const [teams, setTeams] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
@@ -241,93 +253,6 @@ export default function GuideMeetings() {
     }
   };
 
- // ✅ Mark Done + MOM + Next Meeting
-const handleStatusUpdate = async (meeting) => {
-  const { value: formValues } = await Swal.fire({
-    title: "Meeting Completed - Add MOM & Schedule Next Meeting",
-    html: `
-      <h3 style="text-align:left;">📝 Meeting Minutes (MOM)</h3>
-      <textarea id="summary" class="swal2-textarea" placeholder="Summary"></textarea>
-      <textarea id="actionItems" class="swal2-textarea" placeholder="Action Items"></textarea>
-      <textarea id="nextSteps" class="swal2-textarea" placeholder="Next Steps"></textarea>
-      <textarea id="remarks" class="swal2-textarea" placeholder="Remarks"></textarea>
-      <hr/>
-      <h3 style="text-align:left;">📅 Next Meeting Details</h3>
-      <input id="nextTitle" class="swal2-input" placeholder="Next Meeting Title">
-      <input id="nextAgenda" class="swal2-input" placeholder="Agenda">
-      <input id="nextDateTime" type="datetime-local" class="swal2-input">
-      <input id="nextDuration" type="number" class="swal2-input" placeholder="Duration (minutes)">
-      <input id="nextLocation" class="swal2-input" placeholder="Location (optional)">
-      <select id="nextMode" class="swal2-select">
-        <option value="ONLINE">Online</option>
-        <option value="OFFLINE">Offline</option>
-      </select>
-    `,
-    focusConfirm: false,
-    showCancelButton: true,
-    width: "800px",
-    preConfirm: () => ({
-      summary: document.getElementById("summary").value,
-      actionItems: document.getElementById("actionItems").value,
-      nextSteps: document.getElementById("nextSteps").value,
-      remarks: document.getElementById("remarks").value,
-      nextTitle: document.getElementById("nextTitle").value,
-      nextAgenda: document.getElementById("nextAgenda").value,
-      nextDateTime: document.getElementById("nextDateTime").value,
-      nextDuration: document.getElementById("nextDuration").value,
-      nextLocation: document.getElementById("nextLocation").value,
-      nextMode: document.getElementById("nextMode").value,
-    }),
-  });
-
-  if (!formValues) return;
-
-  try {
-    // 1️⃣ Create MOM
-    await axios.post(
-      `${BASE_URL}/guide/minutes/${meeting.id}`,
-      {
-        summary: formValues.summary,
-        actionItems: formValues.actionItems,
-        nextSteps: formValues.nextSteps,
-        remarks: formValues.remarks,
-      },
-      axiosConfig
-    );
-
-    // 2️⃣ Mark current meeting as completed
-    await axios.patch(
-      `${BASE_URL}/guide/meetings/${meeting.id}/status?status=COMPLETED`,
-      {},
-      axiosConfig
-    );
-
-    // 3️⃣ Create Next Meeting
-    await axios.post(
-      `${BASE_URL}/guide/meetings/create/${meeting.team.teamId}`,
-      {
-        title: formValues.nextTitle,
-        agenda: formValues.nextAgenda,
-        meetingDateTime: formValues.nextDateTime,
-        durationMinutes: formValues.nextDuration,
-        location: formValues.nextLocation,
-        mode: formValues.nextMode,
-      },
-      axiosConfig
-    );
-
-    Swal.fire("Success", "MOM saved & next meeting scheduled!", "success");
-    fetchMeetings(selectedTeamId);
-  } catch (err) {
-    console.error("Mark Done Error:", err);
-    Swal.fire(
-      "Error",
-      err.response?.data?.message || "Failed to complete the meeting process",
-      "error"
-    );
-  }
-};
-
 
   // ✅ JSX
   return (
@@ -459,33 +384,20 @@ const handleStatusUpdate = async (meeting) => {
                       </button>
                    {m.meetingMinutes ? (
   <button
-    onClick={() =>
-      Swal.fire({
-        title: "📋 Meeting Minutes",
-        html: `
-          <div style="text-align:left;line-height:1.6;">
-            <b>Summary:</b> ${m.meetingMinutes.summary || "—"}<br>
-            <b>Action Items:</b> ${m.meetingMinutes.actionItems || "—"}<br>
-            <b>Next Steps:</b> ${m.meetingMinutes.nextSteps || "—"}<br>
-            <b>Remarks:</b> ${m.meetingMinutes.remarks || "—"}
-          </div>
-        `,
-        icon: "info",
-        confirmButtonText: "Close",
-      })
-    }
     className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white"
+    onClick={() => handleViewMom(m.id)}
   >
     View MOM
   </button>
 ) : (
   <button
-    onClick={() => handleStatusUpdate(m)}
+    onClick={() => handleMarkDone(m.id)}
     className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white"
   >
     Mark Done
   </button>
 )}
+
 
                       <button
                         onClick={() => handleDelete(m.id)}
