@@ -15,9 +15,34 @@ export default function ViewMom() {
     remarks: "",
   });
 
+
+
+const handleDownloadPDF = async (meetingId) => {
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/mom/${meetingId}/download`, // ✅ FIXED URL
+      {
+        responseType: "blob", // important for file downloads
+      }
+    );
+    console.log("Download response:"); // ✅ Debug log
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `MOM_${meetingId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove(); // ✅ Clean up
+  } catch (error) {
+    console.error("Download failed:", error);
+  }
+};
+
+
+
   useEffect(() => {
     axios
-      .get(`http://localhost:8800/api/mom/${meetingId}`)
+      .get(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`)
       .then((res) => {
         setMeeting(res.data);
         setUpdatedMom({
@@ -52,7 +77,7 @@ export default function ViewMom() {
     }).then((result) => {
       if (result.isConfirmed) {
         axios
-          .put(`http://localhost:8800/api/mom/${meetingId}`, updatedMom)
+          .put(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`, updatedMom)
           .then(() => {
             Swal.fire("Updated!", "MOM updated successfully.", "success");
             setEditable(false);
@@ -75,7 +100,7 @@ export default function ViewMom() {
     }).then((result) => {
       if (result.isConfirmed) {
         axios
-          .delete(`http://localhost:8800/api/mom/${meetingId}`)
+          .delete(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`)
           .then(() => {
             Swal.fire("Deleted!", "MOM deleted successfully.", "success");
             navigate(-1);
@@ -107,6 +132,16 @@ export default function ViewMom() {
             {new Date(meeting.meetingDateTime).toLocaleString()}
           </p>
         </div>
+
+
+<button
+  onClick={() => handleDownloadPDF(meetingId)}
+  className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 absolute top-0 right-0"
+>
+  📄 Download PDF
+</button>
+
+
 
         {/* 🟩 Row 1: Meeting + MOM Summary */}
         <div className="grid md:grid-cols-2 gap-6 mb-10">
@@ -186,18 +221,42 @@ export default function ViewMom() {
         {/* 🟦 Row 2: Team + Project */}
         <div className="grid md:grid-cols-2 gap-6 mb-10">
           {/* Team Members */}
-          <section className="bg-slate-900/60 border border-emerald-700 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-emerald-400 mb-3">
-              👥 Team Members
-            </h2>
-            <ul className="list-disc list-inside text-gray-300 space-y-1">
-              {members.map((m, idx) => (
-                <li key={idx}>
-                  {m.name} — {m.role} {m.leader ? "(Leader)" : ""}
-                </li>
-              ))}
-            </ul>
-          </section>
+         {/* ✅ TEAM MEMBERS + ATTENDANCE */}
+<section className="bg-slate-900/60 border border-emerald-700 rounded-xl p-6">
+  <h2 className="text-xl font-semibold text-emerald-400 mb-3">
+    👥 Attendance
+  </h2>
+
+  {meeting.attendance && meeting.attendance.length > 0 ? (
+    <table className="w-full text-gray-300">
+      <thead>
+        <tr className="border-b border-slate-600 text-left">
+          <th className="py-2">Member</th>
+          <th className="py-2">Status</th>
+          <th className="py-2">Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {meeting.attendance.map((a, idx) => (
+          <tr key={idx} className="border-b border-slate-700">
+            <td className="py-2">{a.name}</td>
+            <td className="py-2">
+              {a.present ? (
+                <span className="text-green-400">✅ Present</span>
+              ) : (
+                <span className="text-red-400">❌ Absent</span>
+              )}
+            </td>
+            <td className="py-2">{a.remarks || "-"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ) : (
+    <p className="text-gray-400">No attendance recorded for this meeting.</p>
+  )}
+</section>
+
 
           {/* Project Details */}
           <section className="bg-slate-900/60 border border-amber-700 rounded-xl p-6">

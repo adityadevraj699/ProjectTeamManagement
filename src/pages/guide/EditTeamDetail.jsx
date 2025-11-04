@@ -27,7 +27,7 @@ export default function EditTeamDetail() {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:8800/api/guide/teams/details/${id}`,
+        `${import.meta.env.VITE_API_URL}/guide/teams/details/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -53,7 +53,7 @@ export default function EditTeamDetail() {
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:8800/api/guide/teams/update`, form, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/guide/teams/update`, form, {
         headers: { Authorization: `Bearer ${token}` },
       });
       Swal.fire("✅ Success", "Team updated successfully!", "success");

@@ -10,6 +10,7 @@ export default function MON() {
   const [meeting, setMeeting] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // MOM form
   const [form, setForm] = useState({
     summary: "",
     actionItems: "",
@@ -17,6 +18,7 @@ export default function MON() {
     remarks: "",
   });
 
+  // Next meeting
   const [nextMeeting, setNextMeeting] = useState({
     title: "",
     agenda: "",
@@ -25,6 +27,9 @@ export default function MON() {
     location: "",
     mode: "ONLINE",
   });
+
+  // Attendance
+  const [attendance, setAttendance] = useState([]);
 
   const token = localStorage.getItem("token");
   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800/api";
@@ -40,13 +45,30 @@ export default function MON() {
   useEffect(() => {
     const fetchMeeting = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/guide/meetings/${meetingId}`, axiosConfig);
+        const res = await axios.get(
+          `${BASE_URL}/guide/meetings/${meetingId}`,
+          axiosConfig
+        );
+        console.log("✅ Meeting details fetched:", res.data);
         setMeeting(res.data);
+
+        // ✅ create attendance list
+        if (res.data.team?.teamMembers) {
+          const list = res.data.team.teamMembers.map((m) => ({
+            userId: m.user.id,
+            present: true,
+            remarks: "",
+            name: m.user.name,
+            email: m.user.email,
+          }));
+          setAttendance(list);
+        }
       } catch (err) {
         console.error("❌ Error fetching meeting:", err);
         Swal.fire("Error", "Failed to load meeting details.", "error");
       }
     };
+
     fetchMeeting();
   }, [meetingId]);
 
@@ -56,7 +78,7 @@ export default function MON() {
     setFunc((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Submit MOM + Next Meeting
+  // ✅ Submit MOM + Attendance + Next Meeting
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -71,29 +93,40 @@ export default function MON() {
     try {
       const payload = {
         mom: form,
+        attendance: attendance.map((a) => ({
+          userId: a.userId,
+          present: a.present,
+          remarks: a.remarks,
+        })),
         nextMeeting:
           nextMeeting.title && nextMeeting.meetingDateTime
             ? nextMeeting
             : null,
       };
 
-      // ✅ Single POST → backend handles MOM creation, status update & next meeting creation
-      const momRes = await axios.post(
+      console.log("📦 Final Payload:", payload);
+
+      const resp = await axios.post(
         `${BASE_URL}/mom/${meetingId}`,
         payload,
         axiosConfig
       );
 
-      console.log("✅ MOM Created Successfully:", momRes.data);
-      Swal.fire("Success", "MOM saved and meeting status updated!", "success");
+      Swal.fire(
+        "✅ Success",
+        "MOM saved, attendance recorded & next meeting scheduled!",
+        "success"
+      );
       navigate("/guide/meetings");
     } catch (err) {
-      console.error("❌ MOM creation error:", err);
-      const message =
+      console.error("❌ MOM submit error:", err);
+      Swal.fire(
+        "Error",
         err.response?.data?.message ||
-        err.response?.data ||
-        "Failed to complete meeting process.";
-      Swal.fire("Error", message.toString(), "error");
+          err.response?.data ||
+          "Failed to complete MOM process!",
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -117,7 +150,9 @@ export default function MON() {
         <h2 className="text-xl text-sky-300 font-semibold mb-2">
           Meeting: {meeting.title}
         </h2>
-        <p><b>Team:</b> {meeting.team?.teamName}</p>
+        <p>
+          <b>Team:</b> {meeting.team?.teamName}
+        </p>
         <p>
           <b>Date:</b>{" "}
           {new Date(meeting.meetingDateTime).toLocaleString("en-IN", {
@@ -125,11 +160,61 @@ export default function MON() {
             timeStyle: "short",
           })}
         </p>
-        <p><b>Mode:</b> {meeting.mode}</p>
-        <p><b>Status:</b> {meeting.status}</p>
+        <p>
+          <b>Mode:</b> {meeting.mode}
+        </p>
+        <p>
+          <b>Status:</b> {meeting.status}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+
+        {/* ✅ Attendance UI */}
+        <div className="bg-slate-800 p-6 rounded-2xl">
+          <h2 className="text-xl text-sky-400 mb-4">✅ Attendance</h2>
+
+          {attendance.map((m, i) => (
+            <div
+              key={m.userId}
+              className="flex justify-between items-center bg-slate-700 p-3 rounded mb-2"
+            >
+              <div>
+                <p className="font-semibold">{m.name}</p>
+                <p className="text-sm text-gray-300">{m.email}</p>
+              </div>
+
+              <select
+                className="bg-slate-600 p-2 rounded text-white"
+                value={m.present ? "1" : "0"}
+                onChange={(e) =>
+                  setAttendance((prev) => {
+                    const copy = [...prev];
+                    copy[i].present = e.target.value === "1";
+                    return copy;
+                  })
+                }
+              >
+                <option value="1">✅ Present</option>
+                <option value="0">❌ Absent</option>
+              </select>
+
+              <input
+                type="text"
+                placeholder="Remarks"
+                className="bg-slate-600 p-2 rounded text-white"
+                onChange={(e) =>
+                  setAttendance((prev) => {
+                    const copy = [...prev];
+                    copy[i].remarks = e.target.value;
+                    return copy;
+                  })
+                }
+              />
+            </div>
+          ))}
+        </div>
+
         {/* MOM Section */}
         <div className="bg-slate-800 p-6 rounded-2xl">
           <h2 className="text-xl text-sky-400 mb-4">🗒️ MOM Details</h2>
@@ -167,7 +252,7 @@ export default function MON() {
           />
         </div>
 
-        {/* Next Meeting Section */}
+        {/* Next Meeting */}
         <div className="bg-slate-800 p-6 rounded-2xl">
           <h2 className="text-xl text-sky-400 mb-4">📅 Next Meeting</h2>
           <input
