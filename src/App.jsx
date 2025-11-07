@@ -5,7 +5,7 @@ import ProtectedRoute from "./context/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
-import Login from "./pages/Login";
+import Login from "./pages/login";
 import Dashboard from "./pages/admin/Dashboard";
 import TeamManagement from "./pages/guide/TeamManagement";
 import "./App.css"
