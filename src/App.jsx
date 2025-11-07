@@ -146,8 +146,8 @@ function App() {
   }
 />
 
-<Route path="/guide/meeting/:meetingId" element={<MON />} />
-<Route path="/guide/viewmom/:meetingId" element={<ViewMom />} />
+<Route path="/guide/meeting/:meetingId" element={<ProtectedRoute role="GUIDE"><MON /></ProtectedRoute>} />
+<Route path="/guide/viewmom/:meetingId" element={<ProtectedRoute role="GUIDE"><ViewMom /></ProtectedRoute>} />
 
             {/* Add student routes similarly */}
             <Route path="/unauthorized" element={<Unauthorized />} />
