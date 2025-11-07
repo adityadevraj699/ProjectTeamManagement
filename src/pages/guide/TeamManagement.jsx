@@ -12,119 +12,164 @@ const TeamMemberInput = ({
   canRemove,
   branches,
   semesters,
-  sections
-}) => (
-  <div className="flex flex-col gap-2 mb-4 border-b border-gray-600 pb-3">
-    <div className="flex gap-2 items-center flex-wrap">
+  sections,
+  token,
+}) => {
+  // 🔍 Email check handler
+  const handleEmailBlur = async (email) => {
+    if (!email) return;
 
-      {/* 🧍‍♂️ Name Input */}
-      <input
-        type="text"
-        placeholder="Full Name"
-        value={member.name}
-        onChange={(e) => handleChange(index, "name", e.target.value)}
-        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-        required
-      />
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/users/check-email`,
+        {
+          params: { email },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      {/* 📧 Email Input */}
-      <input
-        type="email"
-        placeholder="Email"
-        value={member.email}
-        onChange={(e) => handleChange(index, "email", e.target.value)}
-        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-        required
-      />
+      const { exists, isStudent, data } = res.data;
 
-      {/* 🎓 Roll Number */}
-      <input
-        type="text"
-        placeholder="Roll Number"
-        value={member.rollNumber}
-        onChange={(e) => handleChange(index, "rollNumber", e.target.value)}
-        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-        required
-      />
+      if (!exists) return; // if new email, continue normally
 
-      {/* 🧩 Role */}
-      <input
-        type="text"
-        placeholder="Role"
-        value={member.role}
-        onChange={(e) => handleChange(index, "role", e.target.value)}
-        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-        required
-      />
+      if (isStudent) {
+        const result = await Swal.fire({
+          title: "Student Found",
+          text: "This student already exists. Do you want to autofill their details?",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Yes, Autofill",
+          cancelButtonText: "No",
+        });
 
-      {/* ⭐ Leader Checkbox */}
-      <label className="flex items-center gap-1">
+        if (result.isConfirmed && data) {
+          handleChange(index, "name", data.name);
+          handleChange(index, "rollNumber", data.rollNumber);
+          handleChange(index, "branchId", data.branchId);
+          handleChange(index, "semesterId", data.semesterId);
+          handleChange(index, "sectionId", data.sectionId);
+        }
+      } else {
+        Swal.fire("Info", "Email exists but not a Student role", "info");
+      }
+    } catch (err) {
+      Swal.fire("Error", "Failed to check email", "error");
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 mb-4 border-b border-gray-600 pb-3">
+      <div className="flex gap-2 items-center flex-wrap">
+        {/* 📧 Email Input */}
         <input
-          type="checkbox"
-          checked={member.isLeader}
-          onChange={(e) => handleChange(index, "isLeader", e.target.checked)}
+          type="email"
+          placeholder="Email"
+          value={member.email}
+          onChange={(e) => handleChange(index, "email", e.target.value)}
+          onBlur={(e) => handleEmailBlur(e.target.value)}
+          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          required
         />
-        Leader
-      </label>
 
-      {/* ❌ Remove Button */}
-      {canRemove && (
-        <button
-          type="button"
-          onClick={() => removeMember(index)}
-          className="bg-red-600 px-3 py-1 rounded hover:bg-red-700 transition-colors"
+        {/* 🧍‍♂️ Name Input */}
+        <input
+          type="text"
+          placeholder="Full Name"
+          value={member.name}
+          onChange={(e) => handleChange(index, "name", e.target.value)}
+          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          required
+        />
+
+        {/* 🎓 Roll Number */}
+        <input
+          type="text"
+          placeholder="Roll Number"
+          value={member.rollNumber}
+          onChange={(e) => handleChange(index, "rollNumber", e.target.value)}
+          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          required
+        />
+
+        {/* 🧩 Role */}
+        <input
+          type="text"
+          placeholder="Role"
+          value={member.role}
+          onChange={(e) => handleChange(index, "role", e.target.value)}
+          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          required
+        />
+
+        {/* ⭐ Leader Checkbox */}
+        <label className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={member.isLeader}
+            onChange={(e) => handleChange(index, "isLeader", e.target.checked)}
+          />
+          Leader
+        </label>
+
+        {/* ❌ Remove Button */}
+        {canRemove && (
+          <button
+            type="button"
+            onClick={() => removeMember(index)}
+            className="bg-red-600 px-3 py-1 rounded hover:bg-red-700 transition-colors"
+          >
+            X
+          </button>
+        )}
+      </div>
+
+      {/* 🔽 Dropdowns for Branch, Semester, Section */}
+      <div className="flex gap-2 flex-wrap">
+        <select
+          value={member.branchId || ""}
+          onChange={(e) => handleChange(index, "branchId", e.target.value)}
+          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          required
         >
-          X
-        </button>
-      )}
+          <option value="">Select Branch</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.branchName}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={member.semesterId || ""}
+          onChange={(e) => handleChange(index, "semesterId", e.target.value)}
+          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          required
+        >
+          <option value="">Select Semester</option>
+          {semesters.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.semesterName}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={member.sectionId || ""}
+          onChange={(e) => handleChange(index, "sectionId", e.target.value)}
+          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          required
+        >
+          <option value="">Select Section</option>
+          {sections.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.sectionName}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
-
-    {/* 🔽 Dropdowns for Branch, Semester, Section */}
-    <div className="flex gap-2 flex-wrap">
-      <select
-        value={member.branchId || ""}
-        onChange={(e) => handleChange(index, "branchId", e.target.value)}
-        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-        required
-      >
-        <option value="">Select Branch</option>
-        {branches.map((b) => (
-          <option key={b.id} value={b.id}>
-            {b.branchName}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={member.semesterId || ""}
-        onChange={(e) => handleChange(index, "semesterId", e.target.value)}
-        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-        required
-      >
-        <option value="">Select Semester</option>
-        {semesters.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.semesterName}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={member.sectionId || ""}
-        onChange={(e) => handleChange(index, "sectionId", e.target.value)}
-        className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-        required
-      >
-        <option value="">Select Section</option>
-        {sections.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.sectionName}
-          </option>
-        ))}
-      </select>
-    </div>
-  </div>
-);
+  );
+};
 
 // ✅ Main Team Management Component
 export default function TeamManagement() {
@@ -156,6 +201,7 @@ export default function TeamManagement() {
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
 
+  // 📦 Load Branch, Semester, Section
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -243,7 +289,11 @@ export default function TeamManagement() {
     };
 
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/guide/teams`, payload, axiosConfig);
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/guide/teams`,
+        payload,
+        axiosConfig
+      );
       Swal.fire("Success", "Project & Team created!", "success");
       setProject({
         title: "",
@@ -352,6 +402,7 @@ export default function TeamManagement() {
             branches={branches}
             semesters={semesters}
             sections={sections}
+            token={token}
           />
         ))}
 
