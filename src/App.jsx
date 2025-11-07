@@ -12,7 +12,7 @@ import "./App.css"
 import Course from "./pages/admin/Course";
 import Batch from "./pages/admin/Batch";
 import Semester from "./pages/admin/Semester";
-import Section from "./pages/admin/section";
+import Section from "./pages/admin/Section";
 import Teacher from "./pages/admin/Teacher";
 import Team from "./pages/guide/Team";
 import Student from "./pages/guide/Student";
