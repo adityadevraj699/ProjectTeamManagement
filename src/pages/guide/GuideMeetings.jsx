@@ -3,26 +3,24 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
+// 🔄 Reusable loader overlay component
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  </div>
+);
 
 export default function GuideMeetings() {
-
   const navigate = useNavigate();
 
-// For creating MOM (Mark Done)
-const handleMarkDone = (meetingId) => {
-  navigate(`/guide/meeting/${meetingId}`);
-};
-
-// For viewing existing MOM
-const handleViewMom = (meetingId) => {
-  navigate(`/guide/viewmom/${meetingId}`);
-};
-
-
-
+  // 🌀 State
   const [teams, setTeams] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [loading, setLoading] = useState(true); // Page loader
+  const [actionLoading, setActionLoading] = useState(false); // Action loader
+
   const [form, setForm] = useState({
     title: "",
     agenda: "",
@@ -34,51 +32,51 @@ const handleViewMom = (meetingId) => {
 
   const token = localStorage.getItem("token");
   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-
   const axiosConfig = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   };
+
+  // ➤ Navigation handlers
+  const handleMarkDone = (meetingId) => navigate(`/guide/meeting/${meetingId}`);
+  const handleViewMom = (meetingId) => navigate(`/guide/viewmom/${meetingId}`);
 
   // ✅ Fetch Teams
   const fetchTeams = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(`${BASE_URL}/guide/teams/mine`, axiosConfig);
-      console.log("Teams fetched:", res.data);
       setTeams(res.data || []);
     } catch (err) {
       console.error("Fetch Teams Error:", err);
       Swal.fire(
         "Error",
-        err.response?.data?.message ||
-          String(err.response?.data) ||
-          "Failed to load teams",
+        err.response?.data?.message || "Failed to load teams",
         "error"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
   // ✅ Fetch Meetings by Team
   const fetchMeetings = async (teamId) => {
     if (!teamId) return;
+    setActionLoading(true);
     try {
       const res = await axios.get(
         `${BASE_URL}/guide/meetings/team/${Number(teamId)}`,
         axiosConfig
       );
-      console.log("Meetings fetched:", res.data);
       setMeetings(res.data || []);
     } catch (err) {
       console.error("Fetch Meetings Error:", err);
       Swal.fire(
         "Error",
-        err.response?.data?.message ||
-          String(err.response?.data) ||
-          "Failed to load meetings",
+        err.response?.data?.message || "Failed to load meetings",
         "error"
       );
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -90,6 +88,7 @@ const handleViewMom = (meetingId) => {
     if (selectedTeamId) fetchMeetings(selectedTeamId);
   }, [selectedTeamId]);
 
+  // ✅ Input handler
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -103,6 +102,7 @@ const handleViewMom = (meetingId) => {
       return;
     }
 
+    setActionLoading(true);
     try {
       await axios.post(
         `${BASE_URL}/guide/meetings/create/${Number(selectedTeamId)}`,
@@ -123,11 +123,11 @@ const handleViewMom = (meetingId) => {
       console.error("Create Meeting Error:", err);
       Swal.fire(
         "Error",
-        err.response?.data?.message ||
-          String(err.response?.data) ||
-          "Failed to create meeting",
+        err.response?.data?.message || "Failed to create meeting",
         "error"
       );
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -141,21 +141,22 @@ const handleViewMom = (meetingId) => {
       confirmButtonText: "Yes, delete it!",
     });
 
-    if (confirm.isConfirmed) {
-      try {
-        await axios.delete(`${BASE_URL}/guide/meetings/${id}`, axiosConfig);
-        Swal.fire("Deleted!", "Meeting deleted successfully.", "success");
-        fetchMeetings(selectedTeamId);
-      } catch (err) {
-        console.error("Delete Meeting Error:", err);
-        Swal.fire(
-          "Error",
-          err.response?.data?.message ||
-            String(err.response?.data) ||
-            "Failed to delete meeting",
-          "error"
-        );
-      }
+    if (!confirm.isConfirmed) return;
+
+    setActionLoading(true);
+    try {
+      await axios.delete(`${BASE_URL}/guide/meetings/${id}`, axiosConfig);
+      Swal.fire("Deleted!", "Meeting deleted successfully.", "success");
+      fetchMeetings(selectedTeamId);
+    } catch (err) {
+      console.error("Delete Meeting Error:", err);
+      Swal.fire(
+        "Error",
+        err.response?.data?.message || "Failed to delete meeting",
+        "error"
+      );
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -183,42 +184,21 @@ const handleViewMom = (meetingId) => {
     const { value: formValues } = await Swal.fire({
       title: "Edit Meeting",
       html: `
-        <input id="title" class="swal2-input" placeholder="Title" value="${String(
-          meeting.title || ""
-        )}">
-        <input id="agenda" class="swal2-input" placeholder="Agenda" value="${String(
-          meeting.agenda || ""
-        )}">
-        <input id="datetime" type="datetime-local" class="swal2-input" value="${String(
-          meeting.meetingDateTime?.slice(0, 16) || ""
-        )}">
-        <input id="duration" type="number" class="swal2-input" placeholder="Duration (min)" value="${String(
-          meeting.durationMinutes || ""
-        )}">
-        <input id="location" class="swal2-input" placeholder="Location" value="${String(
-          meeting.location || ""
-        )}">
+        <input id="title" class="swal2-input" placeholder="Title" value="${String(meeting.title || "")}">
+        <input id="agenda" class="swal2-input" placeholder="Agenda" value="${String(meeting.agenda || "")}">
+        <input id="datetime" type="datetime-local" class="swal2-input" value="${String(meeting.meetingDateTime?.slice(0, 16) || "")}">
+        <input id="duration" type="number" class="swal2-input" placeholder="Duration (min)" value="${String(meeting.durationMinutes || "")}">
+        <input id="location" class="swal2-input" placeholder="Location" value="${String(meeting.location || "")}">
         <select id="mode" class="swal2-select">
-          <option value="ONLINE" ${
-            meeting.mode === "ONLINE" ? "selected" : ""
-          }>Online</option>
-          <option value="OFFLINE" ${
-            meeting.mode === "OFFLINE" ? "selected" : ""
-          }>Offline</option>
+          <option value="ONLINE" ${meeting.mode === "ONLINE" ? "selected" : ""}>Online</option>
+          <option value="OFFLINE" ${meeting.mode === "OFFLINE" ? "selected" : ""}>Offline</option>
         </select>
         <select id="status" class="swal2-select">
-          <option value="SCHEDULED" ${
-            meeting.status === "SCHEDULED" ? "selected" : ""
-          }>Scheduled</option>
-          <option value="COMPLETED" ${
-            meeting.status === "COMPLETED" ? "selected" : ""
-          }>Completed</option>
-          <option value="CANCELLED" ${
-            meeting.status === "CANCELLED" ? "selected" : ""
-          }>Cancelled</option>
+          <option value="SCHEDULED" ${meeting.status === "SCHEDULED" ? "selected" : ""}>Scheduled</option>
+          <option value="COMPLETED" ${meeting.status === "COMPLETED" ? "selected" : ""}>Completed</option>
+          <option value="CANCELLED" ${meeting.status === "CANCELLED" ? "selected" : ""}>Cancelled</option>
         </select>
       `,
-      focusConfirm: false,
       showCancelButton: true,
       preConfirm: () => ({
         title: document.getElementById("title").value,
@@ -231,32 +211,37 @@ const handleViewMom = (meetingId) => {
       }),
     });
 
-    if (formValues) {
-      try {
-        await axios.put(
-          `${BASE_URL}/guide/meetings/${meeting.id}`,
-          formValues,
-          axiosConfig
-        );
-        Swal.fire("Updated!", "Meeting updated successfully.", "success");
-        fetchMeetings(selectedTeamId);
-      } catch (err) {
-        console.error("Edit Meeting Error:", err);
-        Swal.fire(
-          "Error",
-          err.response?.data?.message ||
-            String(err.response?.data) ||
-            "Failed to update meeting",
-          "error"
-        );
-      }
+    if (!formValues) return;
+
+    setActionLoading(true);
+    try {
+      await axios.put(
+        `${BASE_URL}/guide/meetings/${meeting.id}`,
+        formValues,
+        axiosConfig
+      );
+      Swal.fire("Updated!", "Meeting updated successfully.", "success");
+      fetchMeetings(selectedTeamId);
+    } catch (err) {
+      console.error("Edit Meeting Error:", err);
+      Swal.fire(
+        "Error",
+        err.response?.data?.message || "Failed to update meeting",
+        "error"
+      );
+    } finally {
+      setActionLoading(false);
     }
   };
 
+  // ✅ Show page loader
+  if (loading) return <LoaderOverlay message="Loading Teams and Meetings..." />;
 
   // ✅ JSX
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100 p-8 relative">
+      {actionLoading && <LoaderOverlay message="Processing Request..." />}
+
       <h1 className="text-3xl font-bold text-sky-400 mb-6">📅 Meeting Scheduler</h1>
 
       {/* ✅ Team Selector */}
@@ -382,23 +367,21 @@ const handleViewMom = (meetingId) => {
                       >
                         Edit
                       </button>
-                   {m.meetingMinutes ? (
-  <button
-    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white"
-    onClick={() => handleViewMom(m.id)}
-  >
-    View MOM
-  </button>
-) : (
-  <button
-    onClick={() => handleMarkDone(m.id)}
-    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white"
-  >
-    Mark Done
-  </button>
-)}
-
-
+                      {m.meetingMinutes ? (
+                        <button
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white"
+                          onClick={() => handleViewMom(m.id)}
+                        >
+                          View MOM
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleMarkDone(m.id)}
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white"
+                        >
+                          Mark Done
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(m.id)}
                         className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white"

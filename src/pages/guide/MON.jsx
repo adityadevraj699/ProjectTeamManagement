@@ -3,12 +3,21 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 
+// 🔄 Reusable loader overlay component
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  </div>
+);
+
 export default function MON() {
   const { meetingId } = useParams();
   const navigate = useNavigate();
 
   const [meeting, setMeeting] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true); // ✅ Page Loader
+  const [actionLoading, setActionLoading] = useState(false); // ✅ Action Loader
 
   // MOM form
   const [form, setForm] = useState({
@@ -44,12 +53,12 @@ export default function MON() {
   // ✅ Fetch meeting details
   useEffect(() => {
     const fetchMeeting = async () => {
+      setPageLoading(true);
       try {
         const res = await axios.get(
           `${BASE_URL}/guide/meetings/${meetingId}`,
           axiosConfig
         );
-        console.log("✅ Meeting details fetched:", res.data);
         setMeeting(res.data);
 
         // ✅ create attendance list
@@ -66,6 +75,8 @@ export default function MON() {
       } catch (err) {
         console.error("❌ Error fetching meeting:", err);
         Swal.fire("Error", "Failed to load meeting details.", "error");
+      } finally {
+        setPageLoading(false);
       }
     };
 
@@ -81,12 +92,12 @@ export default function MON() {
   // ✅ Submit MOM + Attendance + Next Meeting
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (loading) return;
-    setLoading(true);
+    if (actionLoading) return;
+    setActionLoading(true);
 
     if (!form.summary || !form.actionItems || !form.nextSteps) {
       Swal.fire("Warning", "Please fill all required MOM fields!", "warning");
-      setLoading(false);
+      setActionLoading(false);
       return;
     }
 
@@ -104,13 +115,7 @@ export default function MON() {
             : null,
       };
 
-      console.log("📦 Final Payload:", payload);
-
-      const resp = await axios.post(
-        `${BASE_URL}/mom/${meetingId}`,
-        payload,
-        axiosConfig
-      );
+      await axios.post(`${BASE_URL}/mom/${meetingId}`, payload, axiosConfig);
 
       Swal.fire(
         "✅ Success",
@@ -128,19 +133,24 @@ export default function MON() {
         "error"
       );
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
+
+  // ✅ Show page loader
+  if (pageLoading) return <LoaderOverlay message="Loading Meeting Details..." />;
 
   if (!meeting)
     return (
       <div className="p-10 text-center text-gray-400">
-        Loading meeting details...
+        Meeting not found or failed to load.
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-100 p-8">
+    <div className="min-h-screen bg-slate-900 text-gray-100 p-8 relative">
+      {actionLoading && <LoaderOverlay message="Processing MOM Submission..." />}
+
       <h1 className="text-3xl font-bold text-sky-400 mb-4">
         📝 Meeting Minutes (MOM)
       </h1>
@@ -169,7 +179,6 @@ export default function MON() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-
         {/* ✅ Attendance UI */}
         <div className="bg-slate-800 p-6 rounded-2xl">
           <h2 className="text-xl text-sky-400 mb-4">✅ Attendance</h2>
@@ -307,12 +316,12 @@ export default function MON() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={actionLoading}
           className={`px-6 py-3 ${
-            loading ? "bg-slate-500" : "bg-sky-600 hover:bg-sky-700"
+            actionLoading ? "bg-slate-500" : "bg-sky-600 hover:bg-sky-700"
           } text-white font-semibold rounded-lg`}
         >
-          {loading ? "Processing..." : "✅ Submit & Schedule Next Meeting"}
+          {actionLoading ? "Processing..." : "✅ Submit & Schedule Next Meeting"}
         </button>
       </form>
     </div>

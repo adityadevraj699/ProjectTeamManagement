@@ -2,6 +2,14 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 
+// 🔄 Reusable Loader Overlay Component
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  </div>
+);
+
 export default function Student() {
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState("");
@@ -19,7 +27,9 @@ export default function Student() {
     role: "",
     leader: false,
   });
-  const [loading, setLoading] = useState(true);
+
+  const [loading, setLoading] = useState(true); // Page-level loader
+  const [actionLoading, setActionLoading] = useState(false); // Action loader
 
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
@@ -33,10 +43,6 @@ export default function Student() {
       Swal.fire("Error", "Failed to load teams", "error");
     }
   };
-
-
- 
-
 
   // ✅ Fetch base academic data
   const fetchBaseData = async () => {
@@ -59,11 +65,14 @@ export default function Student() {
   // ✅ Fetch members for selected team
   const fetchMembers = async (teamId) => {
     if (!teamId) return;
+    setActionLoading(true);
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/teams/${teamId}/members`, axiosConfig);
       setMembers(res.data || []);
     } catch {
       Swal.fire("Error", "Failed to load team members", "error");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -108,19 +117,17 @@ export default function Student() {
     }
   };
 
-  // ✅ Add member (leader is always false)
+  // ✅ Add member
   const handleAddMember = async () => {
     const { email, role } = newMember;
     if (!selectedTeam) return Swal.fire("Error", "Select a team first", "error");
     if (!email || !role) return Swal.fire("Error", "Email and Role required", "error");
 
+    setActionLoading(true);
     try {
       await axios.post(
         `${import.meta.env.VITE_API_URL}/guide/teams/${selectedTeam}/members`,
-        {
-          ...newMember,
-          leader: false, // Always false on add
-        },
+        { ...newMember, leader: false },
         axiosConfig
       );
       Swal.fire("Success", "Member added successfully", "success");
@@ -138,6 +145,8 @@ export default function Student() {
     } catch (err) {
       const msg = err.response?.data?.message || "Failed to add member";
       Swal.fire("Error", msg, "error");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -149,96 +158,103 @@ export default function Student() {
       icon: "warning",
       showCancelButton: true,
     });
+
     if (confirm.isConfirmed) {
+      setActionLoading(true);
       try {
         await axios.delete(`${import.meta.env.VITE_API_URL}/guide/teams/members/${memberId}`, axiosConfig);
         Swal.fire("Deleted!", "Member removed successfully", "success");
         fetchMembers(selectedTeam);
       } catch {
         Swal.fire("Error", "Failed to delete member", "error");
+      } finally {
+        setActionLoading(false);
       }
     }
   };
 
- // ✅ Update role/leader dynamically
-const handleUpdate = async (memberId, role, leader) => {
-  try {
-    await axios.put(
-      `${import.meta.env.VITE_API_URL}/guide/teams/members/${memberId}`,
-      null,
-      { ...axiosConfig, params: { role, leader } }
-    );
+  // ✅ Update role or leader dynamically
+  const handleUpdate = async (memberId, role, leader) => {
+    setActionLoading(true);
+    try {
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/guide/teams/members/${memberId}`,
+        null,
+        { ...axiosConfig, params: { role, leader } }
+      );
 
-    // ✅ Smart message logic
-    let message = "Member updated successfully!";
-    if (leader === true) {
-      message = "Member promoted to Leader!";
-    } else if (leader === false) {
-      message = "Member removed from Leader role.";
+      let message = "Member updated successfully!";
+      if (leader === true) message = "Member promoted to Leader!";
+      else if (leader === false) message = "Member removed from Leader role.";
+
+      Swal.fire({
+        icon: "success",
+        title: "Updated",
+        text: message,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      fetchMembers(selectedTeam);
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data ||
+        "Failed to update member";
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: msg,
+      });
+    } finally {
+      setActionLoading(false);
     }
+  };
 
-    Swal.fire({
-      icon: "success",
-      title: "Updated",
-      text: message,
-      timer: 2000,
-      showConfirmButton: false,
-    });
+  // ✅ Save role updates
+  const handleSaveRole = async (memberId, role) => {
+    if (!role || role.trim() === "")
+      return Swal.fire("Error", "Role cannot be empty", "error");
 
-    fetchMembers(selectedTeam);
-  } catch (err) {
-    const msg =
-      err.response?.data?.message ||
-      err.response?.data ||
-      "Failed to update member";
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: msg,
-    });
-  }
-};
+    setActionLoading(true);
+    try {
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/guide/teams/members/${memberId}`,
+        null,
+        { ...axiosConfig, params: { role } }
+      );
 
+      Swal.fire({
+        icon: "success",
+        title: "Updated",
+        text: "Member role updated successfully!",
+        timer: 1800,
+        showConfirmButton: false,
+      });
 
-  // ✅ Save updated role to backend
-const handleSaveRole = async (memberId, role) => {
-  if (!role || role.trim() === "")
-    return Swal.fire("Error", "Role cannot be empty", "error");
+      fetchMembers(selectedTeam);
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data ||
+        "Failed to update member role";
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: msg,
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-  try {
-    await axios.put(
-      `${import.meta.env.VITE_API_URL}/guide/teams/members/${memberId}`,
-      null,
-      { ...axiosConfig, params: { role } }
-    );
-
-    Swal.fire({
-      icon: "success",
-      title: "Updated",
-      text: "Member role updated successfully!",
-      timer: 1800,
-      showConfirmButton: false,
-    });
-
-    fetchMembers(selectedTeam);
-  } catch (err) {
-    const msg =
-      err.response?.data?.message ||
-      err.response?.data ||
-      "Failed to update member role";
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: msg,
-    });
-  }
-};
-
-
-  if (loading) return <p className="text-white">Loading...</p>;
+  // ✅ Show main loader until base data loads
+  if (loading) return <LoaderOverlay message="Loading Team Data..." />;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-100 p-8">
+    <div className="min-h-screen bg-slate-900 text-gray-100 p-8 relative">
+      {actionLoading && <LoaderOverlay message="Processing Request..." />}
+
       <h1 className="text-3xl font-bold text-sky-400 mb-6">Manage Team Members</h1>
 
       {/* Select Team */}
@@ -264,7 +280,6 @@ const handleSaveRole = async (memberId, role) => {
           <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-sky-700/30 mb-6">
             <h2 className="text-xl font-semibold text-sky-300 mb-4">Add New Member</h2>
 
-            {/* Email, Name, Roll */}
             <div className="flex flex-wrap gap-3 mb-3">
               <input
                 type="email"
@@ -299,7 +314,9 @@ const handleSaveRole = async (memberId, role) => {
               >
                 <option value="">Select Branch</option>
                 {branches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.branchName}</option>
+                  <option key={b.id} value={b.id}>
+                    {b.branchName}
+                  </option>
                 ))}
               </select>
 
@@ -310,7 +327,9 @@ const handleSaveRole = async (memberId, role) => {
               >
                 <option value="">Select Semester</option>
                 {semesters.map((s) => (
-                  <option key={s.id} value={s.id}>{s.semesterName}</option>
+                  <option key={s.id} value={s.id}>
+                    {s.semesterName}
+                  </option>
                 ))}
               </select>
 
@@ -321,12 +340,14 @@ const handleSaveRole = async (memberId, role) => {
               >
                 <option value="">Select Section</option>
                 {sections.map((s) => (
-                  <option key={s.id} value={s.id}>{s.sectionName}</option>
+                  <option key={s.id} value={s.id}>
+                    {s.sectionName}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Role */}
+            {/* Role Input */}
             <div className="flex flex-wrap gap-3 items-center">
               <input
                 type="text"
@@ -361,107 +382,102 @@ const handleSaveRole = async (memberId, role) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
-  {members.length ? (
-    members.map((m) => (
-      <tr key={m.id}>
-        <td className="px-4 py-2">{m.user.name}</td>
-        <td className="px-4 py-2 text-sky-400">{m.user.email}</td>
-        <td className="px-4 py-2">{m.user.branch || "N/A"}</td>
-        <td className="px-4 py-2">{m.user.semester || "N/A"}</td>
-        <td className="px-4 py-2">{m.user.section || "N/A"}</td>
+                {members.length ? (
+                  members.map((m) => (
+                    <tr key={m.id}>
+                      <td className="px-4 py-2">{m.user.name}</td>
+                      <td className="px-4 py-2 text-sky-400">{m.user.email}</td>
+                      <td className="px-4 py-2">{m.user.branch || "N/A"}</td>
+                      <td className="px-4 py-2">{m.user.semester || "N/A"}</td>
+                      <td className="px-4 py-2">{m.user.section || "N/A"}</td>
 
-        {/* Editable Role Column */}
-        <td className="px-4 py-2">
-          {m.editing ? (
-            <input
-              type="text"
-              value={m.role}
-              onChange={(e) =>
-                setMembers((prev) =>
-                  prev.map((mem) =>
-                    mem.id === m.id ? { ...mem, role: e.target.value } : mem
-                  )
-                )
-              }
-              className="bg-slate-700 text-white px-2 py-1 rounded border border-slate-600"
-            />
-          ) : (
-            m.role
-          )}
-        </td>
+                      <td className="px-4 py-2">
+                        {m.editing ? (
+                          <input
+                            type="text"
+                            value={m.role}
+                            onChange={(e) =>
+                              setMembers((prev) =>
+                                prev.map((mem) =>
+                                  mem.id === m.id ? { ...mem, role: e.target.value } : mem
+                                )
+                              )
+                            }
+                            className="bg-slate-700 text-white px-2 py-1 rounded border border-slate-600"
+                          />
+                        ) : (
+                          m.role
+                        )}
+                      </td>
 
-        {/* ✅ Stylish Toggle Switch for Leader */}
-        <td className="px-4 py-2 text-center">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              className="sr-only peer"
-              checked={m.leader}
-              onChange={() => handleUpdate(m.id, m.role, !m.leader)}
-            />
-            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
-          </label>
-        </td>
+                      <td className="px-4 py-2 text-center">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={m.leader}
+                            onChange={() => handleUpdate(m.id, m.role, !m.leader)}
+                          />
+                          <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                        </label>
+                      </td>
 
-        {/* Action Buttons */}
-        <td className="px-4 py-2 space-x-2">
-          {m.editing ? (
-            <>
-              <button
-                onClick={() => handleSaveRole(m.id, m.role)}
-                className="px-3 py-1 bg-green-600 rounded hover:bg-green-700"
-              >
-                Save
-              </button>
-              <button
-                onClick={() =>
-                  setMembers((prev) =>
-                    prev.map((mem) =>
-                      mem.id === m.id ? { ...mem, editing: false } : mem
-                    )
-                  )
-                }
-                className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-700"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() =>
-                  setMembers((prev) =>
-                    prev.map((mem) =>
-                      mem.id === m.id ? { ...mem, editing: true } : mem
-                    )
-                  )
-                }
-                className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-700"
-              >
-                Edit Role
-              </button>
+                      <td className="px-4 py-2 space-x-2">
+                        {m.editing ? (
+                          <>
+                            <button
+                              onClick={() => handleSaveRole(m.id, m.role)}
+                              className="px-3 py-1 bg-green-600 rounded hover:bg-green-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() =>
+                                setMembers((prev) =>
+                                  prev.map((mem) =>
+                                    mem.id === m.id ? { ...mem, editing: false } : mem
+                                  )
+                                )
+                              }
+                              className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-700"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() =>
+                                setMembers((prev) =>
+                                  prev.map((mem) =>
+                                    mem.id === m.id ? { ...mem, editing: true } : mem
+                                  )
+                                )
+                              }
+                              className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-700"
+                            >
+                              Edit Role
+                            </button>
 
-              <button
-                onClick={() => handleDeleteMember(m.id)}
-                className="px-3 py-1 bg-red-600 rounded hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </>
-          )}
-        </td>
-      </tr>
-    ))
-  ) : (
-    <tr>
-      <td colSpan="8" className="text-center py-4 text-gray-400">
-        No members in this team yet.
-      </td>
-    </tr>
-  )}
-</tbody>
-
-
+                            <button
+                              onClick={() => handleDeleteMember(m.id)}
+                              className="px-3 py-1 bg-red-600 rounded hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" className="text-center py-4 text-gray-400">
+                      No members in this team yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
             </table>
           </div>
         </>

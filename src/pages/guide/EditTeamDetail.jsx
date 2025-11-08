@@ -3,6 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 
+// 🔄 Loader Overlay Component (reusable)
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  </div>
+);
+
 export default function EditTeamDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -19,19 +27,20 @@ export default function EditTeamDetail() {
     status: "ONGOING",
   });
 
-  useEffect(() => {
-    fetchTeamDetail();
-  }, [id]);
+  // ✅ Loading states
+  const [loading, setLoading] = useState(true); // For fetching details
+  const [actionLoading, setActionLoading] = useState(false); // For saving changes
 
+  // ✅ Fetch Team Details
   const fetchTeamDetail = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/guide/teams/details/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+
       const data = res.data;
       setForm({
         teamId: data.teamId,
@@ -47,25 +56,43 @@ export default function EditTeamDetail() {
     } catch (err) {
       console.error(err);
       Swal.fire("Error", "Failed to fetch team details", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchTeamDetail();
+  }, [id]);
+
+  // ✅ Submit Updated Details
   const handleSubmit = async () => {
+    setActionLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`${import.meta.env.VITE_API_URL}/guide/teams/update`, form, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/guide/teams/update`,
+        form,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
       Swal.fire("✅ Success", "Team updated successfully!", "success");
       navigate("/guide/team");
     } catch (err) {
       console.error(err);
       Swal.fire("Error", err.response?.data || "Update failed", "error");
+    } finally {
+      setActionLoading(false);
     }
   };
 
+  // ✅ Show Page Loader
+  if (loading) return <LoaderOverlay message="Loading Team Details..." />;
+
   return (
-    <div className="min-h-screen bg-[#0b1a2b] text-white py-10">
+    <div className="min-h-screen bg-[#0b1a2b] text-white py-10 relative">
+      {actionLoading && <LoaderOverlay message="Saving Changes..." />}
+
       <div className="max-w-5xl mx-auto bg-[#13233a] p-10 rounded-3xl shadow-2xl border border-gray-700">
         <h2 className="text-4xl font-bold mb-8 text-sky-400 border-b border-gray-600 pb-3 text-center">
           ✏️ Edit Team & Project Details
@@ -174,7 +201,7 @@ export default function EditTeamDetail() {
           </div>
         </div>
 
-        {/* Save Button */}
+        {/* Buttons */}
         <div className="flex justify-center mt-10 gap-4">
           <button
             onClick={handleSubmit}
@@ -183,7 +210,7 @@ export default function EditTeamDetail() {
             💾 Save Changes
           </button>
           <button
-            onClick={() => navigate("/guide/team")}
+            onClick={() => navigate('/guide/team')}
             className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-10 py-3 rounded-xl shadow-lg transition-all"
           >
             🔙 Cancel
