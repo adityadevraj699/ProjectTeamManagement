@@ -3,11 +3,21 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 
+// 🔄 Reusable Loader Overlay Component
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  </div>
+);
+
 export default function TeamDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false); // ✅ New loader for status update
   const [newStatus, setNewStatus] = useState("PENDING");
 
   const token = localStorage.getItem("token");
@@ -24,10 +34,10 @@ export default function TeamDetail() {
       );
       setTeam(res.data);
       setNewStatus(res.data.status);
-      setLoading(false);
     } catch (err) {
       console.error(err);
       Swal.fire("Error", "Failed to fetch team details", "error");
+    } finally {
       setLoading(false);
     }
   };
@@ -36,12 +46,14 @@ export default function TeamDetail() {
     fetchTeamDetail();
   }, [id]);
 
-  // ✅ Update project status
+  // ✅ Update project status with loader
   const handleStatusChange = async () => {
     if (!team?.projectId) {
       Swal.fire("Error", "Project ID missing!", "error");
       return;
     }
+
+    setUpdating(true); // show overlay
 
     try {
       const res = await axios.put(
@@ -55,19 +67,15 @@ export default function TeamDetail() {
     } catch (err) {
       console.error("Status update error:", err);
       Swal.fire("Error", err.response?.data || "Forbidden", "error");
+    } finally {
+      setUpdating(false); // hide overlay
     }
   };
 
-  // ✅ Loading state
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64 text-gray-400">
-        Loading team details...
-      </div>
-    );
-  }
+  // ✅ Page-level loader
+  if (loading) return <LoaderOverlay message="Loading Team Details..." />;
 
-  // ✅ No team found
+  // ✅ If no team found
   if (!team) {
     return (
       <div className="text-center text-gray-400 mt-10">Team not found.</div>
@@ -75,7 +83,9 @@ export default function TeamDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100 p-8 relative">
+      {updating && <LoaderOverlay message="Updating Status..." />}
+
       <button
         onClick={() => navigate(-1)}
         className="mb-6 px-5 py-2 bg-sky-600 hover:bg-sky-700 rounded-lg text-white transition-all"
@@ -174,7 +184,7 @@ export default function TeamDetail() {
               <tr>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Email</th>
-                 <th className="px-4 py-3">Roll No</th>
+                <th className="px-4 py-3">Roll No</th>
                 <th className="px-4 py-3">Course</th>
                 <th className="px-4 py-3">Branch</th>
                 <th className="px-4 py-3">Section</th>
@@ -192,29 +202,33 @@ export default function TeamDetail() {
                 >
                   <td className="px-4 py-2">{m.name}</td>
                   <td className="px-4 py-2 text-sky-400">{m.email}</td>
-                    <td className="px-4 py-2">{m.rollNumber || "N/A"}</td>
+                  <td className="px-4 py-2">{m.rollNumber || "N/A"}</td>
                   <td className="px-4 py-2">{m.course}</td>
                   <td className="px-4 py-2">{m.branch}</td>
                   <td className="px-4 py-2">{m.section}</td>
                   <td className="px-4 py-2">{m.semester}</td>
                   <td className="px-4 py-2">{m.role}</td>
                   <td className="px-4 py-2">
-  {m.leader ? (
-    <span className="text-green-400 font-semibold">✔ Leader</span>
-  ) : (
-    <span className="text-yellow-400 font-semibold">Member</span>
-  )}
-</td>
-
+                    {m.leader ? (
+                      <span className="text-green-400 font-semibold">
+                        ✔ Leader
+                      </span>
+                    ) : (
+                      <span className="text-yellow-400 font-semibold">
+                        Member
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2">
-  <button
-    onClick={() => navigate(`/profile/${encodeURIComponent(m.email)}`)}
-    className="px-3 py-1 bg-sky-600 hover:bg-sky-700 rounded text-white transition-all"
-  >
-    View
-  </button>
-</td>
-
+                    <button
+                      onClick={() =>
+                        navigate(`/profile/${encodeURIComponent(m.email)}`)
+                      }
+                      className="px-3 py-1 bg-sky-600 hover:bg-sky-700 rounded text-white transition-all"
+                    >
+                      View
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

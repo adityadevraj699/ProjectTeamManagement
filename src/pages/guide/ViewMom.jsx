@@ -3,11 +3,22 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 
+// 🔄 Reusable Loader Overlay
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  </div>
+);
+
 export default function ViewMom() {
   const { meetingId } = useParams();
   const navigate = useNavigate();
+
   const [meeting, setMeeting] = useState(null);
   const [editable, setEditable] = useState(false);
+  const [loading, setLoading] = useState(true); // ✅ Page loader
+  const [actionLoading, setActionLoading] = useState(false); // ✅ Action loader
   const [updatedMom, setUpdatedMom] = useState({
     summary: "",
     actionItems: "",
@@ -15,35 +26,11 @@ export default function ViewMom() {
     remarks: "",
   });
 
-
-
-const handleDownloadPDF = async (meetingId) => {
-  try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/mom/${meetingId}/download`, // ✅ FIXED URL
-      {
-        responseType: "blob", // important for file downloads
-      }
-    );
-    console.log("Download response:"); // ✅ Debug log
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `MOM_${meetingId}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove(); // ✅ Clean up
-  } catch (error) {
-    console.error("Download failed:", error);
-  }
-};
-
-
-
+  // ✅ Fetch MOM details
   useEffect(() => {
-    axios
-      .get(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`)
-      .then((res) => {
+    const fetchMom = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`);
         setMeeting(res.data);
         setUpdatedMom({
           summary: res.data.meetingMinutes?.summary || "",
@@ -51,22 +38,41 @@ const handleDownloadPDF = async (meetingId) => {
           nextSteps: res.data.meetingMinutes?.nextSteps || "",
           remarks: res.data.meetingMinutes?.remarks || "",
         });
-      })
-      .catch((err) => console.error("Error fetching MOM:", err));
+      } catch (err) {
+        console.error("Error fetching MOM:", err);
+        Swal.fire("Error", "Failed to load MOM details.", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMom();
   }, [meetingId]);
 
-  if (!meeting)
-    return (
-      <div className="min-h-screen flex justify-center items-center bg-slate-900 text-sky-300">
-        Loading MOM...
-      </div>
-    );
+  // ✅ Download MOM as PDF
+  const handleDownloadPDF = async (meetingId) => {
+    setActionLoading(true);
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/mom/${meetingId}/download`,
+        { responseType: "blob" }
+      );
 
-  const mom = meeting.meetingMinutes || {};
-  const team = meeting.team || {};
-  const project = team.project || {};
-  const members = team.members || [];
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `MOM_${meetingId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Download failed:", error);
+      Swal.fire("Error", "Failed to download MOM PDF.", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
+  // ✅ Update MOM
   const handleUpdate = () => {
     Swal.fire({
       title: "Update MOM?",
@@ -74,21 +80,23 @@ const handleDownloadPDF = async (meetingId) => {
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Yes, Update",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        axios
-          .put(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`, updatedMom)
-          .then(() => {
-            Swal.fire("Updated!", "MOM updated successfully.", "success");
-            setEditable(false);
-          })
-          .catch(() => {
-            Swal.fire("Error", "Failed to update MOM.", "error");
-          });
+        setActionLoading(true);
+        try {
+          await axios.put(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`, updatedMom);
+          Swal.fire("Updated!", "MOM updated successfully.", "success");
+          setEditable(false);
+        } catch {
+          Swal.fire("Error", "Failed to update MOM.", "error");
+        } finally {
+          setActionLoading(false);
+        }
       }
     });
   };
 
+  // ✅ Delete MOM
   const handleDelete = () => {
     Swal.fire({
       title: "Delete MOM?",
@@ -97,23 +105,34 @@ const handleDownloadPDF = async (meetingId) => {
       showCancelButton: true,
       confirmButtonColor: "#d33",
       confirmButtonText: "Yes, Delete it!",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        axios
-          .delete(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`)
-          .then(() => {
-            Swal.fire("Deleted!", "MOM deleted successfully.", "success");
-            navigate(-1);
-          })
-          .catch(() => {
-            Swal.fire("Error", "Failed to delete MOM.", "error");
-          });
+        setActionLoading(true);
+        try {
+          await axios.delete(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`);
+          Swal.fire("Deleted!", "MOM deleted successfully.", "success");
+          navigate(-1);
+        } catch {
+          Swal.fire("Error", "Failed to delete MOM.", "error");
+        } finally {
+          setActionLoading(false);
+        }
       }
     });
   };
 
+  // ✅ Page loading
+  if (loading) return <LoaderOverlay message="Loading MOM Details..." />;
+
+  const mom = meeting.meetingMinutes || {};
+  const team = meeting.team || {};
+  const project = team.project || {};
+  const members = team.members || [];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100 py-10 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100 py-10 px-4 relative">
+      {actionLoading && <LoaderOverlay message="Processing Request..." />}
+
       <div className="max-w-7xl mx-auto relative">
         <button
           onClick={() => navigate(-1)}
@@ -133,15 +152,12 @@ const handleDownloadPDF = async (meetingId) => {
           </p>
         </div>
 
-
-<button
-  onClick={() => handleDownloadPDF(meetingId)}
-  className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 absolute top-0 right-0"
->
-  📄 Download PDF
-</button>
-
-
+        <button
+          onClick={() => handleDownloadPDF(meetingId)}
+          className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 absolute top-0 right-0"
+        >
+          📄 Download PDF
+        </button>
 
         {/* 🟩 Row 1: Meeting + MOM Summary */}
         <div className="grid md:grid-cols-2 gap-6 mb-10">
@@ -220,43 +236,40 @@ const handleDownloadPDF = async (meetingId) => {
 
         {/* 🟦 Row 2: Team + Project */}
         <div className="grid md:grid-cols-2 gap-6 mb-10">
-          {/* Team Members */}
-         {/* ✅ TEAM MEMBERS + ATTENDANCE */}
-<section className="bg-slate-900/60 border border-emerald-700 rounded-xl p-6">
-  <h2 className="text-xl font-semibold text-emerald-400 mb-3">
-    👥 Attendance
-  </h2>
-
-  {meeting.attendance && meeting.attendance.length > 0 ? (
-    <table className="w-full text-gray-300">
-      <thead>
-        <tr className="border-b border-slate-600 text-left">
-          <th className="py-2">Member</th>
-          <th className="py-2">Status</th>
-          <th className="py-2">Remarks</th>
-        </tr>
-      </thead>
-      <tbody>
-        {meeting.attendance.map((a, idx) => (
-          <tr key={idx} className="border-b border-slate-700">
-            <td className="py-2">{a.name}</td>
-            <td className="py-2">
-              {a.present ? (
-                <span className="text-green-400">✅ Present</span>
-              ) : (
-                <span className="text-red-400">❌ Absent</span>
-              )}
-            </td>
-            <td className="py-2">{a.remarks || "-"}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  ) : (
-    <p className="text-gray-400">No attendance recorded for this meeting.</p>
-  )}
-</section>
-
+          {/* Attendance */}
+          <section className="bg-slate-900/60 border border-emerald-700 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-emerald-400 mb-3">
+              👥 Attendance
+            </h2>
+            {meeting.attendance && meeting.attendance.length > 0 ? (
+              <table className="w-full text-gray-300">
+                <thead>
+                  <tr className="border-b border-slate-600 text-left">
+                    <th className="py-2">Member</th>
+                    <th className="py-2">Status</th>
+                    <th className="py-2">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {meeting.attendance.map((a, idx) => (
+                    <tr key={idx} className="border-b border-slate-700">
+                      <td className="py-2">{a.name}</td>
+                      <td className="py-2">
+                        {a.present ? (
+                          <span className="text-green-400">✅ Present</span>
+                        ) : (
+                          <span className="text-red-400">❌ Absent</span>
+                        )}
+                      </td>
+                      <td className="py-2">{a.remarks || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-gray-400">No attendance recorded for this meeting.</p>
+            )}
+          </section>
 
           {/* Project Details */}
           <section className="bg-slate-900/60 border border-amber-700 rounded-xl p-6">
@@ -269,7 +282,7 @@ const handleDownloadPDF = async (meetingId) => {
           </section>
         </div>
 
-        {/* 🟨 Row 3: Guide (Full Width) */}
+        {/* Guide Section */}
         <div className="flex justify-center mb-10">
           <section className="w-full md:w-2/3 bg-slate-900/60 border border-slate-600 rounded-xl p-6 text-center">
             <h2 className="text-xl font-semibold text-slate-300 mb-3">👨‍🏫 Guide</h2>

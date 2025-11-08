@@ -3,6 +3,14 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { motion } from "framer-motion";
 
+// 🔄 Reusable Loader Overlay Component
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg">{message || "Loading..."}</p>
+  </div>
+);
+
 // ✅ Component for a single team member input row
 const TeamMemberInput = ({
   member,
@@ -15,7 +23,6 @@ const TeamMemberInput = ({
   sections,
   token,
 }) => {
-  // 🔍 Email check handler
   const handleEmailBlur = async (email) => {
     if (!email) return;
 
@@ -30,7 +37,7 @@ const TeamMemberInput = ({
 
       const { exists, isStudent, data } = res.data;
 
-      if (!exists) return; // if new email, continue normally
+      if (!exists) return;
 
       if (isStudent) {
         const result = await Swal.fire({
@@ -60,7 +67,6 @@ const TeamMemberInput = ({
   return (
     <div className="flex flex-col gap-2 mb-4 border-b border-gray-600 pb-3">
       <div className="flex gap-2 items-center flex-wrap">
-        {/* 📧 Email Input */}
         <input
           type="email"
           placeholder="Email"
@@ -70,8 +76,6 @@ const TeamMemberInput = ({
           className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
           required
         />
-
-        {/* 🧍‍♂️ Name Input */}
         <input
           type="text"
           placeholder="Full Name"
@@ -80,8 +84,6 @@ const TeamMemberInput = ({
           className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
           required
         />
-
-        {/* 🎓 Roll Number */}
         <input
           type="text"
           placeholder="Roll Number"
@@ -90,8 +92,6 @@ const TeamMemberInput = ({
           className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
           required
         />
-
-        {/* 🧩 Role */}
         <input
           type="text"
           placeholder="Role"
@@ -100,9 +100,7 @@ const TeamMemberInput = ({
           className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
           required
         />
-
-        {/* ⭐ Leader Checkbox */}
-        <label className="flex items-center gap-1">
+        <label className="flex items-center gap-1 text-white">
           <input
             type="checkbox"
             checked={member.isLeader}
@@ -110,8 +108,6 @@ const TeamMemberInput = ({
           />
           Leader
         </label>
-
-        {/* ❌ Remove Button */}
         {canRemove && (
           <button
             type="button"
@@ -123,7 +119,6 @@ const TeamMemberInput = ({
         )}
       </div>
 
-      {/* 🔽 Dropdowns for Branch, Semester, Section */}
       <div className="flex gap-2 flex-wrap">
         <select
           value={member.branchId || ""}
@@ -197,11 +192,11 @@ export default function TeamManagement() {
   const [semesters, setSemesters] = useState([]);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false); // new form loading
 
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
 
-  // 📦 Load Branch, Semester, Section
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -267,16 +262,7 @@ export default function TeamManagement() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const payloadMembers = members.map((m) => ({
-      name: m.name,
-      email: m.email,
-      rollNumber: m.rollNumber,
-      role: m.role,
-      isLeader: m.isLeader,
-      branchId: m.branchId,
-      semesterId: m.semesterId,
-      sectionId: m.sectionId,
-    }));
+    setSubmitting(true); // start loader
 
     const payload = {
       projectTitle: project.title,
@@ -285,7 +271,16 @@ export default function TeamManagement() {
       startDate: project.startDate || null,
       endDate: project.endDate || null,
       teamName,
-      members: payloadMembers,
+      members: members.map((m) => ({
+        name: m.name,
+        email: m.email,
+        rollNumber: m.rollNumber,
+        role: m.role,
+        isLeader: m.isLeader,
+        branchId: m.branchId,
+        semesterId: m.semesterId,
+        sectionId: m.sectionId,
+      })),
     };
 
     try {
@@ -317,13 +312,17 @@ export default function TeamManagement() {
       ]);
     } catch (err) {
       Swal.fire("Error", err.response?.data || "Something went wrong", "error");
+    } finally {
+      setSubmitting(false); // stop loader
     }
   };
 
-  if (loading) return <p className="text-white">Loading...</p>;
+  if (loading) return <LoaderOverlay message="Loading Project Form..." />;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-200 p-10">
+    <div className="min-h-screen bg-slate-900 text-gray-200 p-10 relative">
+      {submitting && <LoaderOverlay message="Creating Project & Team..." />}
+
       <motion.h1
         className="text-3xl font-bold mb-6 text-sky-400"
         initial={{ opacity: 0, y: -20 }}
@@ -361,7 +360,6 @@ export default function TeamManagement() {
           className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
         />
 
-        {/* 📅 Dates */}
         <div className="flex gap-3 mb-3 flex-wrap">
           <input
             type="date"
@@ -379,7 +377,6 @@ export default function TeamManagement() {
           />
         </div>
 
-        {/* 👥 Team Info */}
         <h2 className="text-xl font-semibold mb-4 text-sky-300">Team Info</h2>
         <input
           type="text"

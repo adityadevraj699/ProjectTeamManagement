@@ -3,18 +3,26 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
+// 🔄 Reusable Loader Overlay Component
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  </div>
+);
+
 export default function Team() {
   const [teams, setTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Page load
+  const [deleting, setDeleting] = useState(false); // Delete loader
   const navigate = useNavigate();
 
-  // ✅ Fetch token safely
   const token = localStorage.getItem("token");
   const axiosConfig = {
     headers: { Authorization: `Bearer ${token}` },
   };
 
-  // ✅ Redirect to login if token not found
+  // ✅ Redirect if not logged in
   useEffect(() => {
     if (!token) {
       Swal.fire("Unauthorized", "Please login first", "warning").then(() => {
@@ -23,21 +31,16 @@ export default function Team() {
     }
   }, [token, navigate]);
 
-  // ✅ Fetch all teams of the logged-in guide
+  // ✅ Fetch teams
   const fetchTeams = async () => {
     try {
       setLoading(true);
-
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/guide/teams/mine`,
         axiosConfig
       );
 
-      if (Array.isArray(res.data)) {
-        setTeams(res.data);
-      } else {
-        setTeams([]);
-      }
+      setTeams(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Fetch error:", err);
       const message =
@@ -45,13 +48,16 @@ export default function Team() {
         err.response?.data ||
         "Failed to load teams";
 
-      // ✅ Handle 403 (forbidden) explicitly
       if (err.response?.status === 403) {
-        Swal.fire("Forbidden", "You are not authorized for this action.", "error").then(() => {
-          navigate("/login");
-        });
+        Swal.fire("Forbidden", "You are not authorized for this action.", "error").then(
+          () => navigate("/login")
+        );
       } else if (err.code === "ERR_NETWORK") {
-        Swal.fire("Server Error", "Cannot connect to backend (port or URL issue).", "error");
+        Swal.fire(
+          "Server Error",
+          "Cannot connect to backend (port or URL issue).",
+          "error"
+        );
       } else {
         Swal.fire("Error", message, "error");
       }
@@ -64,7 +70,7 @@ export default function Team() {
     if (token) fetchTeams();
   }, [token]);
 
-  // ✅ Delete handler
+  // ✅ Delete handler with loader
   const handleDelete = async (teamId) => {
     const confirmed = await Swal.fire({
       title: "Are you sure?",
@@ -77,6 +83,7 @@ export default function Team() {
     });
 
     if (confirmed.isConfirmed) {
+      setDeleting(true); // start loader
       try {
         await axios.delete(
           `${import.meta.env.VITE_API_URL}/guide/teams/${teamId}`,
@@ -92,22 +99,20 @@ export default function Team() {
           err.response?.data ||
           "Failed to delete team";
         Swal.fire("Error", message, "error");
+      } finally {
+        setDeleting(false); // stop loader
       }
     }
   };
 
-  // ✅ Loading UI
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-gray-300 text-lg">Loading teams...</p>
-      </div>
-    );
-  }
+  // ✅ Page-level loader
+  if (loading) return <LoaderOverlay message="Loading Your Teams..." />;
 
   // ✅ Main UI
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-100 p-6">
+    <div className="min-h-screen bg-slate-900 text-gray-100 p-6 relative">
+      {deleting && <LoaderOverlay message="Deleting Team..." />}
+
       <h1 className="text-3xl font-bold mb-6 text-sky-400">My Teams</h1>
 
       {teams.length === 0 ? (
@@ -143,8 +148,9 @@ export default function Team() {
                   View
                 </button>
                 <button
-                  onClick={() => navigate(`/guide/EditTeamDetail/${team.teamId}`)}
-
+                  onClick={() =>
+                    navigate(`/guide/EditTeamDetail/${team.teamId}`)
+                  }
                   className="px-4 py-1.5 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors"
                 >
                   Edit
