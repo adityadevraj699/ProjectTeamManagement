@@ -32,3 +32,10 @@
   background: #1f2937;
 }
 /* Firefox */
+
+
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 2s linear infinite;
+  }
+}
