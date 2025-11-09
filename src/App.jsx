@@ -23,6 +23,7 @@ import Unauthorized from "./context/Unauthorized";
 import GuideMeetings from "./pages/guide/GuideMeetings";
 import MON from "./pages/guide/MON";
 import ViewMom from "./pages/guide/ViewMom";
+import Tasks from "./pages/guide/Tasks";
 
 function App() {
   return (
@@ -148,6 +149,7 @@ function App() {
 
 <Route path="/guide/meeting/:meetingId" element={<ProtectedRoute role="GUIDE"><MON /></ProtectedRoute>} />
 <Route path="/guide/viewmom/:meetingId" element={<ProtectedRoute role="GUIDE"><ViewMom /></ProtectedRoute>} />
+<Route path="/guide/tasks" element={<ProtectedRoute role="GUIDE"><Tasks /></ProtectedRoute>} />
 
             {/* Add student routes similarly */}
             <Route path="/unauthorized" element={<Unauthorized />} />

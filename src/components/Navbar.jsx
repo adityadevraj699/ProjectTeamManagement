@@ -21,7 +21,6 @@ const guideLinks = [
   { name: "Team Management", to: "/guide/teams" },
   { name: "Meeting Records", to: "/guide/meetings" },
   { name: "Task Tracking", to: "/guide/tasks" },
-  { name: "Reports", to: "/guide/reports" },
   { name: "Team", to: "/guide/team" },  
   { name: "Add Student", to: "/guide/add-student" }, 
 ];
