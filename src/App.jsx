@@ -26,6 +26,10 @@ import ViewMom from "./pages/guide/ViewMom";
 import Tasks from "./pages/guide/Tasks";
 import Profile from "./components/Profile";
 import ForgotPassword from "./components/ForgotPassword";
+import Task from "./pages/student/Task";
+import Meeting from "./pages/student/Meeting";
+import StudentTeam from "./pages/student/Team";
+import TeamDetails from "./pages/student/TeamDetails";
 
 function App() {
   return (
@@ -157,6 +161,11 @@ function App() {
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/profile" element={<ProtectedRoute role={["ADMIN", "GUIDE", "STUDENT"]}><Profile /></ProtectedRoute>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+
+            <Route path="/student/tasks" element={<ProtectedRoute role="STUDENT"><Task /></ProtectedRoute>} />
+            <Route path="/student/meetings" element={<ProtectedRoute role="STUDENT"><Meeting /></ProtectedRoute>} />
+            <Route path="/student/team" element={<ProtectedRoute role="STUDENT"><StudentTeam /></ProtectedRoute>} />
+            <Route path="/student/teams/:id" element={<ProtectedRoute role="STUDENT"><TeamDetails /></ProtectedRoute>} />
 
           </Routes>
         </main>

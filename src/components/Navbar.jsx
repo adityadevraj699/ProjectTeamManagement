@@ -27,7 +27,7 @@ const guideLinks = [
 
 
   const studentLinks = [
-    { name: "Dashboard", to: "/student/dashboard" },
+    { name: "Team", to: "/student/team" },
     { name: "My Tasks", to: "/student/tasks" },
     { name: "Upcoming Meetings", to: "/student/meetings" },
   ];
