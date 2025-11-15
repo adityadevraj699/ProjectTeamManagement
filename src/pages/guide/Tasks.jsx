@@ -1,3 +1,4 @@
+// src/components/Tasks.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -18,16 +19,16 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // ✅ Filter states
+  // Filter states
   const [filters, setFilters] = useState({
     assignedTo: "",
     priority: "",
     status: "",
     deadline: "",
-    showExpired: false, // ✅ Added expired filter
+    showExpired: false,
   });
 
-  // ✅ New Task form state
+  // New Task form
   const [newTask, setNewTask] = useState({
     taskDescription: "",
     assignedToId: "",
@@ -38,43 +39,50 @@ export default function Tasks() {
     comments: "",
   });
 
+  // robust base URL and token
+  const BASE = import.meta.env.VITE_API_URL || "/api";
   const token = localStorage.getItem("token");
-  const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
+  const axiosConfig = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
-  // ✅ Fetch Teams
+  // Fetch Teams
   const fetchTeams = async () => {
+    setLoading(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/teams/mine`, axiosConfig);
+      const res = await axios.get(`${BASE}/guide/teams/mine`, axiosConfig);
+      // try a couple of shapes: prefer array of plain team objects
       setTeams(res.data || []);
-    } catch {
+    } catch (err) {
+      console.error("fetchTeams error:", err);
       Swal.fire("Error", "Failed to load teams", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Fetch Tasks
+  // Fetch Tasks for selected team (expects DTOs including attachmentUrl)
   const fetchTasks = async (teamId) => {
     if (!teamId) return;
     setActionLoading(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/tasks/team/${teamId}`, axiosConfig);
+      const res = await axios.get(`${BASE}/guide/tasks/team/${teamId}`, axiosConfig);
       setTasks(res.data || []);
       setFilteredTasks(res.data || []);
-    } catch {
+    } catch (err) {
+      console.error("fetchTasks error:", err);
       Swal.fire("Error", "Failed to load tasks", "error");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Fetch Members
+  // Fetch team members for assignment dropdown
   const fetchMembers = async (teamId) => {
     if (!teamId) return;
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/teams/${teamId}/members`, axiosConfig);
+      const res = await axios.get(`${BASE}/guide/teams/${teamId}/members`, axiosConfig);
       setMembers(res.data || []);
-    } catch {
+    } catch (err) {
+      console.error("fetchMembers error:", err);
       Swal.fire("Error", "Failed to load team members", "error");
     }
   };
@@ -87,100 +95,74 @@ export default function Tasks() {
     if (selectedTeam) {
       fetchTasks(selectedTeam);
       fetchMembers(selectedTeam);
+    } else {
+      setTasks([]);
+      setFilteredTasks([]);
+      setMembers([]);
     }
   }, [selectedTeam]);
 
-  // ✅ Filter logic
+  // Filtering logic
   useEffect(() => {
     let filtered = [...tasks];
 
-    // Assigned To filter by ID
     if (filters.assignedTo) {
       if (filters.assignedTo === "TEAM") {
         filtered = filtered.filter((t) => !t.assignedToId);
       } else {
-        filtered = filtered.filter(
-          (t) => String(t.assignedToId) === String(filters.assignedTo)
-        );
+        filtered = filtered.filter((t) => String(t.assignedToId) === String(filters.assignedTo));
       }
     }
 
-    if (filters.priority)
-      filtered = filtered.filter((t) => t.priority === filters.priority);
+    if (filters.priority) filtered = filtered.filter((t) => t.priority === filters.priority);
+    if (filters.status) filtered = filtered.filter((t) => t.status === filters.status);
+    if (filters.deadline) filtered = filtered.filter((t) => t.deadline === filters.deadline);
 
-    if (filters.status)
-      filtered = filtered.filter((t) => t.status === filters.status);
-
-    if (filters.deadline)
-      filtered = filtered.filter((t) => t.deadline === filters.deadline);
-
-    // ✅ Filter expired tasks (Deadline < today and not COMPLETED)
     if (filters.showExpired) {
       const today = new Date().toISOString().split("T")[0];
-      filtered = filtered.filter(
-        (t) =>
-          t.status !== "COMPLETED" &&
-          t.deadline &&
-          t.deadline < today
-      );
+      filtered = filtered.filter((t) => t.status !== "COMPLETED" && t.deadline && t.deadline < today);
     }
 
     setFilteredTasks(filtered);
   }, [filters, tasks]);
 
-  // ✅ Create Task
+  // Create task (guide)
   const handleCreateTask = async () => {
     if (!selectedTeam) return Swal.fire("Error", "Please select a team first!", "error");
-    if (!newTask.taskDescription.trim())
-      return Swal.fire("Error", "Task description is required!", "error");
+    if (!newTask.taskDescription.trim()) return Swal.fire("Error", "Task description is required!", "error");
 
     setActionLoading(true);
     try {
-      const payload = {
-        ...newTask,
-        teamId: parseInt(selectedTeam),
-        assignedToId: newTask.assignedToId || null,
-      };
-
-      await axios.post(`${import.meta.env.VITE_API_URL}/guide/tasks`, payload, axiosConfig);
+      const payload = { ...newTask, teamId: parseInt(selectedTeam), assignedToId: newTask.assignedToId || null };
+      await axios.post(`${BASE}/guide/tasks`, payload, axiosConfig);
       Swal.fire("Success", "Task created successfully!", "success");
-
-      setNewTask({
-        taskDescription: "",
-        assignedToId: "",
-        priority: "MEDIUM",
-        status: "PENDING",
-        type: "DEVELOPMENT",
-        deadline: "",
-        comments: "",
-      });
+      setNewTask({ taskDescription: "", assignedToId: "", priority: "MEDIUM", status: "PENDING", type: "DEVELOPMENT", deadline: "", comments: "" });
       fetchTasks(selectedTeam);
     } catch (err) {
+      console.error("createTask error:", err);
       Swal.fire("Error", err.response?.data?.message || "Failed to create task", "error");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Update Status
+  // Update status (guide)
   const handleStatusUpdate = async (taskId, newStatus) => {
     setActionLoading(true);
     try {
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/guide/tasks/${taskId}/status?status=${newStatus}`,
-        {},
-        axiosConfig
-      );
+      // backend route used earlier: /guide/tasks/{id}/status?status=...
+      await axios.put(`${BASE}/guide/tasks/${taskId}/status?status=${newStatus}`, {}, axiosConfig);
       Swal.fire("Success", "Task status updated!", "success");
       fetchTasks(selectedTeam);
-    } catch {
+    } catch (err) {
+      console.error("status update error:", err);
       Swal.fire("Error", "Failed to update status", "error");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Delete Task
+  // Delete task (guide)
   const handleDeleteTask = async (taskId) => {
     const confirm = await Swal.fire({
       title: "Are you sure?",
@@ -192,10 +174,11 @@ export default function Tasks() {
 
     setActionLoading(true);
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/guide/tasks/${taskId}`, axiosConfig);
+      await axios.delete(`${BASE}/guide/tasks/${taskId}`, axiosConfig);
       Swal.fire("Deleted!", "Task removed successfully", "success");
       fetchTasks(selectedTeam);
-    } catch {
+    } catch (err) {
+      console.error("deleteTask error:", err);
       Swal.fire("Error", "Failed to delete task", "error");
     } finally {
       setActionLoading(false);
@@ -220,14 +203,15 @@ export default function Tasks() {
         >
           <option value="">-- Choose a Team --</option>
           {teams.map((t) => (
-            <option key={t.teamId} value={t.teamId}>
-              {t.teamName}
+            // prefer team.id if available else team.teamId
+            <option key={t.id ?? t.teamId} value={t.id ?? t.teamId}>
+              {t.teamName ?? t.teamName}
             </option>
           ))}
         </select>
       </div>
 
-      {/* ✅ CREATE TASK FORM */}
+      {/* Create Task Form */}
       {selectedTeam && (
         <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-sky-700/30 mb-8">
           <h2 className="text-xl font-semibold text-sky-300 mb-4">Create New Task</h2>
@@ -238,7 +222,7 @@ export default function Tasks() {
             value={newTask.taskDescription}
             onChange={(e) => setNewTask({ ...newTask, taskDescription: e.target.value })}
             className="w-full bg-slate-700 px-3 py-2 rounded text-white border border-slate-600 mb-3"
-          ></textarea>
+          />
 
           <div className="grid md:grid-cols-3 sm:grid-cols-1 gap-3 mb-3">
             <select
@@ -248,8 +232,8 @@ export default function Tasks() {
             >
               <option value="">Assign to Whole Team</option>
               {members.map((m) => (
-                <option key={m.id} value={m.user.id}>
-                  {m.user.name}
+                <option key={m.id} value={m.user?.id ?? m.userId}>
+                  {m.user?.name ?? m.name}
                 </option>
               ))}
             </select>
@@ -293,16 +277,13 @@ export default function Tasks() {
             />
           </div>
 
-          <button
-            onClick={handleCreateTask}
-            className="px-6 py-2 bg-sky-600 hover:bg-sky-700 rounded text-white font-medium"
-          >
+          <button onClick={handleCreateTask} className="px-6 py-2 bg-sky-600 hover:bg-sky-700 rounded text-white font-medium">
             Create Task
           </button>
         </div>
       )}
 
-      {/* ✅ FILTER BAR */}
+      {/* FILTER BAR */}
       {selectedTeam && (
         <div className="bg-slate-800 p-4 rounded-xl border border-sky-600/40 mb-6 flex flex-wrap gap-3 items-center">
           <h3 className="text-sky-300 font-semibold">🔍 Filter Tasks:</h3>
@@ -315,8 +296,8 @@ export default function Tasks() {
             <option value="">All Members</option>
             <option value="TEAM">Whole Team</option>
             {members.map((m) => (
-              <option key={m.id} value={m.user.id}>
-                {m.user.name}
+              <option key={m.id} value={m.user?.id ?? m.userId}>
+                {m.user?.name ?? m.name}
               </option>
             ))}
           </select>
@@ -351,15 +332,12 @@ export default function Tasks() {
             className="bg-slate-700 px-3 py-2 rounded border border-slate-600 text-white"
           />
 
-          {/* ✅ Expired Filter */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="expired"
               checked={filters.showExpired}
-              onChange={(e) =>
-                setFilters({ ...filters, showExpired: e.target.checked })
-              }
+              onChange={(e) => setFilters({ ...filters, showExpired: e.target.checked })}
               className="w-4 h-4 accent-sky-500"
             />
             <label htmlFor="expired" className="text-sm text-gray-300">
@@ -369,13 +347,7 @@ export default function Tasks() {
 
           <button
             onClick={() =>
-              setFilters({
-                assignedTo: "",
-                priority: "",
-                status: "",
-                deadline: "",
-                showExpired: false,
-              })
+              setFilters({ assignedTo: "", priority: "", status: "", deadline: "", showExpired: false })
             }
             className="px-4 py-2 bg-sky-600 hover:bg-sky-700 rounded text-white"
           >
@@ -384,7 +356,7 @@ export default function Tasks() {
         </div>
       )}
 
-      {/* ✅ TASK TABLE */}
+      {/* TASK TABLE */}
       {selectedTeam && (
         <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-white/10">
           <h2 className="text-2xl font-semibold text-sky-400 mb-4">Team Tasks</h2>
@@ -398,43 +370,35 @@ export default function Tasks() {
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Deadline</th>
                 <th className="px-4 py-3 text-red-400">Expired</th>
+                {/* NEW Submission column */}
+                <th className="px-4 py-3">Submission</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-slate-700">
               {filteredTasks.length ? (
                 filteredTasks.map((t) => {
-                  const isExpired =
-                    t.status !== "COMPLETED" &&
-                    t.deadline &&
-                    t.deadline < new Date().toISOString().split("T")[0];
+                  const isExpired = t.status !== "COMPLETED" && t.deadline && t.deadline < new Date().toISOString().split("T")[0];
 
                   return (
-                    <tr
-                      key={t.id}
-                      className={`transition-colors ${
-                        isExpired
-                          ? "bg-red-900/30 text-red-400"
-                          : "hover:bg-slate-800"
-                      }`}
-                    >
+                    <tr key={t.id} className={`transition-colors ${isExpired ? "bg-red-900/30 text-red-400" : "hover:bg-slate-800"}`}>
                       <td className="px-4 py-2">{t.taskDescription}</td>
+
                       <td className="px-4 py-2">
                         {t.assignedToId && t.assignedToName ? (
                           <span>{t.assignedToName}</span>
                         ) : (
-                          <span className="text-yellow-400 font-semibold">
-                            Whole Team
-                          </span>
+                          <span className="text-yellow-400 font-semibold">Whole Team</span>
                         )}
                       </td>
+
                       <td className="px-4 py-2">{t.priority}</td>
+
                       <td className="px-4 py-2">
                         <select
                           value={t.status}
-                          onChange={(e) =>
-                            handleStatusUpdate(t.id, e.target.value)
-                          }
+                          onChange={(e) => handleStatusUpdate(t.id, e.target.value)}
                           className="bg-slate-700 px-2 py-1 rounded border border-slate-600"
                         >
                           <option value="PENDING">PENDING</option>
@@ -442,33 +406,36 @@ export default function Tasks() {
                           <option value="COMPLETED">COMPLETED</option>
                         </select>
                       </td>
+
                       <td className="px-4 py-2">{t.deadline || "-"}</td>
+
                       <td className="px-4 py-2 text-center">
-                        {isExpired ? (
-                          <span className="bg-red-600 text-white px-2 py-1 text-xs rounded">
-                            EXPIRED
-                          </span>
+                        {isExpired ? <span className="bg-red-600 text-white px-2 py-1 text-xs rounded">EXPIRED</span> : "-"}
+                      </td>
+
+                      {/* Submission cell: opens attachmentUrl if present */}
+                      <td className="px-4 py-2">
+                        {t.attachmentUrl ? (
+                          <button
+                            onClick={() => window.open(t.attachmentUrl, "_blank")}
+                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white text-xs"
+                          >
+                            View File
+                          </button>
                         ) : (
-                          "-"
+                          <span className="text-xs text-gray-400">Not submitted</span>
                         )}
                       </td>
+
                       <td className="px-4 py-2 space-x-2">
                         <button
-                          onClick={() =>
-                            Swal.fire(
-                              "Task Details",
-                              t.comments || "No comments",
-                              "info"
-                            )
-                          }
+                          onClick={() => Swal.fire("Task Details", t.comments || "No comments", "info")}
                           className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-700"
                         >
                           View
                         </button>
-                        <button
-                          onClick={() => handleDeleteTask(t.id)}
-                          className="px-3 py-1 bg-red-600 rounded hover:bg-red-700"
-                        >
+
+                        <button onClick={() => handleDeleteTask(t.id)} className="px-3 py-1 bg-red-600 rounded hover:bg-red-700">
                           Delete
                         </button>
                       </td>
@@ -477,7 +444,8 @@ export default function Tasks() {
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="text-center py-4 text-gray-400">
+                  {/* updated colSpan to match header columns (now 8) */}
+                  <td colSpan="8" className="text-center py-4 text-gray-400">
                     No matching tasks found.
                   </td>
                 </tr>

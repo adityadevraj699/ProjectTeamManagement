@@ -30,6 +30,7 @@ import Task from "./pages/student/Task";
 import Meeting from "./pages/student/Meeting";
 import StudentTeam from "./pages/student/Team";
 import TeamDetails from "./pages/student/TeamDetails";
+import Query from "./pages/guide/Query";
 
 function App() {
   return (
@@ -156,6 +157,7 @@ function App() {
 <Route path="/guide/meeting/:meetingId" element={<ProtectedRoute role="GUIDE"><MON /></ProtectedRoute>} />
 <Route path="/guide/viewmom/:meetingId" element={<ProtectedRoute role="GUIDE"><ViewMom /></ProtectedRoute>} />
 <Route path="/guide/tasks" element={<ProtectedRoute role="GUIDE"><Tasks /></ProtectedRoute>} />
+<Route path="/guide/query" element={<ProtectedRoute role="GUIDE"><Query /></ProtectedRoute>} />
 
             {/* Add student routes similarly */}
             <Route path="/unauthorized" element={<Unauthorized />} />

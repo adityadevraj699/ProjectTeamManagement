@@ -23,6 +23,7 @@ const guideLinks = [
   { name: "Task Tracking", to: "/guide/tasks" },
   { name: "Team", to: "/guide/team" },  
   { name: "Add Student", to: "/guide/add-student" }, 
+  {name: "Query", to: "/guide/query"}
 ];
 
 
