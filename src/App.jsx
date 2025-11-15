@@ -24,6 +24,8 @@ import GuideMeetings from "./pages/guide/GuideMeetings";
 import MON from "./pages/guide/MON";
 import ViewMom from "./pages/guide/ViewMom";
 import Tasks from "./pages/guide/Tasks";
+import Profile from "./components/Profile";
+import ForgotPassword from "./components/ForgotPassword";
 
 function App() {
   return (
@@ -153,6 +155,8 @@ function App() {
 
             {/* Add student routes similarly */}
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/profile" element={<ProtectedRoute role={["ADMIN", "GUIDE", "STUDENT"]}><Profile /></ProtectedRoute>} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
           </Routes>
         </main>
