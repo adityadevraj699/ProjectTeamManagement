@@ -31,6 +31,7 @@ import Meeting from "./pages/student/Meeting";
 import StudentTeam from "./pages/student/Team";
 import TeamDetails from "./pages/student/TeamDetails";
 import Query from "./pages/guide/Query";
+import MeetingModal from "./pages/student/MeetingModal";
 
 function App() {
   return (
@@ -168,6 +169,7 @@ function App() {
             <Route path="/student/meetings" element={<ProtectedRoute role="STUDENT"><Meeting /></ProtectedRoute>} />
             <Route path="/student/team" element={<ProtectedRoute role="STUDENT"><StudentTeam /></ProtectedRoute>} />
             <Route path="/student/teams/:id" element={<ProtectedRoute role="STUDENT"><TeamDetails /></ProtectedRoute>} />
+            <Route path="/student/meeting/:id" element={<ProtectedRoute role="STUDENT"><MeetingModal /></ProtectedRoute>} />
 
           </Routes>
         </main>

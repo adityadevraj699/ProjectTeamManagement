@@ -1,4 +1,4 @@
-// pehle yeh line honi chahiye
+// src/pages/login.jsx
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
@@ -11,19 +11,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  // 🎯 Helper: Get redirect path based on role
-  const getRedirectPath = (role) => {
-    switch (role?.toUpperCase()) {
-      case "ADMIN":
-        return "/admin/dashboard";
-      case "GUIDE":
-        return "/guide/dashboard";
-      case "STUDENT":
-      default:
-        return "/student/dashboard";
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -43,25 +30,19 @@ export default function Login() {
 
       login(userData, tokenData);
 
-      const redirectPath = getRedirectPath(userData.role);
-
       Swal.fire({
         title: `Welcome, ${userData.name}!`,
-        text:
-          userData.role === "ADMIN"
-            ? "Redirecting to Admin Dashboard..."
-            : userData.role === "GUIDE"
-            ? "Redirecting to Guide Dashboard..."
-            : "Redirecting to Student Dashboard...",
+        text: "Redirecting to Home...",
         icon: "success",
         background: "#0f172a",
         color: "#fff",
         confirmButtonColor: "#38bdf8",
       });
 
+      // small delay so user sees the toast
       setTimeout(() => {
-        navigate(redirectPath);
-      }, 1200);
+        navigate("/");
+      }, 800);
     } catch (err) {
       Swal.fire({
         title: "Login Failed",
@@ -76,11 +57,13 @@ export default function Login() {
     }
   };
 
-  // 🎯 Auto-redirect if already logged in
-  if (user) {
-    const redirectPath = getRedirectPath(user.role);
-    navigate(redirectPath);
-  }
+  // If already logged in, redirect to home (run inside useEffect to avoid render-time navigation)
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-black px-4">
@@ -92,12 +75,8 @@ export default function Login() {
             alt="Team Manager Logo"
             className="w-16 h-16 mx-auto rounded-full ring-2 ring-sky-400 shadow-md"
           />
-          <h2 className="text-3xl font-bold mt-4 text-sky-400">
-            Login to Your Account
-          </h2>
-          <p className="text-gray-400 text-sm mt-1">
-            Access your team dashboard securely
-          </p>
+          <h2 className="text-3xl font-bold mt-4 text-sky-400">Login to Your Account</h2>
+          <p className="text-gray-400 text-sm mt-1">Access your team dashboard securely</p>
         </div>
 
         {/* Login Form */}
@@ -125,10 +104,7 @@ export default function Login() {
               className="w-full p-3 rounded-lg bg-slate-900/70 border border-white/20 focus:outline-none focus:ring-2 focus:ring-sky-500 text-gray-100 placeholder-gray-400 transition-all"
             />
             <div className="text-right mt-2">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-sky-400 hover:underline"
-              >
+              <Link to="/forgot-password" className="text-sm text-sky-400 hover:underline">
                 Forgot Password?
               </Link>
             </div>
@@ -153,10 +129,7 @@ export default function Login() {
         {/* Register Link */}
         <p className="text-center text-gray-400 text-sm">
           Don’t have an account?{" "}
-          <Link
-            to="/register"
-            className="text-sky-400 font-medium hover:underline"
-          >
+          <Link to="/register" className="text-sky-400 font-medium hover:underline">
             Register Now
           </Link>
         </p>

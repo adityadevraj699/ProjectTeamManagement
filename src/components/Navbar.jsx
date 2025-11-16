@@ -141,19 +141,6 @@ const guideLinks = [
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-44 bg-gray-800 rounded-xl shadow-lg py-2">
                   <Link
-                    to={
-                      user.role === "ADMIN"
-                        ? "/admin/dashboard"
-                        : user.role === "GUIDE"
-                        ? "/guide/dashboard"
-                        : "/student/dashboard"
-                    }
-                    onClick={() => setMenuOpen(false)}
-                    className="block px-4 py-2 hover:bg-gray-700 transition"
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
                     to="/profile"
                     onClick={() => setMenuOpen(false)}
                     className="block px-4 py-2 hover:bg-gray-700 transition"
