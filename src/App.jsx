@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Login from "./pages/login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/admin/Dashboard";
 import TeamManagement from "./pages/guide/TeamManagement";
 import "./App.css"
@@ -42,6 +43,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
             {/* Protected admin routes */}
             <Route
