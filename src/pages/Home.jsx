@@ -252,12 +252,14 @@ export default function HomePage() {
               }
               style={{ height: "350px" }} // same height for all
             >
-              {/* Leader Badge */}
-              {isLeader && (
-                <div className="mb-3 bg-sky-600 px-3 py-1 rounded-full text-black text-xs font-semibold shadow">
-                  LEADER
-                </div>
-              )}
+              <div
+  className={`mb-3 px-3 py-1 rounded-full text-xs font-semibold shadow ${
+    isLeader ? "bg-sky-600 text-black" : "bg-gray-700 text-white"
+  }`}
+>
+  {isLeader ? "LEADER" : "MEMBER"}
+</div>
+
 
               {/* Avatar */}
               <img

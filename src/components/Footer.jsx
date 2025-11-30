@@ -1,17 +1,38 @@
 import React from "react";
-import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
+import {
+  FaGithub,
+  FaTwitter,
+  FaLinkedinIn,
+  FaInstagram,
+  FaEnvelope,
+  FaMapMarkerAlt,
+} from "react-icons/fa";
 
-const Footer = () => {
+export default function Footer() {
   return (
     <footer className="bg-gray-950 text-gray-400 pt-12 pb-6 border-t border-gray-800">
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {/* About Section */}
+        {/* Brand / Short about */}
         <div>
-          <h3 className="text-white font-bold text-lg mb-4">Team Manager</h3>
+          <h3 className="text-white font-bold text-xl mb-3">Team Manager</h3>
           <p className="text-gray-400 text-sm leading-relaxed">
-            Manage your projects and teams efficiently with a professional,
-            easy-to-use platform trusted by hundreds of teams worldwide.
+            A compact, modern platform to manage teams, tasks and ship product faster.
+            Built with clarity in mind.
           </p>
+
+          <div className="mt-4 flex items-center gap-3 text-sm">
+            <FaMapMarkerAlt className="text-sky-400" />
+            <div>
+              <p className="text-gray-300 font-medium">Meerut Institute of Technology</p>
+              <p className="text-xs text-gray-400">Meerut, Uttar Pradesh, India</p>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <a href="mailto:aditya@zephrinix.in" className="inline-flex items-center gap-2 text-sm hover:text-sky-400 transition-colors">
+              <FaEnvelope /> <span>aditya@zephrinix.in</span>
+            </a>
+          </div>
         </div>
 
         {/* Quick Links */}
@@ -52,34 +73,48 @@ const Footer = () => {
           </ul>
         </div>
 
-        {/* Contact / Social */}
+        {/* Contact / Socials + Mini Map */}
         <div>
-          <h3 className="text-white font-bold text-lg mb-4">Contact & Socials</h3>
-          <p className="text-gray-400 text-sm mb-4">
-            123 Team Manager St.<br />
-            Your City, Country<br />
-            Email: support@teammanager.com
-          </p>
-          <div className="flex gap-4 mt-2">
-            <a href="#" className="text-gray-400 hover:text-sky-400 transition-colors"><FaFacebookF /></a>
-            <a href="#" className="text-gray-400 hover:text-sky-400 transition-colors"><FaTwitter /></a>
-            <a href="#" className="text-gray-400 hover:text-sky-400 transition-colors"><FaLinkedinIn /></a>
-            <a href="#" className="text-gray-400 hover:text-sky-400 transition-colors"><FaInstagram /></a>
+          <h3 className="text-white font-bold text-lg mb-4">Connect with us</h3>
+
+          <div className="flex gap-4 mb-4">
+            <a href="https://github.com/adityadevraj699?tab=repositories" target="_blank" rel="noreferrer" aria-label="GitHub" className="text-gray-400 hover:text-sky-400 transition-colors text-xl">
+              <FaGithub />
+            </a>
+            <a href="https://www.instagram.com/sudo_dev.404" target="_blank" rel="noreferrer" aria-label="Instagram" className="text-gray-400 hover:text-sky-400 transition-colors text-xl">
+              <FaInstagram />
+            </a>
+            <a href="https://www.linkedin.com/in/adityadevraj699/" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="text-gray-400 hover:text-sky-400 transition-colors text-xl">
+              <FaLinkedinIn />
+            </a>
+            <a href="https://twitter.com/adityadevraj699" target="_blank" rel="noreferrer" aria-label="Twitter" className="text-gray-400 hover:text-sky-400 transition-colors text-xl">
+              <FaTwitter />
+            </a>
+          </div>
+
+          <p className="text-gray-400 text-sm mb-3">Quick view</p>
+          <div className="w-full rounded overflow-hidden border border-gray-800">
+            <iframe
+              title="location"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3492.0093582493178!2d77.63679241116795!3d28.927772370509942!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390c614f846e713f%3A0xdf29c5d5329144f0!2sMeerut%20Institute%20of%20Technology!5e0!3m2!1sen!2sin!4v1764530635728!5m2!1sen!2sin"
+              width="100%"
+              height="140"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
         </div>
       </div>
 
       {/* Bottom Footer */}
       <div className="mt-10 text-center border-t border-gray-800 pt-6">
-        <p className="text-sm text-gray-500">
-          © {new Date().getFullYear()} <span className="text-sky-400 font-semibold">Team Manager</span>. All Rights Reserved.
-        </p>
+        <p className="text-sm text-gray-500">© 2025 <span className="text-sky-400 font-semibold">Team Manager</span>. All Rights Reserved.</p>
         <p className="text-xs text-gray-500 mt-1">
-          Built with ❤️ using React + Tailwind CSS
+          Aditya Kumar and its team • <a href="https://aditya-portfolio-org.vercel.app/" target="_blank" rel="noreferrer" className="hover:text-sky-400 transition-colors">Portfolio</a>
         </p>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}

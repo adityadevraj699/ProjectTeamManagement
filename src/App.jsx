@@ -33,6 +33,11 @@ import StudentTeam from "./pages/student/Team";
 import TeamDetails from "./pages/student/TeamDetails";
 import Query from "./pages/guide/Query";
 import MeetingModal from "./pages/student/MeetingModal";
+import Contact from "./pages/Contact";
+import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
+import FAQ from "./pages/FAQ";
+import Support from "./pages/Support";
 
 function App() {
   return (
@@ -44,6 +49,11 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/support" element={<Support />} />
 
             {/* Protected admin routes */}
             <Route
