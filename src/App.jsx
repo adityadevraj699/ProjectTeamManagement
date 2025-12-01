@@ -38,6 +38,7 @@ import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
 import FAQ from "./pages/FAQ";
 import Support from "./pages/Support";
+import GuideDashboard from "./pages/guide/GuideDashboard";
 
 function App() {
   return (
@@ -133,6 +134,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+              <Route
+              path="/guide/dashboard"
+              element={
+                <ProtectedRoute role="GUIDE">
+                  <GuideDashboard />
+                </ProtectedRoute>
+              }
+            />
+
 
             <Route
   path="/guide/TeamDetail/:id"

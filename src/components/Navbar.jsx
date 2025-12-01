@@ -17,15 +17,14 @@ const Navbar = () => {
   };
 
   // 🎯 Role-based links
-const guideLinks = [
-  { name: "Team Management", to: "/guide/teams" },
-  { name: "Meeting Records", to: "/guide/meetings" },
-  { name: "Task Tracking", to: "/guide/tasks" },
-  { name: "Team", to: "/guide/team" },  
-  { name: "Add Student", to: "/guide/add-student" }, 
-  {name: "Query", to: "/guide/query"}
-];
-
+  const guideLinks = [
+    { name: "Team Management", to: "/guide/teams" },
+    { name: "Meeting Records", to: "/guide/meetings" },
+    { name: "Task Tracking", to: "/guide/tasks" },
+    { name: "Team", to: "/guide/team" },
+    { name: "Add Student", to: "/guide/add-student" },
+    { name: "Query", to: "/guide/query" }
+  ];
 
   const studentLinks = [
     { name: "Team", to: "/student/team" },
@@ -48,6 +47,15 @@ const guideLinks = [
       ? guideLinks
       : studentLinks
     : [];
+
+  // 🎯 Role-based dashboard path (used for desktop & mobile)
+  const dashboardPath = user
+    ? user.role?.toUpperCase() === "ADMIN"
+      ? "/admin/dashboard"
+      : user.role?.toUpperCase() === "GUIDE"
+      ? "/guide/dashboard"
+      : "/student/dashboard"
+    : "/";
 
   // 🔹 Close menus if clicked outside
   useEffect(() => {
@@ -101,6 +109,14 @@ const guideLinks = [
                 {link.name}
               </Link>
             ))}
+
+            {/* Desktop Dashboard Link (role-based) */}
+            {/* <Link
+              to={dashboardPath}
+              className="ml-2 px-3 py-1 rounded-md bg-sky-600 hover:bg-sky-700 transition-colors font-medium text-sm"
+            >
+              Dashboard
+            </Link> */}
           </div>
         )}
 
@@ -140,6 +156,15 @@ const guideLinks = [
 
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-44 bg-gray-800 rounded-xl shadow-lg py-2">
+                  {/* Dashboard in dropdown as well */}
+                  <Link
+                    to={dashboardPath}
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 hover:bg-gray-700 transition"
+                  >
+                    Dashboard
+                  </Link>
+
                   <Link
                     to="/profile"
                     onClick={() => setMenuOpen(false)}
@@ -203,19 +228,15 @@ const guideLinks = [
                   {link.name}
                 </Link>
               ))}
+
               <Link
-                to={
-                  user.role === "ADMIN"
-                    ? "/admin/dashboard"
-                    : user.role === "GUIDE"
-                    ? "/guide/dashboard"
-                    : "/student/dashboard"
-                }
+                to={dashboardPath}
                 onClick={handleMobileLinkClick}
                 className="block px-4 py-2 hover:bg-gray-700 transition"
               >
                 Dashboard
               </Link>
+
               <Link
                 to="/profile"
                 onClick={handleMobileLinkClick}

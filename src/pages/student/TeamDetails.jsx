@@ -165,36 +165,64 @@ export default function TeamDetails() {
                 </tr>
               </thead>
               <tbody>
-                {(team.members || []).map(m => (
-                  <tr key={m.id} className="border-t border-[#0B1220]">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div><InitialsAvatar name={m.name} /></div>
-                        <div>
-                          <div className="font-medium text-gray-100">{m.name}</div>
-                          <div className="text-xs text-gray-400">{m.contactNo || ""}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-300">{m.email || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{m.rollNumber || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{m.course || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{m.branch || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{m.section || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{m.semester || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{m.role || "-"}</td>
-                    <td className="py-3 px-4 text-sm">
-                      {m.leader ? <span className="text-yellow-400 font-semibold">Leader</span> : <span className="text-gray-400">Member</span>}
-                    </td>
-                    <td className="py-3 px-4">
-                      <button onClick={() => navigate(`/profile/${m.userId || m.id}`)} className="px-3 py-1 bg-sky-600 rounded text-white text-sm">View</button>
-                    </td>
-                  </tr>
-                ))}
-                {(!team.members || team.members.length === 0) && (
-                  <tr><td colSpan={10} className="py-6 px-4 text-center text-gray-400">No members found</td></tr>
-                )}
-              </tbody>
+  {(team.members || [])
+    .sort((a, b) => (b.leader === true) - (a.leader === true))
+    .map(m => (
+      <tr
+        key={m.id}
+        className={
+          `border-t border-[#0B1220] transition-all ` +
+          (m.leader ? "bg-[#0d1a33] ring-1 ring-yellow-500/20" : "")
+        }
+      >
+        <td className="py-3 px-4">
+          <div className="flex items-center gap-3">
+            <div><InitialsAvatar name={m.name} /></div>
+            <div>
+              <div className="font-medium text-gray-100">{m.name}</div>
+              <div className="text-xs text-gray-400">{m.contactNo || ""}</div>
+            </div>
+          </div>
+        </td>
+
+        <td className="py-3 px-4 text-sm text-gray-300">{m.email || "-"}</td>
+        <td className="py-3 px-4 text-sm">{m.rollNumber || "-"}</td>
+        <td className="py-3 px-4 text-sm">{m.course || "-"}</td>
+        <td className="py-3 px-4 text-sm">{m.branch || "-"}</td>
+        <td className="py-3 px-4 text-sm">{m.section || "-"}</td>
+        <td className="py-3 px-4 text-sm">{m.semester || "-"}</td>
+        <td className="py-3 px-4 text-sm">{m.role || "-"}</td>
+
+        <td className="py-3 px-4 text-sm">
+          {m.leader ? (
+            <span className="text-yellow-400 font-semibold">Leader</span>
+          ) : (
+            <span className="text-gray-400">Member</span>
+          )}
+        </td>
+
+        <td className="py-3 px-4">
+          <button
+            onClick={() =>
+              navigate(`/profile/${encodeURIComponent(m.email)}`)
+            }
+            className="px-3 py-1 bg-sky-600 rounded text-white text-sm"
+          >
+            View
+          </button>
+        </td>
+      </tr>
+    ))}
+
+  {(!team.members || team.members.length === 0) && (
+    <tr>
+      <td colSpan={10} className="py-6 px-4 text-center text-gray-400">
+        No members found
+      </td>
+    </tr>
+  )}
+</tbody>
+
             </table>
           </div>
         </div>

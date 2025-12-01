@@ -194,44 +194,52 @@ export default function TeamDetail() {
                 <th className="px-4 py-3">Profile</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
-              {team.members.map((m, index) => (
-                <tr
-                  key={index}
-                  className="hover:bg-slate-800/70 transition-all"
-                >
-                  <td className="px-4 py-2">{m.name}</td>
-                  <td className="px-4 py-2 text-sky-400">{m.email}</td>
-                  <td className="px-4 py-2">{m.rollNumber || "N/A"}</td>
-                  <td className="px-4 py-2">{m.course}</td>
-                  <td className="px-4 py-2">{m.branch}</td>
-                  <td className="px-4 py-2">{m.section}</td>
-                  <td className="px-4 py-2">{m.semester}</td>
-                  <td className="px-4 py-2">{m.role}</td>
-                  <td className="px-4 py-2">
-                    {m.leader ? (
-                      <span className="text-green-400 font-semibold">
-                        ✔ Leader
-                      </span>
-                    ) : (
-                      <span className="text-yellow-400 font-semibold">
-                        Member
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() =>
-                        navigate(`/profile/${encodeURIComponent(m.email)}`)
-                      }
-                      className="px-3 py-1 bg-sky-600 hover:bg-sky-700 rounded text-white transition-all"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+           <tbody className="divide-y divide-slate-700">
+  {(team.members || [])
+    .sort((a, b) => (b.leader === true) - (a.leader === true)) // Leader on top
+    .map((m, index) => (
+      <tr
+        key={index}
+        className={
+          `hover:bg-slate-800/70 transition-all ` +
+          (m.leader ? "bg-[#0d1a33] ring-1 ring-green-500/20" : "")
+        }
+      >
+        <td className="px-4 py-2">{m.name}</td>
+        <td className="px-4 py-2 text-sky-400">{m.email}</td>
+        <td className="px-4 py-2">{m.rollNumber || "N/A"}</td>
+        <td className="px-4 py-2">{m.course}</td>
+        <td className="px-4 py-2">{m.branch}</td>
+        <td className="px-4 py-2">{m.section}</td>
+        <td className="px-4 py-2">{m.semester}</td>
+        <td className="px-4 py-2">{m.role}</td>
+
+        <td className="px-4 py-2">
+          {m.leader ? (
+            <span className="text-green-400 font-semibold">
+              ✔ Leader
+            </span>
+          ) : (
+            <span className="text-yellow-400 font-semibold">
+              Member
+            </span>
+          )}
+        </td>
+
+        <td className="px-4 py-2">
+          <button
+            onClick={() =>
+              navigate(`/profile/${encodeURIComponent(m.email)}`)
+            }
+            className="px-3 py-1 bg-sky-600 hover:bg-sky-700 rounded text-white transition-all"
+          >
+            View
+          </button>
+        </td>
+      </tr>
+    ))}
+</tbody>
+
           </table>
         </div>
       </div>

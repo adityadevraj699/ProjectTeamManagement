@@ -29,8 +29,8 @@ export default function Footer() {
           </div>
 
           <div className="mt-4">
-            <a href="mailto:aditya@zephrinix.in" className="inline-flex items-center gap-2 text-sm hover:text-sky-400 transition-colors">
-              <FaEnvelope /> <span>aditya@zephrinix.in</span>
+            <a href="mailto:aditya@zephronix.in" className="inline-flex items-center gap-2 text-sm hover:text-sky-400 transition-colors">
+              <FaEnvelope /> <span>aditya@zephronix.in</span>
             </a>
           </div>
         </div>

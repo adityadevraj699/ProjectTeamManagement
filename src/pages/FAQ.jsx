@@ -178,7 +178,7 @@ export default function FAQ() {
               <p className="text-sm text-gray-400 mt-2">If you cannot find an answer here, request a demo or contact support.</p>
               <div className="mt-3 flex flex-col gap-2">
                 <a href="/contact" className="inline-block text-sm px-3 py-2 rounded-md bg-sky-400 text-gray-900 text-center">Request demo</a>
-                <a href="mailto:aditya@zephrinix.in" className="inline-block text-sm px-3 py-2 rounded-md border border-gray-800 text-gray-300 text-center hover:text-sky-400">Email support</a>
+                <a href="mailto:aditya@zephronix.in" className="inline-block text-sm px-3 py-2 rounded-md border border-gray-800 text-gray-300 text-center hover:text-sky-400">Email support</a>
               </div>
             </div>
 

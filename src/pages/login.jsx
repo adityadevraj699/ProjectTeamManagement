@@ -12,6 +12,20 @@ export default function Login() {
   const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // Map roles to dashboard routes — change values to match your app routes if needed
+  const roleToPath = {
+    ADMIN: "/admin/dashboard",
+    GUIDE: "/guide/dashboard",
+    STUDENT: "/student/dashboard",
+    TEACHER: "/teacher/dashboard",
+  };
+
+  const getRedirectForRole = (role) => {
+    if (!role) return "/"; // fallback
+    const key = ("" + role).toUpperCase();
+    return roleToPath[key] || "/"; // fallback to root if unknown
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -28,22 +42,29 @@ export default function Login() {
       const userData = response.data.user;
       const tokenData = response.data.token;
 
+      // Persist into auth context
       login(userData, tokenData);
 
+      // Toast
       Swal.fire({
-        title: `Welcome, ${userData.name}!`,
-        text: "Redirecting to Home...",
+        title: `Welcome, ${userData.name || "User"}!`,
+        text: "Redirecting to your dashboard...",
         icon: "success",
         background: "#0f172a",
         color: "#fff",
         confirmButtonColor: "#38bdf8",
+        timer: 800,
+        timerProgressBar: true,
+        showConfirmButton: false,
       });
 
-      // small delay so user sees the toast
+      // Navigate to role-specific dashboard after a short delay so user sees toast
+      const redirectPath = getRedirectForRole(userData?.role);
       setTimeout(() => {
-        navigate("/");
-      }, 800);
+        navigate(redirectPath, { replace: true });
+      }, 700);
     } catch (err) {
+      console.error("Login error:", err);
       Swal.fire({
         title: "Login Failed",
         text: err.response?.data?.message || "Login failed",
@@ -57,10 +78,11 @@ export default function Login() {
     }
   };
 
-  // If already logged in, redirect to home (run inside useEffect to avoid render-time navigation)
+  // If already logged in, redirect to their dashboard
   useEffect(() => {
     if (user) {
-      navigate("/");
+      const redirectPath = getRedirectForRole(user.role);
+      navigate(redirectPath, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);

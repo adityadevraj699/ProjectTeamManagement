@@ -42,7 +42,7 @@ export default function ContactPage() {
               <div className="space-y-3 text-sm text-gray-400">
                 <div>
                   <p className="font-medium text-gray-300">Email</p>
-                  <a href="mailto:aditya@zephrinix.in" className="block hover:text-sky-400 transition-colors">aditya@zephrinix.in</a>
+                  <a href="mailto:aditya@zephronix.in" className="block hover:text-sky-400 transition-colors">aditya@zephronix.in</a>
                 </div>
 
                 <div>
