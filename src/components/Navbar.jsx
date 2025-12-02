@@ -38,6 +38,7 @@ const Navbar = () => {
     { name: "Add Semester", to: "/admin/add-semester" },
     { name: "Add Section", to: "/admin/add-section" },
     { name: "Add Teacher", to: "/admin/add-teacher" },
+    { name: "Student", to: "/admin/user-detail" },
   ];
 
   const roleLinks = user

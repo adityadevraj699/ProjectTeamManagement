@@ -40,6 +40,7 @@ import FAQ from "./pages/FAQ";
 import Support from "./pages/Support";
 import GuideDashboard from "./pages/guide/GuideDashboard";
 import AdminTeamDetail from "./pages/admin/AdminTeamDetail";
+import AdminUserDetail from "./pages/admin/AdminUserDetail";
 
 function App() {
   return (
@@ -72,6 +73,15 @@ function App() {
   element={
     <ProtectedRoute role="ADMIN">
       <AdminTeamDetail/>
+    </ProtectedRoute>
+  }
+/>
+
+ <Route
+  path="/admin/user-detail"
+  element={
+    <ProtectedRoute role="ADMIN">
+      <AdminUserDetail/>
     </ProtectedRoute>
   }
 />
