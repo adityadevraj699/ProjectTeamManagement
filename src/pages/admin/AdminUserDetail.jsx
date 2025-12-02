@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 
 /* -------------------- Loader -------------------- */
 const Loader = ({ text = "Loading..." }) => (
@@ -31,8 +32,8 @@ function EditModal({ open, onClose, student, branches, semesters, sections, onSa
   }, [student]);
 
   if (!open) return null;
-
   const token = localStorage.getItem("token");
+
   const save = async () => {
     try {
       const payload = {
@@ -119,7 +120,7 @@ function EditModal({ open, onClose, student, branches, semesters, sections, onSa
   );
 }
 
-/* -------------------- UploadModal (improved UI, responsive, 80vw) -------------------- */
+/* -------------------- UploadModal (with excel preview) -------------------- */
 function UploadModal({ open, onClose, branches, semesters, sections, onUploaded }) {
   const [branchId, setBranchId] = useState("");
   const [semesterId, setSemesterId] = useState("");
@@ -127,33 +128,67 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [previewRows, setPreviewRows] = useState([]); // parsed rows
+  const [previewHeaders, setPreviewHeaders] = useState([]); // header order
 
   useEffect(() => {
     if (!open) {
+      // reset modal state on close
       setBranchId("");
       setSemesterId("");
       setSectionId("");
       setFile(null);
       setUploading(false);
       setDragOver(false);
+      setPreviewRows([]);
+      setPreviewHeaders([]);
     }
   }, [open]);
 
   if (!open) return null;
-
   const token = localStorage.getItem("token");
 
-  const onDrop = (e) => {
+  const parseExcel = async (f) => {
+    try {
+      const data = await f.arrayBuffer();
+      // read as array
+      const workbook = XLSX.read(data, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) {
+        setPreviewRows([]);
+        setPreviewHeaders([]);
+        Swal.fire({ icon: "warning", title: "Empty workbook", text: "No sheets found in Excel." });
+        return;
+      }
+      const sheet = workbook.Sheets[firstSheetName];
+      // convert to JSON; defval: '' to avoid undefined
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      setPreviewRows(Array.isArray(rows) ? rows.slice(0, 10) : []);
+      setPreviewHeaders(rows.length > 0 ? Object.keys(rows[0]) : []);
+    } catch (err) {
+      console.error("Excel parse error", err);
+      setPreviewRows([]);
+      setPreviewHeaders([]);
+      Swal.fire({ icon: "error", title: "Parse error", text: "Could not read the Excel file." });
+    }
+  };
+
+  const onDrop = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
     const f = e.dataTransfer?.files && e.dataTransfer.files[0];
-    if (f) setFile(f);
+    if (!f) return;
+    setFile(f);
+    // parse preview
+    await parseExcel(f);
   };
 
-  const onFileChange = (e) => {
+  const onFileChange = async (e) => {
     const f = e.target.files?.[0] ?? null;
-    if (f) setFile(f);
+    if (!f) return;
+    setFile(f);
+    await parseExcel(f);
   };
 
   const submit = async () => {
@@ -162,21 +197,21 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
       return;
     }
 
-    const name = file.name.toLowerCase();
-    if (!name.endsWith(".xlsx") && !name.endsWith(".xls")) {
+    const nameLower = file.name.toLowerCase();
+    if (!nameLower.endsWith(".xlsx") && !nameLower.endsWith(".xls")) {
       Swal.fire({ icon: "warning", title: "Wrong file type", text: "Please upload an .xlsx/.xls file." });
       return;
     }
 
-    const form = new FormData();
-    form.append("file", file);
-    if (branchId) form.append("branchId", branchId);
-    if (semesterId) form.append("semesterId", semesterId);
-    if (sectionId) form.append("sectionId", sectionId);
+    const formData = new FormData();
+    formData.append("file", file);
+    if (branchId) formData.append("branchId", branchId);
+    if (semesterId) formData.append("semesterId", semesterId);
+    if (sectionId) formData.append("sectionId", sectionId);
 
     try {
       setUploading(true);
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/admin/students/import`, form, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/admin/students/import`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data"
@@ -347,32 +382,55 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
                 <div className="text-xs text-gray-400 mb-2">Important: server will validate each row and return a summary after upload.</div>
 
                 <div className="mt-3 text-xs text-gray-300">
-                  <div className="font-medium mb-1">Example required format</div>
+                  <div className="font-medium mb-1">Preview (first {previewRows.length ? previewRows.length : 0} rows)</div>
                   <div className="overflow-auto">
-                    <table className="w-full text-xs table-fixed border-collapse">
-                      <thead>
-                        <tr className="text-left text-gray-300">
-                          <th className="pb-1">s.no</th>
-                          <th className="pb-1">name</th>
-                          <th className="pb-1">email</th>
-                          <th className="pb-1">roll number</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="text-gray-400">
-                          <td>1</td>
-                          <td>Anjali Shah</td>
-                          <td>anjali.shah.cs.2022@mitmeerut.ac.in</td>
-                          <td>2202920100024</td>
-                        </tr>
-                        <tr className="text-gray-400">
-                          <td>2</td>
-                          <td>Juhi Kumari</td>
-                          <td>juhi.kumari.cs.2022@mitmeerut.ac.in</td>
-                          <td>2202920100050</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    {previewRows.length > 0 ? (
+                      <table className="w-full text-xs table-fixed border-collapse">
+                        <thead>
+                          <tr className="text-left text-gray-300">
+                            {previewHeaders.map((h, idx) => <th key={idx} className="pb-1">{h}</th>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewRows.map((row, rIdx) => (
+                            <tr className="text-gray-400" key={rIdx}>
+                              {previewHeaders.map((h, cIdx) => (
+                                <td key={cIdx} className="align-top py-1">{String(row[h] ?? "")}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      // fallback: show your example required format if no preview rows parsed
+                      <div>
+                        <div className="text-xs text-gray-400 mb-2">No preview rows found — showing example format:</div>
+                        <table className="w-full text-xs table-fixed border-collapse">
+                          <thead>
+                            <tr className="text-left text-gray-300">
+                              <th className="pb-1">s.no</th>
+                              <th className="pb-1">name</th>
+                              <th className="pb-1">email</th>
+                              <th className="pb-1">roll number</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="text-gray-400">
+                              <td>1</td>
+                              <td>Anjali Shah</td>
+                              <td>anjali.shah.cs.2022@mitmeerut.ac.in</td>
+                              <td>2202920100024</td>
+                            </tr>
+                            <tr className="text-gray-400">
+                              <td>2</td>
+                              <td>Juhi Kumari</td>
+                              <td>juhi.kumari.cs.2022@mitmeerut.ac.in</td>
+                              <td>2202920100050</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -565,7 +623,6 @@ export default function AdminUserDetail() {
       <div className="mb-6">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-red-500">MEERUT INSTITUTE OF TECHNOLOGY - 292</h1>
             <div className="text-sm text-gray-300 mt-1">{summary.subtitle}</div>
           </div>
 
