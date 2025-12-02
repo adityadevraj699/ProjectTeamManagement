@@ -140,6 +140,9 @@ export default function AdminUserDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
 
+  // summary
+  const [summary, setSummary] = useState({ totalStudents: 0, filteredStudents: 0, subtitle: "All students" });
+
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -148,6 +151,13 @@ export default function AdminUserDetail() {
     fetchData();
     // eslint-disable-next-line
   }, []);
+
+  // whenever filters change we re-fetch data & summary
+  useEffect(() => {
+    fetchData();
+    fetchSummary();
+    // eslint-disable-next-line
+  }, [branchId, sectionId, semesterId]);
 
   const fetchMaster = async () => {
     try {
@@ -187,6 +197,20 @@ export default function AdminUserDetail() {
     }
   };
 
+  const fetchSummary = async () => {
+    try {
+      const params = {};
+      if (branchId) params.branchId = branchId;
+      if (sectionId) params.sectionId = sectionId;
+      if (semesterId) params.semesterId = semesterId;
+      if (q) params.q = q;
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/students/summary`, { params, headers });
+      setSummary(res.data || { totalStudents: 0, filteredStudents: 0, subtitle: "All students" });
+    } catch (err) {
+      console.error("Summary fetch failed", err);
+    }
+  };
+
   const handleOpenEdit = (student) => {
     setEditingStudent(student);
     setEditOpen(true);
@@ -194,6 +218,8 @@ export default function AdminUserDetail() {
 
   const onSaved = (updated) => {
     setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
+    // refresh counts
+    fetchSummary();
   };
 
   // Export (pdf or excel)
@@ -249,11 +275,29 @@ export default function AdminUserDetail() {
     <div className="p-8 min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-gray-100">
       {fetching && <Loader text="Loading students..." />}
 
-      <div className="flex items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-sky-300">Students Management</h1>
-        <div className="ml-auto flex gap-2">
-          <button onClick={() => confirmExport("pdf")} className="px-3 py-2 bg-rose-600 rounded text-white">Export PDF</button>
-          <button onClick={() => confirmExport("excel")} className="px-3 py-2 bg-amber-600 rounded text-white">Export Excel</button>
+      {/* TOP: Institute header + quick summary */}
+      <div className="mb-6">
+        <div className="flex items-center gap-4">
+          <div>
+            <div className="text-sm text-gray-300 mt-1">{summary.subtitle}</div>
+          </div>
+
+          <div className="ml-auto flex gap-4 items-center">
+            <div className="bg-slate-800 p-3 rounded text-center">
+              <div className="text-xs text-gray-400">Total students</div>
+              <div className="text-xl font-semibold text-white">{summary.totalStudents}</div>
+            </div>
+
+            <div className="bg-slate-800 p-3 rounded text-center">
+              <div className="text-xs text-gray-400">Showing (filtered)</div>
+              <div className="text-xl font-semibold text-white">{summary.filteredStudents}</div>
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => confirmExport("pdf")} className="px-3 py-2 bg-rose-600 rounded text-white">Export PDF</button>
+              <button onClick={() => confirmExport("excel")} className="px-3 py-2 bg-amber-600 rounded text-white">Export Excel</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -287,8 +331,8 @@ export default function AdminUserDetail() {
           <label className="text-sm text-gray-300">Search (name/email/roll)</label>
           <div className="flex gap-2 mt-1">
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search..." className="flex-1 p-2 bg-slate-700 rounded text-white" />
-            <button onClick={fetchData} className="px-3 py-2 bg-sky-600 rounded text-white">Apply</button>
-            <button onClick={() => { setBranchId(""); setSemesterId(""); setSectionId(""); setQ(""); fetchData(); }} className="px-3 py-2 bg-slate-600 rounded text-white">Reset</button>
+            <button onClick={() => { fetchData(); fetchSummary(); }} className="px-3 py-2 bg-sky-600 rounded text-white">Apply</button>
+            <button onClick={() => { setBranchId(""); setSemesterId(""); setSectionId(""); setQ(""); fetchData(); fetchSummary(); }} className="px-3 py-2 bg-slate-600 rounded text-white">Reset</button>
           </div>
         </div>
       </div>
