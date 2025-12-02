@@ -4,7 +4,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
-// Loader
+/* -------------------- Loader -------------------- */
 const Loader = ({ text = "Loading..." }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
     <div className="bg-slate-900 p-6 rounded shadow flex flex-col items-center">
@@ -14,7 +14,7 @@ const Loader = ({ text = "Loading..." }) => (
   </div>
 );
 
-// Edit modal
+/* -------------------- EditModal -------------------- */
 function EditModal({ open, onClose, student, branches, semesters, sections, onSaved }) {
   const [form, setForm] = useState({});
   useEffect(() => {
@@ -119,6 +119,278 @@ function EditModal({ open, onClose, student, branches, semesters, sections, onSa
   );
 }
 
+/* -------------------- UploadModal (improved UI, responsive, 80vw) -------------------- */
+function UploadModal({ open, onClose, branches, semesters, sections, onUploaded }) {
+  const [branchId, setBranchId] = useState("");
+  const [semesterId, setSemesterId] = useState("");
+  const [sectionId, setSectionId] = useState("");
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setBranchId("");
+      setSemesterId("");
+      setSectionId("");
+      setFile(null);
+      setUploading(false);
+      setDragOver(false);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const token = localStorage.getItem("token");
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const f = e.dataTransfer?.files && e.dataTransfer.files[0];
+    if (f) setFile(f);
+  };
+
+  const onFileChange = (e) => {
+    const f = e.target.files?.[0] ?? null;
+    if (f) setFile(f);
+  };
+
+  const submit = async () => {
+    if (!file) {
+      Swal.fire({ icon: "warning", title: "Select file", text: "Please choose an .xlsx file to upload." });
+      return;
+    }
+
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".xlsx") && !name.endsWith(".xls")) {
+      Swal.fire({ icon: "warning", title: "Wrong file type", text: "Please upload an .xlsx/.xls file." });
+      return;
+    }
+
+    const form = new FormData();
+    form.append("file", file);
+    if (branchId) form.append("branchId", branchId);
+    if (semesterId) form.append("semesterId", semesterId);
+    if (sectionId) form.append("sectionId", sectionId);
+
+    try {
+      setUploading(true);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/admin/students/import`, form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data"
+        }
+      });
+
+      Swal.fire({
+        icon: "success",
+        title: "Import completed",
+        html: `<div>Created: <b>${res.data.created}</b><br/>Updated: <b>${res.data.updated}</b><br/>Skipped: <b>${res.data.skipped}</b></div>`,
+        width: 450
+      });
+
+      onUploaded && onUploaded(res.data);
+      onClose();
+    } catch (err) {
+      console.error("Import failed", err);
+      const msg = err.response?.data?.error || err.response?.data || err.message || "Upload failed";
+      Swal.fire({ icon: "error", title: "Import failed", text: String(msg) });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // inline styles: modal width 80vw (max capped) and safe min widths for columns so preview doesn't overlap
+  const modalStyle = {
+    width: "80vw",
+    maxWidth: "1100px",
+    minWidth: "640px",
+    height: "80vh",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  };
+
+  const leftPanelStyle = {
+    minWidth: 420,
+    maxWidth: "60%",
+    overflow: "auto",
+    boxSizing: "border-box"
+  };
+
+  const rightPanelStyle = {
+    minWidth: 300,
+    maxWidth: "40%",
+    overflow: "auto",
+    boxSizing: "border-box"
+  };
+
+  return (
+    <div className="fixed inset-0 z-70 flex items-center justify-center px-4">
+      {/* backdrop */}
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+
+      {/* modal card: centered, 80vw width on desktop */}
+      <div
+        className="relative bg-slate-900 rounded-lg p-4 z-10 shadow-2xl"
+        style={modalStyle}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Upload students from Excel"
+      >
+        {/* header */}
+        <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-700">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Upload students from Excel</h3>
+            <p className="text-sm text-gray-400">Choose branch/semester/section to assign, then upload the file.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="text-gray-300 hover:text-white px-2 py-1 rounded-md bg-slate-800/50"
+              aria-label="Close upload modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+
+        {/* body: two columns (left: form, right: preview/errors) */}
+        <div className="flex-1 overflow-hidden mt-4 flex gap-4">
+          {/* left: selection + file drop */}
+          <div className="p-3 bg-slate-800 rounded flex flex-col gap-4" style={leftPanelStyle}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm text-gray-300">Branch</label>
+                <select value={branchId} onChange={e => setBranchId(e.target.value)} className="w-full mt-1 p-2 bg-slate-700 rounded text-white">
+                  <option value="">— none —</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.branchName}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-300">Semester</label>
+                <select value={semesterId} onChange={e => setSemesterId(e.target.value)} className="w-full mt-1 p-2 bg-slate-700 rounded text-white">
+                  <option value="">— none —</option>
+                  {semesters.map(s => <option key={s.id} value={s.id}>{s.semesterName}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-300">Section</label>
+                <select value={sectionId} onChange={e => setSectionId(e.target.value)} className="w-full mt-1 p-2 bg-slate-700 rounded text-white">
+                  <option value="">— none —</option>
+                  {sections.map(s => <option key={s.id} value={s.id}>{s.sectionName}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* drag & drop area */}
+            <div
+              onDrop={onDrop}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+              className={`mt-2 flex flex-col items-center justify-center gap-3 p-6 rounded border-2 ${dragOver ? "border-dashed border-sky-400 bg-slate-700/50" : "border-dashed border-slate-700"} text-center`}
+              style={{ minHeight: 180 }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h10a4 4 0 004-4M16 7l-4-4m0 0L8 7m4-4v11" />
+              </svg>
+
+              <div className="text-sm text-gray-300">
+                <div className="font-medium">{file ? file.name : "Drag & drop your Excel file here"}</div>
+                <div className="text-xs text-gray-400 mt-1">or</div>
+
+                <label className="inline-block mt-2">
+                  <input type="file" accept=".xlsx,.xls" onChange={onFileChange} className="hidden" />
+                  <span className="inline-block px-4 py-2 mt-1 bg-sky-600 rounded cursor-pointer text-white text-sm">Browse file</span>
+                </label>
+              </div>
+
+              <div className="text-xs text-gray-400 mt-2">
+                Expected header (first sheet): <span className="font-medium">s.no | name | email | roll number</span><br />
+                Optional: contact number in next column.<br />
+                Max file size: your server config decides.
+              </div>
+            </div>
+
+            {/* small helpful notes */}
+            <div className="text-xs text-gray-400">
+              <ul className="list-disc pl-4">
+                <li>Header row must be present in first sheet.</li>
+                <li>Empty rows are skipped.</li>
+                <li>Existing users matched by email will be updated (branch/section/semester applied if selected).</li>
+              </ul>
+            </div>
+
+            <div className="mt-auto flex items-center justify-end gap-2">
+              <button onClick={onClose} className="px-4 py-2 bg-slate-700 rounded text-white">Cancel</button>
+              <button onClick={submit} disabled={uploading} className={`px-4 py-2 rounded text-white ${uploading ? "bg-slate-600 cursor-wait" : "bg-indigo-600 hover:bg-indigo-500"}`}>
+                {uploading ? "Uploading..." : "Upload & Register"}
+              </button>
+            </div>
+          </div>
+
+          {/* right: preview / result / errors */}
+          <div className="p-3 bg-slate-800 rounded h-full" style={rightPanelStyle}>
+            <h4 className="text-sm font-semibold text-white mb-2">Preview & quick checks</h4>
+
+            <div className="mb-3 text-xs text-gray-400">
+              When file is selected you'll see a preview of the first few rows here (client-only preview).
+            </div>
+
+            {file ? (
+              <div className="bg-slate-900/50 rounded p-3 overflow-auto">
+                <div className="text-xs text-gray-300 mb-2">Selected file: <span className="font-medium text-white">{file.name}</span></div>
+                <div className="text-xs text-gray-400 mb-2">File size: {(file.size / 1024).toFixed(1)} KB • Type: {file.type || "—"}</div>
+                <div className="text-xs text-gray-400 mb-2">Important: server will validate each row and return a summary after upload.</div>
+
+                <div className="mt-3 text-xs text-gray-300">
+                  <div className="font-medium mb-1">Example required format</div>
+                  <div className="overflow-auto">
+                    <table className="w-full text-xs table-fixed border-collapse">
+                      <thead>
+                        <tr className="text-left text-gray-300">
+                          <th className="pb-1">s.no</th>
+                          <th className="pb-1">name</th>
+                          <th className="pb-1">email</th>
+                          <th className="pb-1">roll number</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="text-gray-400">
+                          <td>1</td>
+                          <td>Anjali Shah</td>
+                          <td>anjali.shah.cs.2022@mitmeerut.ac.in</td>
+                          <td>2202920100024</td>
+                        </tr>
+                        <tr className="text-gray-400">
+                          <td>2</td>
+                          <td>Juhi Kumari</td>
+                          <td>juhi.kumari.cs.2022@mitmeerut.ac.in</td>
+                          <td>2202920100050</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-center text-gray-500 py-6">No file selected</div>
+            )}
+
+            <div className="mt-4 text-xs text-gray-400">
+              After import you will receive a summary with created/updated/skipped counts. Rows with issues are returned in `errors` array from the server.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- Main page component -------------------- */
 export default function AdminUserDetail() {
   const navigate = useNavigate();
 
@@ -139,6 +411,9 @@ export default function AdminUserDetail() {
   // modal
   const [editOpen, setEditOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
+
+  // upload modal
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   // summary
   const [summary, setSummary] = useState({ totalStudents: 0, filteredStudents: 0, subtitle: "All students" });
@@ -222,6 +497,17 @@ export default function AdminUserDetail() {
     fetchSummary();
   };
 
+  // after successful upload -> refresh everything
+  const handleUploadCompleted = (result) => {
+    fetchData();
+    fetchSummary();
+    // optionally display detailed errors
+    if (result && result.errors && result.errors.length) {
+      const list = result.errors.map(e => `Row ${e.row}: ${e.reason}`).slice(0, 10).join("<br/>");
+      Swal.fire({ icon: "info", title: "Some rows had errors", html: list });
+    }
+  };
+
   // Export (pdf or excel)
   const confirmExport = async (type) => {
     const answer = await Swal.fire({
@@ -279,6 +565,7 @@ export default function AdminUserDetail() {
       <div className="mb-6">
         <div className="flex items-center gap-4">
           <div>
+            <h1 className="text-3xl font-extrabold text-red-500">MEERUT INSTITUTE OF TECHNOLOGY - 292</h1>
             <div className="text-sm text-gray-300 mt-1">{summary.subtitle}</div>
           </div>
 
@@ -296,6 +583,7 @@ export default function AdminUserDetail() {
             <div className="flex gap-2">
               <button onClick={() => confirmExport("pdf")} className="px-3 py-2 bg-rose-600 rounded text-white">Export PDF</button>
               <button onClick={() => confirmExport("excel")} className="px-3 py-2 bg-amber-600 rounded text-white">Export Excel</button>
+              <button onClick={() => setUploadOpen(true)} className="px-3 py-2 bg-indigo-600 rounded text-white">Upload Excel</button>
             </div>
           </div>
         </div>
@@ -389,6 +677,15 @@ export default function AdminUserDetail() {
         semesters={semesters}
         sections={sections}
         onSaved={(updated) => onSaved(updated)}
+      />
+
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        branches={branches}
+        semesters={semesters}
+        sections={sections}
+        onUploaded={(res) => handleUploadCompleted(res)}
       />
     </div>
   );
