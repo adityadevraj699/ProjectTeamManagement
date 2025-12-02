@@ -39,6 +39,7 @@ import Pricing from "./pages/Pricing";
 import FAQ from "./pages/FAQ";
 import Support from "./pages/Support";
 import GuideDashboard from "./pages/guide/GuideDashboard";
+import AdminTeamDetail from "./pages/admin/AdminTeamDetail";
 
 function App() {
   return (
@@ -65,6 +66,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+                        <Route
+  path="/admin/TeamDetail/:id"
+  element={
+    <ProtectedRoute role="ADMIN">
+      <AdminTeamDetail/>
+    </ProtectedRoute>
+  }
+/>
+
 
              <Route
               path="/admin/create-course"
