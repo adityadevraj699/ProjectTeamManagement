@@ -17,9 +17,10 @@ export default function Teacher() {
     },
   };
 
-  // ✅ Fetch all teachers
+  // Fetch all teachers
   const fetchTeachers = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/admin/teachers`,
         axiosConfig
@@ -38,7 +39,7 @@ export default function Teacher() {
     }
   };
 
-  // ✅ Add new teacher
+  // Add new teacher
   const handleAddTeacher = async (e) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) {
@@ -67,7 +68,7 @@ export default function Teacher() {
     }
   };
 
-  // ✅ Update teacher
+  // Update teacher
   const handleUpdateTeacher = async (teacher) => {
     const { value: formValues } = await Swal.fire({
       title: "Update Teacher",
@@ -90,8 +91,9 @@ export default function Teacher() {
     if (!formValues) return;
 
     try {
+      const id = teacher.id || teacher._id;
       await axios.put(
-        `${import.meta.env.VITE_API_URL}/admin/teachers/${teacher.id}`,
+        `${import.meta.env.VITE_API_URL}/admin/teachers/${id}`,
         formValues,
         axiosConfig
       );
@@ -100,7 +102,8 @@ export default function Teacher() {
     } catch (err) {
       Swal.fire({
         title: "Error",
-        text: err.response?.data?.message || err.response?.data || "Failed to update teacher",
+        text:
+          err.response?.data?.message || err.response?.data || "Failed to update teacher",
         icon: "error",
         background: "#0f172a",
         color: "#fff",
@@ -108,8 +111,8 @@ export default function Teacher() {
     }
   };
 
-  // ✅ Delete teacher
-  const handleDeleteTeacher = async (id) => {
+  // Delete teacher
+  const handleDeleteTeacher = async (teacher) => {
     const confirm = await Swal.fire({
       title: "Delete?",
       text: "This teacher will be permanently deleted",
@@ -124,6 +127,7 @@ export default function Teacher() {
     if (!confirm.isConfirmed) return;
 
     try {
+      const id = teacher.id || teacher._id;
       await axios.delete(
         `${import.meta.env.VITE_API_URL}/admin/teachers/${id}`,
         axiosConfig
@@ -143,100 +147,139 @@ export default function Teacher() {
 
   useEffect(() => {
     fetchTeachers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ Search filter
+  // Search filter
   const filteredTeachers = teachers.filter(
     (t) =>
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.email.toLowerCase().includes(search.toLowerCase())
+      t.name?.toLowerCase().includes(search.toLowerCase()) ||
+      t.email?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalCount = teachers.length;
+
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-200 p-10">
-      <h1 className="text-3xl font-bold mb-6 text-sky-400">Manage Teachers</h1>
+    <div className="min-h-screen bg-slate-900 text-gray-200 p-6 md:p-10">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-sky-400">Manage Teachers</h1>
+            <p className="text-gray-400 mt-1">Add, edit or remove teachers quickly</p>
+          </div>
 
-      {/* Add Teacher Form */}
-      <form
-        onSubmit={handleAddTeacher}
-        className="bg-slate-800 border border-sky-600 rounded-2xl p-6 mb-10 shadow-lg"
-      >
-        <h2 className="text-xl font-semibold mb-4 text-sky-300">Add New Teacher</h2>
+          {/* Total count badge */}
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-300">Total Registered</div>
+            <div className="bg-sky-600 text-black font-bold px-4 py-2 rounded-full shadow">
+              {loading ? "..." : totalCount}
+            </div>
+          </div>
+        </div>
 
-        <div className="flex flex-col md:flex-row gap-3">
+        {/* Add Teacher Form */}
+        <form
+          onSubmit={handleAddTeacher}
+          className="bg-slate-800 border border-sky-600 rounded-2xl p-5 md:p-6 mb-8 shadow-lg"
+        >
+          <h2 className="text-xl font-semibold mb-3 text-sky-300">Add New Teacher</h2>
+
+          <div className="flex flex-col md:flex-row gap-3">
+            <input
+              type="text"
+              placeholder="Enter Teacher Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="p-3 rounded-lg bg-slate-900 border border-white/20 focus:ring-2 focus:ring-sky-500 flex-1"
+              required
+            />
+            <input
+              type="email"
+              placeholder="Enter Teacher Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="p-3 rounded-lg bg-slate-900 border border-white/20 focus:ring-2 focus:ring-sky-500 flex-1"
+              required
+            />
+            <button
+              type="submit"
+              className="px-6 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg font-semibold shadow-lg"
+            >
+              Add Teacher
+            </button>
+          </div>
+        </form>
+
+        {/* Search Teacher */}
+        <div className="mb-6">
           <input
             type="text"
-            placeholder="Enter Teacher Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="p-3 rounded-lg bg-slate-900 border border-white/20 focus:ring-2 focus:ring-sky-500 flex-1"
-            required
+            placeholder="Search by Name or Email"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full md:w-1/2 p-3 rounded-lg bg-slate-800 border border-white/20 focus:ring-2 focus:ring-sky-500"
           />
-          <input
-            type="email"
-            placeholder="Enter Teacher Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="p-3 rounded-lg bg-slate-900 border border-white/20 focus:ring-2 focus:ring-sky-500 flex-1"
-            required
-          />
-          <button
-            type="submit"
-            className="px-6 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg font-semibold shadow-lg"
-          >
-            Add Teacher
-          </button>
         </div>
-      </form>
 
-      {/* Search Teacher */}
-      <div className="mb-10">
-        <input
-          type="text"
-          placeholder="Search by Name or Email"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-1/2 p-3 rounded-lg bg-slate-800 border border-white/20 focus:ring-2 focus:ring-sky-500"
-        />
+        {/* All Teachers */}
+        <h2 className="text-2xl font-semibold mb-4 text-sky-300">All Teachers</h2>
+
+        {loading ? (
+          <div className="flex items-center gap-3 text-gray-300">
+            <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin border-sky-500" />
+            <p>Loading teachers...</p>
+          </div>
+        ) : filteredTeachers.length === 0 ? (
+          <p className="text-gray-400">No teachers available yet.</p>
+        ) : (
+          <div className="grid md:grid-cols-3 sm:grid-cols-2 gap-6">
+            {filteredTeachers.map((teacher) => {
+              const id = teacher.id || teacher._id || teacher.email;
+              const initials = teacher.name
+                ? teacher.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()
+                : "T";
+
+              return (
+                <div
+                  key={id}
+                  className="bg-gradient-to-br from-slate-800 to-slate-900 border border-sky-700/40 rounded-xl p-5 shadow-lg hover:shadow-sky-700/40 transition"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-sky-700/20 flex items-center justify-center text-sky-200 font-bold">
+                      {initials}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-sky-300">{teacher.name}</h3>
+                      <p className="text-gray-300 text-sm">{teacher.email}</p>
+                    </div>
+                    
+                  </div>
+
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      onClick={() => handleUpdateTeacher(teacher)}
+                      className="flex-1 bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-sm font-medium"
+                    >
+                      Update
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTeacher(teacher)}
+                      className="flex-1 bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {/* All Teachers */}
-      <h2 className="text-2xl font-semibold mb-4 text-sky-300">All Teachers</h2>
-
-      {loading ? (
-        <p>Loading teachers...</p>
-      ) : filteredTeachers.length === 0 ? (
-        <p className="text-gray-400">No teachers available yet.</p>
-      ) : (
-        <div className="grid md:grid-cols-3 sm:grid-cols-2 gap-6">
-          {filteredTeachers.map((teacher) => (
-            <div
-              key={teacher.id}
-              className="bg-slate-800 border border-sky-600 rounded-xl p-5 shadow-lg hover:shadow-sky-700/30 transition"
-            >
-              <h2 className="text-xl font-semibold text-sky-300 mb-2">
-                {teacher.name}
-              </h2>
-              <p className="text-gray-300 text-sm mb-3">{teacher.email}</p>
-
-              <div className="flex gap-3 mt-3">
-                <button
-                  onClick={() => handleUpdateTeacher(teacher)}
-                  className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded-lg text-sm font-medium"
-                >
-                  Update
-                </button>
-                <button
-                  onClick={() => handleDeleteTeacher(teacher.id)}
-                  className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded-lg text-sm font-medium"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
