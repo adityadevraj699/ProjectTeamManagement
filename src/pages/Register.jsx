@@ -69,17 +69,31 @@ export default function Register() {
     fetchData();
   }, []);
 
-  // basic validation
-  const validate = () => {
-    if (!name.trim()) return "Name is required";
-    if (!email.trim()) return "Email is required";
-    if (!/^\S+@\S+\.\S+$/.test(email)) return "Enter a valid email";
-    if (!password || password.length < 6) return "Password must be at least 6 characters";
-    if (!selectedBranch) return "Select a branch";
-    if (!selectedSemester) return "Select a semester";
-    if (!selectedSection) return "Select a section";
-    return null;
-  };
+  // basic validation with official email domain check
+const validate = () => {
+  if (!name.trim()) return "Name is required";
+
+  if (!email.trim()) return "Email is required";
+
+  // simple email structure check (one @ and at least one dot after)
+  const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!basicEmailRegex.test(email)) return "Enter a valid email";
+
+  // domain check: after '@' must be exactly mitmeerut.ac.in
+  const parts = email.trim().toLowerCase().split("@");
+  if (parts.length !== 2) return "Enter a valid email";
+  const domain = parts[1];
+  if (domain !== "mitmeerut.ac.in") {
+    return "Please register with your official college email (must end with mitmeerut.ac.in)";
+  }
+
+  if (!password || password.length < 6) return "Password must be at least 6 characters";
+  if (!selectedBranch) return "Select a branch";
+  if (!selectedSemester) return "Select a semester";
+  if (!selectedSection) return "Select a section";
+  return null;
+};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
