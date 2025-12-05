@@ -16,7 +16,7 @@ const Navbar = () => {
     navigate("/login");
   };
 
-  // 🎯 Role-based links
+  // Role-based links
   const guideLinks = [
     { name: "Team Management", to: "/guide/teams" },
     { name: "Meeting Records", to: "/guide/meetings" },
@@ -49,7 +49,6 @@ const Navbar = () => {
       : studentLinks
     : [];
 
-  // 🎯 Role-based dashboard path (used for desktop & mobile)
   const dashboardPath = user
     ? user.role?.toUpperCase() === "ADMIN"
       ? "/admin/dashboard"
@@ -58,19 +57,13 @@ const Navbar = () => {
       : "/student/dashboard"
     : "/";
 
-  // 🔹 Close menus if clicked outside
+  // Close menus if clicked outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setMenuOpen(false);
       }
-      if (
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(event.target)
-      ) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
         setMobileMenuOpen(false);
       }
     };
@@ -81,7 +74,7 @@ const Navbar = () => {
     };
   }, []);
 
-  // 🔹 Close mobile menu when a link is clicked
+  // Close mobile menu when a link is clicked
   const handleMobileLinkClick = () => {
     setMobileMenuOpen(false);
   };
@@ -110,14 +103,6 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-
-            {/* Desktop Dashboard Link (role-based) */}
-            {/* <Link
-              to={dashboardPath}
-              className="ml-2 px-3 py-1 rounded-md bg-sky-600 hover:bg-sky-700 transition-colors font-medium text-sm"
-            >
-              Dashboard
-            </Link> */}
           </div>
         )}
 
@@ -156,8 +141,7 @@ const Navbar = () => {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-gray-800 rounded-xl shadow-lg py-2">
-                  {/* Dashboard in dropdown as well */}
+                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-xl shadow-lg py-2">
                   <Link
                     to={dashboardPath}
                     onClick={() => setMenuOpen(false)}
@@ -173,6 +157,16 @@ const Navbar = () => {
                   >
                     Profile
                   </Link>
+
+                  {/* Common Change Password Link */}
+                  <Link
+                    to="/change-password"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 hover:bg-gray-700 transition"
+                  >
+                    Change Password
+                  </Link>
+
                   <button
                     onClick={() => {
                       handleLogout();
@@ -192,6 +186,7 @@ const Navbar = () => {
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden text-2xl text-sky-400"
+          aria-label="Toggle menu"
         >
           {mobileMenuOpen ? <FaTimes /> : <FaBars />}
         </button>
@@ -245,6 +240,16 @@ const Navbar = () => {
               >
                 Profile
               </Link>
+
+              {/* Common Change Password Link (MOBILE) */}
+              <Link
+                to="/change-password"
+                onClick={handleMobileLinkClick}
+                className="block px-4 py-2 hover:bg-gray-700 transition"
+              >
+                Change Password
+              </Link>
+
               <button
                 onClick={() => {
                   handleLogout();

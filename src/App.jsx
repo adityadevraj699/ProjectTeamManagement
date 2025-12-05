@@ -41,6 +41,7 @@ import Support from "./pages/Support";
 import GuideDashboard from "./pages/guide/GuideDashboard";
 import AdminTeamDetail from "./pages/admin/AdminTeamDetail";
 import AdminUserDetail from "./pages/admin/AdminUserDetail";
+import ChangePassword from "./components/ChangePassoword";
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/register" element={<Register />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/features" element={<Features />} />
