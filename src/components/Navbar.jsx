@@ -1,6 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaUserCircle, FaSignInAlt, FaBars, FaTimes } from "react-icons/fa";
+import {FaSignInAlt, FaBars, FaTimes } from "react-icons/fa";
 import { AuthContext } from "../context/AuthContext";
 
 const Navbar = () => {
@@ -85,14 +85,18 @@ const Navbar = () => {
     <nav className="bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
-        <Link
+       <Link
           to="/"
-          className="flex items-center gap-2 text-xl font-bold tracking-wide hover:text-sky-400 transition-colors"
+          className="flex items-center gap-2 text-xl font-semibold tracking-wide hover:text-sky-400 transition-colors"
         >
-          <FaUserCircle className="text-sky-400 text-2xl" />
-          Team Manager
+          <img
+            src="https://res.cloudinary.com/ddtcj9ks5/image/upload/v1762627794/coordinator_o7hmxq.png"
+            alt="EduProject Logo"
+            className="h-9 w-9 rounded-full object-cover"
+          />
+          <span className="hidden sm:inline">EduProject</span>
+          <span className="sm:hidden">EduProject</span>
         </Link>
-
         {/* Center Role Links */}
         {user && (
           <div className="hidden md:flex items-center gap-6">
