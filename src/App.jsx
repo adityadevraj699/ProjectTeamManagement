@@ -208,9 +208,9 @@ element ={
             <Route
   path="/profile/:email"
   element={
-    <ProtectedRoute role={["ADMIN", "GUIDE", "STUDENT"]}>
+   
       <UserProfile />
-    </ProtectedRoute>
+    
   }
 />
 
