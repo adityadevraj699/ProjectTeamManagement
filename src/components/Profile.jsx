@@ -4,6 +4,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { FaCopy, FaCheck } from "react-icons/fa";
 
 /**
  * Profile component:
@@ -19,28 +20,38 @@ import { AuthContext } from "../context/AuthContext";
 const baseURL = import.meta.env.VITE_API_URL || "/api";
 const api = axios.create({ baseURL, timeout: 15000 });
 
-api.interceptors.request.use(cfg => {
-  try {
-    const token = localStorage.getItem("token");
-    if (token) {
-      cfg.headers = cfg.headers || {};
-      cfg.headers.Authorization = `Bearer ${token}`;
-    }
-  } catch (e) {}
-  return cfg;
-}, err => Promise.reject(err));
+api.interceptors.request.use(
+  (cfg) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        cfg.headers = cfg.headers || {};
+        cfg.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {}
+    return cfg;
+  },
+  (err) => Promise.reject(err)
+);
 
-api.interceptors.response.use(res => res, err => {
-  const status = err?.response?.status;
-  if (status === 401 || status === 403) {
-    try { localStorage.removeItem("token"); localStorage.removeItem("user"); } catch {}
-    setTimeout(() => window.location.href = "/login", 150);
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err?.response?.status;
+    if (status === 401 || status === 403) {
+      try {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      } catch {}
+      setTimeout(() => (window.location.href = "/login"), 150);
+    }
+    return Promise.reject(err);
   }
-  return Promise.reject(err);
-});
+);
 
 export default function Profile() {
-  const { user: ctxUser, token: ctxToken, login: ctxLogin } = useContext(AuthContext);
+  const { user: ctxUser, token: ctxToken, login: ctxLogin } =
+    useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState(null);
@@ -51,12 +62,16 @@ export default function Profile() {
     course: "",
     branchId: "",
     sectionId: "",
-    semesterId: ""
+    semesterId: "",
   });
   const [isEdit, setIsEdit] = useState(false);
   const [branches, setBranches] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [sections, setSections] = useState([]);
+
+  // 🔗 NEW: copy state for public profile URL
+  const [copyPublicDone, setCopyPublicDone] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -90,7 +105,7 @@ export default function Profile() {
         const listCalls = [
           api.get("/branches").catch(() => ({ data: [] })),
           api.get("/semesters").catch(() => ({ data: [] })),
-          api.get("/sections").catch(() => ({ data: [] }))
+          api.get("/sections").catch(() => ({ data: [] })),
         ];
         const [bRes, semRes, secRes] = await Promise.all(listCalls);
         if (mounted) {
@@ -105,13 +120,21 @@ export default function Profile() {
         const u = profileRes.data.user;
         setUser(u);
         setFormFromUser(u);
-        try { localStorage.setItem("user", JSON.stringify(u)); } catch (e) {}
+        try {
+          localStorage.setItem("user", JSON.stringify(u));
+        } catch (e) {}
       } catch (err) {
         console.error("[Profile] fetchAll error:", err);
         const msg = err?.response?.data?.message || err?.message;
-        Swal.fire("Warning", `Could not fetch profile or lists: ${msg}`, "warning");
+        Swal.fire(
+          "Warning",
+          `Could not fetch profile or lists: ${msg}`,
+          "warning"
+        );
         if (err?.response?.status === 401 || err?.response?.status === 403) {
-          localStorage.removeItem("token"); localStorage.removeItem("user"); navigate("/login");
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
         }
       } finally {
         if (mounted) setLoading(false);
@@ -119,7 +142,9 @@ export default function Profile() {
     };
 
     fetchAll();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctxUser]);
 
@@ -129,23 +154,35 @@ export default function Profile() {
       contactNo: u?.contactNo || "",
       rollNumber: u?.rollNumber || "",
       course: u?.course || "",
-      branchId: u?.branchId ?? (u?.branch ? (u.branch.id || u.branchId || "") : ""),
-      sectionId: u?.sectionId ?? (u?.section ? (u.section.id || u.sectionId || "") : ""),
-      semesterId: u?.semesterId ?? (u?.semester ? (u.semester.id || u.semesterId || "") : "")
+      branchId:
+        u?.branchId ??
+        (u?.branch ? u.branch.id || u.branchId || "" : ""),
+      sectionId:
+        u?.sectionId ??
+        (u?.section ? u.section.id || u.sectionId || "" : ""),
+      semesterId:
+        u?.semesterId ??
+        (u?.semester ? u.semester.id || u.semesterId || "" : ""),
     });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleEditClick = () => setIsEdit(true);
-  const handleCancel = () => { setFormFromUser(user); setIsEdit(false); };
+  const handleCancel = () => {
+    setFormFromUser(user);
+    setIsEdit(false);
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) { Swal.fire("Validation", "Name is required", "warning"); return; }
+    if (!form.name.trim()) {
+      Swal.fire("Validation", "Name is required", "warning");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -155,11 +192,13 @@ export default function Profile() {
         contactNo: form.contactNo,
         rollNumber: form.rollNumber,
         course: form.course,
-        ...(user?.role === "STUDENT" ? {
-          branchId: form.branchId ? Number(form.branchId) : null,
-          sectionId: form.sectionId ? Number(form.sectionId) : null,
-          semesterId: form.semesterId ? Number(form.semesterId) : null
-        } : {}),
+        ...(user?.role === "STUDENT"
+          ? {
+              branchId: form.branchId ? Number(form.branchId) : null,
+              sectionId: form.sectionId ? Number(form.sectionId) : null,
+              semesterId: form.semesterId ? Number(form.semesterId) : null,
+            }
+          : {}),
       };
 
       console.log("[Profile] POST /profile payload:", payload);
@@ -169,7 +208,9 @@ export default function Profile() {
       // update local component state
       setUser(updated);
       setFormFromUser(updated);
-      try { localStorage.setItem("user", JSON.stringify(updated)); } catch (e) {}
+      try {
+        localStorage.setItem("user", JSON.stringify(updated));
+      } catch (e) {}
 
       // update global AuthContext so navbar and other components reflect new user
       try {
@@ -177,7 +218,6 @@ export default function Profile() {
         if (ctxLogin) {
           ctxLogin(updated, tokenToKeep);
         } else {
-          // fallback: set local storage directly (navbar uses context but this helps if no context)
           if (tokenToKeep) localStorage.setItem("token", tokenToKeep);
           localStorage.setItem("user", JSON.stringify(updated));
         }
@@ -189,18 +229,57 @@ export default function Profile() {
       setIsEdit(false);
     } catch (err) {
       console.error("[Profile] POST /profile error:", err);
-      Swal.fire("Error", err?.response?.data?.message || "Failed to update profile", "error");
+      Swal.fire(
+        "Error",
+        err?.response?.data?.message || "Failed to update profile",
+        "error"
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  // Note: logout removed from this component — navbar handles logout via AuthContext
+  // --------- NEW: public contribution profile helpers (for STUDENT) ---------
 
-  const opts = (arr, labelKey = null) => (Array.isArray(arr) ? arr : []).map(it => {
-    const label = labelKey ? (it[labelKey] ?? it.name) : (it.name ?? it.branchName ?? it.semesterName ?? it.sectionName);
-    return <option key={it.id} value={it.id}>{label}</option>;
-  });
+  const getPublicProfileUrl = () => {
+    if (!user?.email) return "";
+    return `${window.location.origin}/profile/${encodeURIComponent(
+      user.email
+    )}`;
+  };
+
+  const handleCopyPublicLink = () => {
+    const url = getPublicProfileUrl();
+    if (!url) return;
+    try {
+      navigator.clipboard.writeText(url);
+      setCopyPublicDone(true);
+      setTimeout(() => setCopyPublicDone(false), 1500);
+    } catch (e) {
+      console.warn("Clipboard failed", e);
+      Swal.fire("Info", "Unable to copy link automatically.", "info");
+    }
+  };
+
+  const handleViewPublicProfile = () => {
+    if (!user?.email) return;
+    navigate(`/profile/${encodeURIComponent(user.email)}`);
+  };
+
+  const opts = (arr, labelKey = null) =>
+    (Array.isArray(arr) ? arr : []).map((it) => {
+      const label = labelKey
+        ? it[labelKey] ?? it.name
+        : it.name ??
+          it.branchName ??
+          it.semesterName ??
+          it.sectionName;
+      return (
+        <option key={it.id} value={it.id}>
+          {label}
+        </option>
+      );
+    });
 
   if (loading) {
     return (
@@ -215,32 +294,101 @@ export default function Profile() {
 
   const ProfileView = () => (
     <div className="relative w-full">
-      {/* Edit button only (no logout here) */}
-      <div className="absolute top-0 right-0 flex gap-2">
-        <button onClick={handleEditClick} className="px-3 py-1 rounded bg-yellow-500 hover:bg-yellow-600 text-white">Edit</button>
+      {/* Top-right buttons */}
+      <div className="absolute top-0 right-0 flex flex-wrap gap-2 justify-end">
+        {/* ✅ Student only: view & copy public contribution profile */}
+        {user?.role === "STUDENT" && (
+          <>
+            <button
+              type="button"
+              onClick={handleViewPublicProfile}
+              className="px-3 py-1 rounded-full bg-sky-600 hover:bg-sky-700 text-xs text-white shadow-sm"
+            >
+              View Public Profile
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyPublicLink}
+              className="px-3 py-1 rounded-full border border-emerald-500 text-emerald-300 hover:bg-emerald-500/10 text-xs inline-flex items-center gap-1"
+            >
+              {copyPublicDone ? (
+                <>
+                  <FaCheck className="text-emerald-400" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <FaCopy />
+                  Copy Public Link
+                </>
+              )}
+            </button>
+          </>
+        )}
+
+        {/* Existing Edit button (for all roles) */}
+        <button
+          onClick={handleEditClick}
+          className="px-3 py-1 rounded-full bg-yellow-500 hover:bg-yellow-600 text-xs text-white"
+        >
+          Edit
+        </button>
       </div>
 
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 pt-8">
         <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white text-2xl font-bold">
-          {user?.name ? user.name.split(" ").map(n => n[0]).slice(0,2).join("") : "U"}
+          {user?.name
+            ? user.name
+                .split(" ")
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join("")
+            : "U"}
         </div>
 
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-sky-400">{user?.name || "Unnamed"}</h1>
-          <p className="text-sm text-gray-300">{user?.email || "No email"}</p>
-          <p className="mt-2 text-sm text-gray-400"><strong>Role:</strong> {user?.role || "-"}</p>
+          <h1 className="text-2xl font-bold text-sky-400">
+            {user?.name || "Unnamed"}
+          </h1>
+          <p className="text-sm text-gray-300">
+            {user?.email || "No email"}
+          </p>
+          <p className="mt-2 text-sm text-gray-400">
+            <strong>Role:</strong> {user?.role || "-"}
+          </p>
 
           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-300">
-            <div><span className="text-gray-400">ID:</span> {user?.id ?? "-"}</div>
-            <div><span className="text-gray-400">Contact:</span> {user?.contactNo || "-"}</div>
+            <div>
+              <span className="text-gray-400">ID:</span>{" "}
+              {user?.id ?? "-"}
+            </div>
+            <div>
+              <span className="text-gray-400">Contact:</span>{" "}
+              {user?.contactNo || "-"}
+            </div>
 
             {user?.role === "STUDENT" && (
               <>
-                <div><span className="text-gray-400">Roll No:</span> {user?.rollNumber || "-"}</div>
-                <div><span className="text-gray-400">Semester:</span> {user?.semester || "-"}</div>
-                <div><span className="text-gray-400">Branch:</span> {user?.branch || "-"}</div>
-                <div><span className="text-gray-400">Course:</span> {user?.course || "-"}</div>
-                <div><span className="text-gray-400">Section:</span> {user?.section || "-"}</div>
+                <div>
+                  <span className="text-gray-400">Roll No:</span>{" "}
+                  {user?.rollNumber || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-400">Semester:</span>{" "}
+                  {user?.semester || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-400">Branch:</span>{" "}
+                  {user?.branch || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-400">Course:</span>{" "}
+                  {user?.course || "-"}
+                </div>
+                <div>
+                  <span className="text-gray-400">Section:</span>{" "}
+                  {user?.section || "-"}
+                </div>
               </>
             )}
           </div>
@@ -248,12 +396,17 @@ export default function Profile() {
       </div>
 
       <div className="mt-6 bg-slate-800 p-4 rounded-md text-gray-300">
-        <h3 className="text-sm text-sky-300 font-semibold mb-2">Professional Profile</h3>
+        <h3 className="text-sm text-sky-300 font-semibold mb-2">
+          Professional Profile
+        </h3>
         <p className="text-sm">
-          {user?.role === "GUIDE" ? "Guide / Mentor at the institute." :
-           user?.role === "ADMIN" ? "Administrator" :
-           user?.role === "STUDENT" ? "Student profile details." :
-           "User profile information."}
+          {user?.role === "GUIDE"
+            ? "Guide / Mentor at the institute."
+            : user?.role === "ADMIN"
+            ? "Administrator account for managing the system."
+            : user?.role === "STUDENT"
+            ? "Student profile with academic + project information. Use the public contribution profile link to share your project behaviour with guides or coordinators."
+            : "User profile information."}
         </p>
       </div>
     </div>
@@ -262,32 +415,73 @@ export default function Profile() {
   const ProfileEdit = () => (
     <form onSubmit={handleSave} className="space-y-4 w-full">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-sky-400">Edit Profile</h2>
+        <h2 className="text-xl font-semibold text-sky-400">
+          Edit Profile
+        </h2>
         <div className="flex gap-2">
-          <button type="button" onClick={handleCancel} className="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white">Cancel</button>
-          <button type="submit" disabled={saving} className={`px-4 py-1 rounded text-white ${saving ? "bg-slate-600" : "bg-sky-600 hover:bg-sky-700"}`}>
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className={`px-4 py-1 rounded text-white ${
+              saving
+                ? "bg-slate-600"
+                : "bg-sky-600 hover:bg-sky-700"
+            }`}
+          >
             {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm text-gray-300 mb-1">Name</label>
-        <input name="name" value={form.name} onChange={handleChange} className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5" />
+        <label className="block text-sm text-gray-300 mb-1">
+          Name
+        </label>
+        <input
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Contact No</label>
-          <input name="contactNo" value={form.contactNo} onChange={handleChange} className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5" />
+          <label className="block text-sm text-gray-300 mb-1">
+            Contact No
+          </label>
+          <input
+            name="contactNo"
+            value={form.contactNo}
+            onChange={handleChange}
+            className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5"
+          />
         </div>
         {user?.role === "STUDENT" ? (
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Roll Number</label>
-            <input name="rollNumber" value={form.rollNumber} onChange={handleChange} className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5" />
+            <label className="block text-sm text-gray-300 mb-1">
+              Roll Number
+            </label>
+            <input
+              name="rollNumber"
+              value={form.rollNumber}
+              onChange={handleChange}
+              className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5"
+            />
           </div>
         ) : (
-          <div className="flex items-end"><div className="text-sm text-gray-400">Roll Number (not applicable)</div></div>
+          <div className="flex items-end">
+            <div className="text-sm text-gray-400">
+              Roll Number (not applicable)
+            </div>
+          </div>
         )}
       </div>
 
@@ -295,21 +489,42 @@ export default function Profile() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-300 mb-1">Course</label>
-              <input name="course" value={form.course} onChange={handleChange} className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5" />
+              <label className="block text-sm text-gray-300 mb-1">
+                Course
+              </label>
+              <input
+                name="course"
+                value={form.course}
+                onChange={handleChange}
+                className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5"
+              />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-300 mb-1">Branch</label>
-              <select name="branchId" value={form.branchId || ""} onChange={handleChange} className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5">
+              <label className="block text-sm text-gray-300 mb-1">
+                Branch
+              </label>
+              <select
+                name="branchId"
+                value={form.branchId || ""}
+                onChange={handleChange}
+                className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5"
+              >
                 <option value="">-- Select Branch --</option>
                 {opts(branches, "branchName")}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm text-gray-300 mb-1">Section</label>
-              <select name="sectionId" value={form.sectionId || ""} onChange={handleChange} className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5">
+              <label className="block text-sm text-gray-300 mb-1">
+                Section
+              </label>
+              <select
+                name="sectionId"
+                value={form.sectionId || ""}
+                onChange={handleChange}
+                className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5"
+              >
                 <option value="">-- Select Section --</option>
                 {opts(sections, "sectionName")}
               </select>
@@ -317,8 +532,15 @@ export default function Profile() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Semester</label>
-            <select name="semesterId" value={form.semesterId || ""} onChange={handleChange} className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5">
+            <label className="block text-sm text-gray-300 mb-1">
+              Semester
+            </label>
+            <select
+              name="semesterId"
+              value={form.semesterId || ""}
+              onChange={handleChange}
+              className="w-full px-3 py-2 rounded bg-slate-800 border border-white/5"
+            >
               <option value="">-- Select Semester --</option>
               {opts(semesters, "semesterName")}
             </select>
