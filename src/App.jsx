@@ -44,6 +44,7 @@ import AdminUserDetail from "./pages/admin/AdminUserDetail";
 import ChangePassword from "./components/ChangePassoword";
 import AllTeamReports from "./pages/admin/AllTeamReports";
 import TeamReports from "./pages/guide/TeamReports";
+import StudentDashboard from "./pages/student/StudentDashboard";
 
 function App() {
   return (
@@ -236,6 +237,7 @@ element ={
             <Route path="/student/team" element={<ProtectedRoute role="STUDENT"><StudentTeam /></ProtectedRoute>} />
             <Route path="/student/teams/:id" element={<ProtectedRoute role="STUDENT"><TeamDetails /></ProtectedRoute>} />
             <Route path="/student/meeting/:id" element={<ProtectedRoute role="STUDENT"><MeetingModal /></ProtectedRoute>} />
+            <Route path="/student/dashboard" element={<ProtectedRoute role="STUDENT"><StudentDashboard /></ProtectedRoute>} />
 
           </Routes>
         </main>
