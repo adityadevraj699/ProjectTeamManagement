@@ -23,7 +23,8 @@ const Navbar = () => {
     { name: "Task Tracking", to: "/guide/tasks" },
     { name: "Team", to: "/guide/team" },
     { name: "Add Student", to: "/guide/add-student" },
-    { name: "Query", to: "/guide/query" }
+    { name: "Query", to: "/guide/query" },
+    { name: "All Reports", to: "/guide/reports" },
   ];
 
   const studentLinks = [
@@ -39,6 +40,7 @@ const Navbar = () => {
     { name: "Add Section", to: "/admin/add-section" },
     { name: "Add Teacher", to: "/admin/add-teacher" },
     { name: "Student", to: "/admin/user-detail" },
+    { name: "All Reports", to: "/admin/reports" },
   ];
 
   const roleLinks = user

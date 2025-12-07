@@ -1,331 +1,772 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LineChart,
+  Line,
+  CartesianGrid
+} from "recharts";
+import {
+  FaUserGraduate,
+  FaUsersCog,
+  FaTasks,
+  FaProjectDiagram,
+  FaUserShield,
+  FaUsers
+} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+  <div className="fixed inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-[60] backdrop-blur">
     <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+    <p className="text-white text-lg font-medium tracking-wide">
+      {message || "Loading..."}
+    </p>
   </div>
 );
 
-export default function Dashboard() {
-  const [teams, setTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
-  const [branches, setBranches] = useState([]);
-  const [semesters, setSemesters] = useState([]);
-  const [guides, setGuides] = useState([]);
-  const [branchFilter, setBranchFilter] = useState("");
-  const [semesterFilter, setSemesterFilter] = useState("");
-  const [guideFilter, setGuideFilter] = useState("");
+const COLORS = [
+  "#38bdf8",
+  "#6366f1",
+  "#22c55e",
+  "#eab308",
+  "#f97316",
+  "#ec4899",
+  "#a855f7"
+];
 
-  const navigate = useNavigate();
+const mapToChartArray = (mapObj) =>
+  Object.entries(mapObj || {}).map(([name, value]) => ({ name, value }));
+
+const formatNumber = (num) => {
+  if (num == null) return "0";
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+  return num.toString();
+};
+
+// 🔹 Custom tooltip – sabhi charts me bold, white text ke sath
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const item = payload[0];
+  const name = item.name || label;
+  const value = item.value;
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-900/95 px-3 py-2 shadow-lg shadow-black/50">
+      {label && (
+        <p className="text-[11px] font-bold text-slate-200 mb-1">{label}</p>
+      )}
+      <p className="text-[12px] font-bold text-slate-50">
+        {name && <span className="mr-1">{name}:</span>}
+        <span>{value}</span>
+      </p>
+    </div>
+  );
+};
+
+export default function Dashboard() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedChart, setExpandedChart] = useState(null); // { key, title, subtitle }
+
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!token) {
-      Swal.fire("Unauthorized", "Please login first", "warning").then(() => {
-        navigate("/login");
-      });
+      Swal.fire("Unauthorized", "Please login first", "warning");
       return;
     }
-    fetchAuxData();
-    fetchTeams();
+    fetchDashboard();
     // eslint-disable-next-line
   }, [token]);
 
-  const fetchAuxData = async () => {
-    try {
-      const [bRes, sRes, gRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/branches`, axiosConfig).catch(() => ({ data: [] })),
-        axios.get(`${import.meta.env.VITE_API_URL}/semesters`, axiosConfig).catch(() => ({ data: [] })),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/guides`, axiosConfig).catch(() => ({ data: [] }))
-      ]);
-      setBranches(Array.isArray(bRes.data) ? bRes.data : []);
-      setSemesters(Array.isArray(sRes.data) ? sRes.data : []);
-      setGuides(Array.isArray(gRes.data) ? gRes.data : []);
-    } catch (err) {
-      console.warn("Could not fetch auxiliary data", err);
-    }
-  };
-
-  const buildQuery = (extra = {}) => {
-    const params = new URLSearchParams();
-    const b = extra.branchId ?? branchFilter;
-    const s = extra.semesterId ?? semesterFilter;
-    const g = extra.guideId ?? guideFilter;
-    if (b) params.append("branchId", b);
-    if (s) params.append("semesterId", s);
-    if (g) params.append("guideId", g);
-    const q = params.toString();
-    return q ? `?${q}` : "";
-  };
-
-  const fetchTeams = async () => {
+  const fetchDashboard = async () => {
     try {
       setLoading(true);
-      const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/teams${q}`, axiosConfig);
-      setTeams(Array.isArray(res.data) ? res.data : []);
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/admin/dashboard`,
+        axiosConfig
+      );
+      setStats(res.data);
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to load teams", "error");
-      setTeams([]);
+      Swal.fire("Error", "Failed to load admin dashboard", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApplyFilters = () => {
-    fetchTeams();
-  };
-
-  const handleClearFilters = () => {
-    setBranchFilter("");
-    setSemesterFilter("");
-    setGuideFilter("");
-    fetchTeams();
-  };
-
-  const downloadBlob = (res, defaultName) => {
-    const blob = new Blob([res.data], { type: res.headers["content-type"] || "application/octet-stream" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    const disposition = res.headers["content-disposition"] || res.headers["Content-Disposition"];
-    let filename = defaultName;
-    if (disposition) {
-      const match = disposition.match(/filename\*?=?(?:UTF-8''|")?(.*?)"?$/);
-      if (match && match[1]) filename = decodeURIComponent(match[1]);
-    }
-    link.setAttribute("download", filename);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const handleDownloadPdfAll = async () => {
-    try {
-      setDownloading(true);
-      const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/pdf${q}`, { ...axiosConfig, responseType: "blob" });
-      downloadBlob(res, "admin_guide_report.pdf");
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download PDF", "error");
-    } finally {
-      setDownloading(false);
+  const handleSummaryClick = (type) => {
+    switch (type) {
+      case "students":
+        navigate("/admin/user-detail");
+        break;
+      case "guides":
+        navigate("/admin/add-teacher");
+        break;
+      case "teams":
+      case "projects":
+      case "tasks":
+        navigate("/admin/reports");
+        break;
+      default:
+        // admins = no navigation
+        break;
     }
   };
 
-  const handleDownloadTeamPdf = async (teamId) => {
-    try {
-      setDownloading(true);
-      const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/pdf/${teamId}${q}`, { ...axiosConfig, responseType: "blob" });
-      downloadBlob(res, `team_${teamId}.pdf`);
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download team PDF", "error");
-    } finally {
-      setDownloading(false);
+  if (loading || !stats) {
+    return <LoaderOverlay message="Loading admin dashboard..." />;
+  }
+
+  const studentsByCourse = mapToChartArray(stats.studentsByCourse);
+  const studentsByBranch = mapToChartArray(stats.studentsByBranch);
+  const projectsByStatus = mapToChartArray(stats.projectsByStatus);
+  const tasksByStatus = mapToChartArray(stats.tasksByStatus);
+  const tasksByPriority = mapToChartArray(stats.tasksByPriority);
+  const studentsBySemester = mapToChartArray(stats.studentsBySemester);
+  const studentsBySection = mapToChartArray(stats.studentsBySection);
+
+  // --------- Modal content for expanded chart ----------
+  const renderExpandedChart = () => {
+    if (!expandedChart) return null;
+
+    const height = 360;
+    switch (expandedChart.key) {
+      case "studentsByCourse":
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <BarChart data={studentsByCourse}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <YAxis tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="value">
+                {studentsByCourse.map((entry, index) => (
+                  <Cell
+                    key={`course-cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        );
+
+      case "studentsByBranch":
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <BarChart data={studentsByBranch}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <YAxis tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="value">
+                {studentsByBranch.map((entry, index) => (
+                  <Cell
+                    key={`branch-cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        );
+
+      case "projectsByStatus":
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <PieChart>
+              <Pie
+                data={projectsByStatus}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={140}
+                label
+              >
+                {projectsByStatus.map((entry, index) => (
+                  <Cell
+                    key={`proj-cell-${entry.name}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+
+      case "tasksByStatus":
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <PieChart>
+              <Pie
+                data={tasksByStatus}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={140}
+                label
+              >
+                {tasksByStatus.map((entry, index) => (
+                  <Cell
+                    key={`taskstat-cell-${entry.name}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+
+      case "tasksByPriority":
+        // 🔹 Expanded view me line chart (Tasks by Priority)
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <LineChart data={tasksByPriority}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <YAxis tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#38bdf8"
+                strokeWidth={2}
+                dot={{ r: 4, stroke: "#0f172a", strokeWidth: 1.5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        );
+
+      case "studentsBySemester":
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <BarChart data={studentsBySemester}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <YAxis tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="value">
+                {studentsBySemester.map((entry, index) => (
+                  <Cell
+                    key={`sem-cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        );
+
+      case "studentsBySection":
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <BarChart data={studentsBySection}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <YAxis tick={{ fontSize: 12, fill: "#e5e7eb" }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="value">
+                {studentsBySection.map((entry, index) => (
+                  <Cell
+                    key={`sec-cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        );
+
+      default:
+        return null;
     }
   };
-
-  const handleDownloadExcel = async () => {
-    try {
-      setDownloading(true);
-      const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/excel${q}`, { ...axiosConfig, responseType: "blob" });
-      downloadBlob(res, "admin_guide_report.xlsx");
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download Excel", "error");
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  if (loading) return <LoaderOverlay message="Loading admin data..." />;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-100 p-6 relative">
-      {downloading && <LoaderOverlay message="Preparing export..." />}
+    <div className="min-h-screen bg-slate-950 text-gray-100">
+      {/* Gradient header strip */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-sky-500/20 via-cyan-400/10 to-fuchsia-500/10 blur-3xl opacity-70 pointer-events-none" />
+        <header className="relative px-6 pt-6 pb-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 mb-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-medium text-sky-200 tracking-wide">
+                Admin · Control Center
+              </span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-semibold text-sky-100 tracking-tight">
+              Project Management Overview
+            </h1>
+            <p className="text-sm text-slate-300 mt-1 max-w-xl">
+              Monitor students, guides, teams, projects & tasks in one place with
+              real-time insights.
+            </p>
+          </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-sky-400">Admin Dashboard</h1>
-
-        <div className="flex items-center gap-3">
-          <button onClick={fetchTeams} className="px-4 py-2 rounded bg-slate-700 hover:bg-slate-600 transition">Refresh</button>
-          <button onClick={handleDownloadPdfAll} className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-700 transition text-white">
-            Export PDF (All / Filtered)
-          </button>
-          <button onClick={handleDownloadExcel} className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 transition text-white">
-            Export Excel (All / Filtered)
-          </button>
-        </div>
+          <div className="flex flex-col items-end gap-2">
+            <button
+              onClick={fetchDashboard}
+              className="px-4 py-2 rounded-xl bg-slate-900/80 border border-sky-500/40 text-sm font-medium shadow-lg shadow-sky-500/20 hover:bg-slate-900 hover:border-sky-400 transition flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>Refresh snapshot</span>
+            </button>
+            <span className="text-[11px] text-slate-400">
+              Updated just now • Admin view
+            </span>
+          </div>
+        </header>
       </div>
 
-      {/* Filters */}
-      <div className="bg-slate-800 p-4 rounded-md border border-white/5 mb-6">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div>
-            <label className="text-xs text-gray-400">Guide</label>
-            <select value={guideFilter} onChange={(e) => setGuideFilter(e.target.value)} className="block mt-1 bg-slate-700 text-white px-3 py-2 rounded">
-              <option value="">All Guides</option>
-              {guides.map(g => (<option key={g.id} value={g.id}>{g.name || g.email}</option>))}
-            </select>
+      <main className="px-6 pb-8 pt-2 space-y-6">
+        {/* Top summary cards */}
+        <section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
+            <SummaryCard
+              label="Students"
+              value={stats.totalStudents}
+              icon={<FaUserGraduate className="w-5 h-5" />}
+              accent="from-sky-500/20 to-emerald-500/10"
+              chip="Active enrolments"
+              onClick={() => handleSummaryClick("students")}
+            />
+            <SummaryCard
+              label="Guides"
+              value={stats.totalGuides}
+              icon={<FaUsersCog className="w-5 h-5" />}
+              accent="from-violet-500/20 to-sky-500/10"
+              chip="Faculty mentors"
+              onClick={() => handleSummaryClick("guides")}
+            />
+            <SummaryCard
+              label="Teams"
+              value={stats.totalTeams}
+              icon={<FaUsers className="w-5 h-5" />}
+              accent="from-emerald-500/20 to-lime-500/10"
+              chip="Project teams"
+              onClick={() => handleSummaryClick("teams")}
+            />
+            <SummaryCard
+              label="Projects"
+              value={stats.totalProjects}
+              icon={<FaProjectDiagram className="w-5 h-5" />}
+              accent="from-fuchsia-500/20 to-sky-500/10"
+              chip="Registered projects"
+              onClick={() => handleSummaryClick("projects")}
+            />
+            <SummaryCard
+              label="Tasks"
+              value={stats.totalTasks}
+              icon={<FaTasks className="w-5 h-5" />}
+              accent="from-yellow-500/20 to-orange-500/10"
+              chip="Total tasks"
+              onClick={() => handleSummaryClick("tasks")}
+            />
+            <SummaryCard
+              label="Admins"
+              value={stats.totalAdmins}
+              icon={<FaUserShield className="w-5 h-5" />}
+              accent="from-sky-500/20 to-slate-500/10"
+              chip="System Admins"
+            />
           </div>
+        </section>
 
-          <div>
-            <label className="text-xs text-gray-400">Branch</label>
-            <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="block mt-1 bg-slate-700 text-white px-3 py-2 rounded">
-              <option value="">All Branches</option>
-              {branches.map(b => (<option key={b.id} value={b.id}>{b.branchName}</option>))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-400">Semester</label>
-            <select value={semesterFilter} onChange={(e) => setSemesterFilter(e.target.value)} className="block mt-1 bg-slate-700 text-white px-3 py-2 rounded">
-              <option value="">All Semesters</option>
-              {semesters.map(s => (<option key={s.id} value={s.id}>{s.semesterName}</option>))}
-            </select>
-          </div>
-
-          <div className="flex gap-2">
-            <button onClick={handleApplyFilters} className="px-4 py-2 bg-sky-600 rounded">Apply</button>
-            <button onClick={handleClearFilters} className="px-4 py-2 bg-gray-600 rounded">Clear</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Table & details (same look as guide page but includes guide name in table) */}
-      <div className="overflow-x-auto bg-slate-800 p-4 rounded-2xl border border-white/10">
-        <table className="min-w-full text-left">
-          <thead>
-            <tr className="text-xs text-gray-400">
-              <th className="py-3 px-4">Team Name</th>
-              <th className="py-3 px-4">Guide</th>
-              <th className="py-3 px-4">Project Title</th>
-              <th className="py-3 px-4">Members</th>
-              <th className="py-3 px-4">Start</th>
-              <th className="py-3 px-4">End</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4">Created</th>
-              <th className="py-3 px-4">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {teams.length === 0 ? (
-              <tr>
-                <td className="py-6 px-4 text-center text-gray-400" colSpan={9}>No teams found for the selected filters.</td>
-              </tr>
-            ) : (
-              teams.map(team => {
-                const project = team.project || {};
-                const members = team.members || [];
-                return (
-                  <tr key={team.teamId} className="border-t border-slate-700">
-                    <td className="py-3 px-4 font-medium">{team.teamName || "-"}</td>
-                    <td className="py-3 px-4 text-sm text-gray-300">{project.guide?.name || project.guide?.email || "-"}</td>
-                    <td className="py-3 px-4 text-sm text-gray-300">{project.projectTitle || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{members.length}</td>
-                    <td className="py-3 px-4 text-sm">{project.startDate || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{project.endDate || "-"}</td>
-                    <td className="py-3 px-4 text-sm">
-                      <span className={ `px-2 py-1 rounded text-xs font-semibold ` + (project.status === "COMPLETED" ? "bg-green-800 text-green-300" : project.status === "ONGOING" ? "bg-yellow-900 text-yellow-300" : "bg-slate-700 text-gray-300") }>
-                        {project.status || "N/A"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">{team.createdDate || "-"}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <button onClick={() => navigate(`/admin/TeamDetail/${team.teamId}`)} className="px-3 py-1 bg-sky-600 rounded text-white text-sm hover:bg-sky-700 transition">View</button>
-                        <button onClick={() => handleDownloadTeamPdf(team.teamId)} className="px-3 py-1 bg-gray-600 rounded text-white text-sm hover:bg-gray-700 transition">Export</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
+        {/* Mid charts row */}
+        <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Students by Course */}
+          <ChartCard
+            title="Students by Course"
+            subtitle="How students are distributed across courses"
+            onExpand={() =>
+              setExpandedChart({
+                key: "studentsByCourse",
+                title: "Students by Course",
+                subtitle:
+                  "Detailed view of student count per course across the institute."
               })
+            }
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={studentsByCourse}>
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value">
+                  {studentsByCourse.map((entry, index) => (
+                    <Cell
+                      key={`course-bar-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* Students by Branch */}
+          <ChartCard
+            title="Students by Branch"
+            subtitle="Branch-wise distribution of students"
+            onExpand={() =>
+              setExpandedChart({
+                key: "studentsByBranch",
+                title: "Students by Branch",
+                subtitle:
+                  "Compare how many students are enrolled in each branch."
+              })
+            }
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={studentsByBranch}>
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value">
+                  {studentsByBranch.map((entry, index) => (
+                    <Cell
+                      key={`branch-bar-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* Project Status */}
+          <ChartCard
+            title="Projects by Status"
+            subtitle="Health of all registered projects"
+            badge={stats.totalProjects ? `${stats.totalProjects} projects` : ""}
+            onExpand={() =>
+              setExpandedChart({
+                key: "projectsByStatus",
+                title: "Projects by Status",
+                subtitle: "Distribution of projects across different statuses."
+              })
+            }
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={projectsByStatus}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={90}
+                  label
+                >
+                  {projectsByStatus.map((entry, index) => (
+                    <Cell
+                      key={`proj-pie-${entry.name}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </section>
+
+        {/* Tasks + guide load */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Tasks by Status */}
+          <ChartCard
+            title="Tasks by Status"
+            subtitle="Overall progress of action items"
+            badge={stats.totalTasks ? `${stats.totalTasks} tasks` : ""}
+            onExpand={() =>
+              setExpandedChart({
+                key: "tasksByStatus",
+                title: "Tasks by Status",
+                subtitle: "How tasks are progressing across the system."
+              })
+            }
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={tasksByStatus}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={90}
+                  label
+                >
+                  {tasksByStatus.map((entry, index) => (
+                    <Cell
+                      key={`taskstat-pie-${entry.name}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* Tasks by Priority – 🔹 line chart yaha */}
+          <ChartCard
+            title="Tasks by Priority"
+            subtitle="Workload pressure by priority"
+            onExpand={() =>
+              setExpandedChart({
+                key: "tasksByPriority",
+                title: "Tasks by Priority",
+                subtitle: "See how many tasks are low, medium, high or critical."
+              })
+            }
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={tasksByPriority}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#38bdf8"
+                  strokeWidth={2}
+                  dot={{ r: 4, stroke: "#0f172a", strokeWidth: 1.5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* Guide load table */}
+          <div className="bg-slate-900/80 rounded-2xl border border-sky-500/10 shadow-xl shadow-sky-500/20 p-4 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-lg font-semibold text-sky-300">
+                  Guide Workload
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Teams mapped to each guide
+                </p>
+              </div>
+              <span className="text-[11px] px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-200 border border-sky-500/30">
+                {(stats.guideStats || []).length} guides
+              </span>
+            </div>
+            <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-transparent">
+              <table className="w-full text-sm">
+                <thead className="text-[11px] text-gray-400 sticky top-0 bg-slate-900/90 backdrop-blur">
+                  <tr>
+                    <th className="py-2 px-2 text-left font-medium">Guide</th>
+                    <th className="py-2 px-2 text-left font-medium">Email</th>
+                    <th className="py-2 px-2 text-right font-medium">Teams</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(stats.guideStats || []).length === 0 ? (
+                    <tr>
+                      <td
+                        className="py-4 px-2 text-center text-gray-500"
+                        colSpan={3}
+                      >
+                        No guide data available.
+                      </td>
+                    </tr>
+                  ) : (
+                    stats.guideStats.map((g) => (
+                      <tr
+                        key={g.guideId}
+                        className="border-t border-slate-800 hover:bg-slate-800/60 transition"
+                      >
+                        <td className="py-2 px-2">
+                          <span className="font-medium text-slate-100">
+                            {g.name || "-"}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-sky-400">
+                          {g.email || "-"}
+                        </td>
+                        <td className="py-2 px-2 text-right font-semibold text-slate-100">
+                          {g.teamCount}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        {/* Students by Semester & Section */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard
+            title="Students by Semester"
+            subtitle="Which semesters are most loaded"
+            onExpand={() =>
+              setExpandedChart({
+                key: "studentsBySemester",
+                title: "Students by Semester",
+                subtitle: "Check how students are distributed by semester."
+              })
+            }
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={studentsBySemester}>
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value">
+                  {studentsBySemester.map((entry, index) => (
+                    <Cell
+                      key={`sem-bar-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard
+            title="Students by Section"
+            subtitle="Section-wise student split"
+            onExpand={() =>
+              setExpandedChart({
+                key: "studentsBySection",
+                title: "Students by Section",
+                subtitle: "See how many students are in each section."
+              })
+            }
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={studentsBySection}>
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value">
+                  {studentsBySection.map((entry, index) => (
+                    <Cell
+                      key={`sec-bar-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </section>
+      </main>
+
+      {/* Expanded chart modal */}
+      {expandedChart && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center px-4">
+          <div className="bg-slate-950/95 border border-sky-500/30 rounded-3xl shadow-2xl shadow-sky-500/30 max-w-5xl w-full max-h-[90vh] flex flex-col p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold text-sky-100">
+                  {expandedChart.title}
+                </h2>
+                {expandedChart.subtitle && (
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {expandedChart.subtitle}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setExpandedChart(null)}
+                className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:bg-slate-800 hover:border-sky-500 transition"
+              >
+                Close ✕
+              </button>
+            </div>
+            {/* fixed height so charts always visible */}
+            <div className="mt-4 w-full h-[360px]">
+              {renderExpandedChart()}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, icon, accent, chip, onClick }) {
+  const clickable = !!onClick;
+  return (
+    <div className="relative group">
+      <div
+        className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${accent} opacity-0 group-hover:opacity-100 blur-xl transition duration-300`}
+      />
+      <div
+        onClick={onClick}
+        className={`relative bg-slate-900/80 rounded-3xl border border-sky-500/10 px-4 py-3 flex flex-col gap-2 shadow-lg shadow-sky-500/10 ${
+          clickable ? "hover:shadow-sky-500/30 hover:-translate-y-1 cursor-pointer" : ""
+        } transition`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-2xl bg-sky-500/10 text-sky-300 border border-sky-500/30">
+              {icon}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[11px] uppercase tracking-wide text-slate-400">
+                {label}
+              </span>
+              {chip && (
+                <span className="text-[11px] text-slate-500">{chip}</span>
+              )}
+            </div>
+          </div>
+          <span className="text-xl font-semibold text-sky-100">
+            {formatNumber(value)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChartCard({ title, subtitle, badge, children, onExpand }) {
+  return (
+    <div className="bg-slate-900/80 rounded-2xl border border-sky-500/10 shadow-lg shadow-sky-500/15 p-4 flex flex-col">
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <div className={onExpand ? "cursor-pointer" : ""} onClick={onExpand}>
+          <h2 className="text-base font-semibold text-sky-200 flex items-center gap-2">
+            {title}
+            {onExpand && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-600">
+                Click to expand
+              </span>
             )}
-          </tbody>
-        </table>
-
-        {/* Expanded details per team — includes guide info */}
-        <div className="mt-6 space-y-4">
-          {teams.length === 0 ? (
-            <div className="text-center text-gray-400">Use the filters above to find teams. Buttons remain available to export the current selection.</div>
-          ) : (
-            teams.map(team => {
-              const members = team.members || [];
-              return (
-                <div key={`detail-${team.teamId}`} className="bg-slate-900 p-4 rounded-md border border-slate-700">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold text-sky-400">{team.teamName}</h3>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Project:</strong> {team.project?.projectTitle || "N/A"}</p>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Guide:</strong> {team.project?.guide?.name || team.project?.guide?.email || "N/A"}</p>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Tech:</strong> {team.project?.technologiesUsed || "N/A"}</p>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Description:</strong> {team.project?.description || "N/A"}</p>
-                    </div>
-
-                    <div className="text-right text-sm">
-                      <p><strong>Members:</strong> {members.length}</p>
-                      <p className="mt-1"><strong>Status:</strong> {team.project?.status || "N/A"}</p>
-                    </div>
-                  </div>
-
-                  {/* Members table */}
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="text-xs text-gray-400">
-                        <tr>
-                          <th className="px-3 py-2">Name</th>
-                          <th className="px-3 py-2">Email</th>
-                          <th className="px-3 py-2">Contact</th>
-                          <th className="px-3 py-2">Roll</th>
-                          <th className="px-3 py-2">Role</th>
-                          <th className="px-3 py-2">Branch</th>
-                          <th className="px-3 py-2">Course</th>
-                          <th className="px-3 py-2">Section</th>
-                          <th className="px-3 py-2">Semester</th>
-                          <th className="px-3 py-2">Leader</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {members.length === 0 ? (
-                          <tr>
-                            <td className="px-3 py-4 text-center text-gray-400" colSpan={10}>No members match the current filters.</td>
-                          </tr>
-                        ) : members.map((m, idx) => (
-                          <tr key={idx} className={m.leader ? "bg-[#0d1a33] ring-1 ring-green-500/20" : ""}>
-                            <td className="px-3 py-2">{m.name || "-"}</td>
-                            <td className="px-3 py-2 text-sky-400">{m.email || "-"}</td>
-                            <td className="px-3 py-2">{m.contactNo || "-"}</td>
-                            <td className="px-3 py-2">{m.rollNumber || "-"}</td>
-                            <td className="px-3 py-2">{m.role || "-"}</td>
-                            <td className="px-3 py-2">{m.branchName || "-"}</td>
-                            <td className="px-3 py-2">{m.courseName || "-"}</td>
-                            <td className="px-3 py-2">{m.sectionName || "-"}</td>
-                            <td className="px-3 py-2">{m.semesterName || "-"}</td>
-                            <td className="px-3 py-2">{m.leader ? <span className="text-green-400 font-semibold">✔</span> : "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })
+          </h2>
+          {subtitle && (
+            <p className="text-[11px] text-slate-400 mt-0.5">{subtitle}</p>
           )}
         </div>
+        {badge && (
+          <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-600">
+            {badge}
+          </span>
+        )}
       </div>
+      <div className="flex-1 min-h-[220px]">{children}</div>
     </div>
   );
 }

@@ -42,6 +42,8 @@ import GuideDashboard from "./pages/guide/GuideDashboard";
 import AdminTeamDetail from "./pages/admin/AdminTeamDetail";
 import AdminUserDetail from "./pages/admin/AdminUserDetail";
 import ChangePassword from "./components/ChangePassoword";
+import AllTeamReports from "./pages/admin/AllTeamReports";
+import TeamReports from "./pages/guide/TeamReports";
 
 function App() {
   return (
@@ -69,6 +71,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route
+            path="/admin/reports"
+             element={
+                <ProtectedRoute role="ADMIN">
+                  <AllTeamReports/>
+                </ProtectedRoute>
+              }
+            />
+            
 
                         <Route
   path="/admin/TeamDetail/:id"
@@ -140,6 +152,14 @@ function App() {
               }
             />
 
+<Route
+path="/guide/reports"
+element ={
+<ProtectedRoute role="GUIDE">
+                  <TeamReports />
+                </ProtectedRoute>
+}
+/>
             <Route
               path="/guide/add-student"
               element={
