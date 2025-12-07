@@ -611,7 +611,7 @@ export default function Profile() {
     </form>
   );
 
-  // ------------- SHARE MODAL (Insta-style sheet) -------------
+  // ------------- SHARE MODAL (Insta-style, QR top, URL hidden) -------------
 
   const ShareModal = () => {
     const publicUrl = getPublicProfileUrl();
@@ -639,9 +639,8 @@ export default function Profile() {
 
     return (
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
-        {/* Card */}
         <div className="w-full max-w-xl rounded-3xl bg-gradient-to-b from-slate-900/95 via-slate-900 to-slate-950 border border-slate-700/80 shadow-[0_20px_60px_rgba(15,23,42,0.9)] p-6 relative">
-          {/* Close icon */}
+          {/* Close */}
           <button
             type="button"
             onClick={() => setShareOpen(false)}
@@ -651,7 +650,7 @@ export default function Profile() {
           </button>
 
           {/* Header */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-5">
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-xs font-semibold">
               {user?.name
                 ? user.name
@@ -666,99 +665,81 @@ export default function Profile() {
                 Share {nameLabel}
               </h2>
               <p className="text-[11px] text-slate-400">
-                Share your public contribution profile with guides,
-                coordinators or friends.
+                Let others open your public contribution profile quickly.
               </p>
             </div>
           </div>
 
-          {/* Layout: left (link + device) | right (QR) */}
-          <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-4 mb-4">
-            {/* LEFT SIDE */}
-            <div className="flex flex-col gap-3">
-              {/* Copy URL */}
-              <div>
-                <p className="text-[11px] font-medium text-slate-400 mb-1">
-                  Profile link
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2 rounded-full bg-slate-900/90 border border-slate-700 text-[11px] text-gray-200 overflow-x-auto whitespace-nowrap scrollbar-thin">
-                    {publicUrl}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCopyPublicLink}
-                    className="px-3 py-2 rounded-full bg-sky-600 hover:bg-sky-700 text-[11px] text-white inline-flex items-center gap-1 font-medium"
-                  >
-                    {copyPublicDone ? (
-                      <>
-                        <FaCheck className="text-emerald-300" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <FaCopy />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Native share (device) */}
-              <div className="mt-1">
-                <p className="text-[11px] text-slate-500 mb-1">
-                  On mobile, you can share via your installed apps:
-                </p>
-                <button
-                  type="button"
-                  onClick={handleNativeShare}
-                  className="w-full md:w-auto px-4 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-[11px] sm:text-xs text-white inline-flex items-center justify-center gap-2 font-medium"
-                >
-                  <FaShareAlt className="text-xs" />
-                  Share via device
-                </button>
-              </div>
+          {/* QR FIRST (top, full width) */}
+          <div className="mb-5 flex flex-col items-center justify-center gap-3 border border-slate-700 rounded-2xl bg-slate-900/90 px-4 py-4">
+            <div className="flex items-center gap-2 text-sky-300 text-[11px] font-semibold uppercase tracking-wide">
+              <FaQrcode />
+              <span>QR Scanner</span>
             </div>
-
-            {/* RIGHT SIDE – QR code */}
-            <div className="flex flex-col items-center justify-between gap-2 md:gap-3 border border-slate-700 rounded-2xl bg-slate-900/80 px-3 py-3">
-              <div className="flex items-center gap-2 text-sky-300 text-[11px] font-semibold uppercase tracking-wide">
-                <FaQrcode />
-                <span>QR Scanner</span>
-              </div>
-              <div
-                ref={qrCanvasRef}
-                className="inline-block bg-white p-2 rounded-xl"
-              >
-                <QRCodeCanvas
-                  value={publicUrl}
-                  size={150}
-                  includeMargin={true}
-                />
-              </div>
-              <p className="text-[10px] text-slate-500 text-center">
-                Anyone can scan this QR to directly open your public
-                profile URL.
-              </p>
+            <div
+              ref={qrCanvasRef}
+              className="inline-block bg-white p-3 rounded-2xl"
+            >
+              <QRCodeCanvas
+                value={publicUrl}
+                size={170}
+                includeMargin={true}
+              />
+            </div>
+            <p className="text-[10px] text-slate-400 text-center max-w-xs">
+              Anyone can scan this code to directly open your public profile URL.
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
               <button
                 type="button"
                 onClick={handleDownloadQr}
-                className="mt-1 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-[11px] text-gray-100 inline-flex items-center gap-1 font-medium"
+                className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-[11px] text-gray-100 inline-flex items-center gap-1 font-medium"
               >
                 <FaDownload />
                 Download QR
               </button>
+              <button
+                type="button"
+                onClick={handleCopyPublicLink}
+                className="px-3 py-1.5 rounded-full bg-sky-600 hover:bg-sky-700 text-[11px] text-white inline-flex items-center gap-1 font-medium"
+              >
+                {copyPublicDone ? (
+                  <>
+                    <FaCheck className="text-emerald-300" />
+                    Link Copied
+                  </>
+                ) : (
+                  <>
+                    <FaCopy />
+                    Copy profile link
+                  </>
+                )}
+              </button>
             </div>
+          </div>
+
+          {/* Native share button */}
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-[11px] text-slate-500">
+              On mobile, share using your installed apps:
+            </p>
+            <button
+              type="button"
+              onClick={handleNativeShare}
+              className="w-full sm:w-auto px-4 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-[11px] sm:text-xs text-white inline-flex items-center justify-center gap-2 font-medium"
+            >
+              <FaShareAlt className="text-xs" />
+              Share via device
+            </button>
           </div>
 
           {/* Divider */}
           <div className="h-px bg-gradient-to-r from-transparent via-slate-700/70 to-transparent mb-3" />
 
-          {/* Social share icons – grid style */}
+          {/* Social icons grid */}
           <div>
             <p className="text-[11px] text-gray-400 mb-2">
-              Share using your social or communication apps
+              Or share using your social / communication apps
             </p>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {/* WhatsApp */}
@@ -932,7 +913,6 @@ export default function Profile() {
       <div className="max-w-3xl w-full p-6 bg-slate-900 text-gray-100 rounded-2xl shadow relative">
         {isEdit ? <ProfileEdit /> : <ProfileView />}
 
-        {/* Insta-style share sheet: only for student, only when Share click */}
         {shareOpen && user?.role === "STUDENT" && <ShareModal />}
       </div>
     </div>
