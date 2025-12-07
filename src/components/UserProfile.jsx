@@ -18,6 +18,8 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
+  BarChart,
+  Bar,
 } from "recharts";
 
 const TASK_COLORS = ["#22c55e", "#0ea5e9", "#f97316"];
@@ -104,6 +106,66 @@ export default function UserProfile() {
   const projectStats = profile.projectStats || {};
 
   const totalTasks = taskStats.totalTasks || 0;
+
+  // ---------- CHART DATA ----------
+
+  // Tasks Snapshot – Bar chart
+  const taskBarData = [
+    {
+      name: "Total Assigned",
+      value: taskStats.totalTasks || 0,
+    },
+    {
+      name: "Completed",
+      value: taskStats.completed || 0,
+    },
+    {
+      name: "In Progress",
+      value: taskStats.inProgress || 0,
+    },
+    {
+      name: "Pending / Overdue",
+      value: (taskStats.pending || 0) + (taskStats.overdue || 0),
+    },
+  ];
+
+  // Meeting Attendance – Bar chart
+  const meetingBarData = [
+    {
+      name: "Total Meetings",
+      value: meetingStats.totalMeetings || 0,
+    },
+    {
+      name: "Attended",
+      value: meetingStats.attended || 0,
+    },
+    {
+      name: "Missed",
+      value: meetingStats.missed || 0,
+    },
+    {
+      name: "Attendance %",
+      value: Math.round((meetingStats.attendanceRate || 0) * 100),
+    },
+  ];
+
+  // Project Experience – Bar chart
+  const projectBarData = [
+    {
+      name: "Total Projects",
+      value: projectStats.totalProjects || 0,
+    },
+    {
+      name: "Active Projects",
+      value: projectStats.activeProjects || 0,
+    },
+    {
+      name: "Completed Projects",
+      value: projectStats.completedProjects || 0,
+    },
+  ];
+
+  // Task Distribution – Pie chart
   const taskPieData = [
     { name: "Completed", value: taskStats.completed || 0 },
     { name: "In Progress", value: taskStats.inProgress || 0 },
@@ -113,6 +175,7 @@ export default function UserProfile() {
     },
   ];
 
+  // Performance Indicators – Line chart
   const performanceLineData = [
     {
       label: "Task Completion",
@@ -135,7 +198,8 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-gray-100 px-4 py-8 w-full">
-      <div className="max-w-5xl mx-auto space-y-6">
+      {/* width badha diya: max-w-7xl */}
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Top bar */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
@@ -173,7 +237,7 @@ export default function UserProfile() {
           </div>
         </div>
 
-        {/* Main card */}
+        {/* Main ID-card summary */}
         <motion.div
           className="relative w-full overflow-hidden rounded-3xl border border-sky-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 shadow-xl shadow-sky-900/40 p-6"
           initial={{ opacity: 0, y: 30 }}
@@ -181,9 +245,7 @@ export default function UserProfile() {
           transition={{ duration: 0.4 }}
         >
           {/* glow background */}
-          <div
-            className={`pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(129,140,248,0.18),_transparent_55%)]`}
-          />
+          <div className="pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(129,140,248,0.18),_transparent_55%)]" />
 
           <div className="relative flex flex-col md:flex-row gap-6">
             {/* Avatar + tags */}
@@ -312,27 +374,56 @@ export default function UserProfile() {
           </div>
         </motion.div>
 
-        {/* Stats + Graphs */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Left stat cards */}
-          <div className="space-y-3">
-            <StatCard
+        {/* --------- GRAPHS + NUMERIC DETAIL (real industry style) --------- */}
+
+        {/* Row 1: Tasks Snapshot + Meeting Attendance */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Tasks Snapshot */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 flex flex-col lg:flex-row gap-4">
+            {/* Numeric side */}
+            <MiniStatList
               title="Tasks Snapshot"
-              subtitle="How many tasks this student has handled and their progress."
+              description="How many tasks this student has handled and their progress."
               items={[
                 { label: "Total Assigned", value: taskStats.totalTasks },
                 { label: "Completed", value: taskStats.completed },
                 { label: "In Progress", value: taskStats.inProgress },
                 {
                   label: "Pending / Overdue",
-                  value:
-                    (taskStats.pending || 0) + (taskStats.overdue || 0),
+                  value: (taskStats.pending || 0) + (taskStats.overdue || 0),
                 },
               ]}
             />
-            <StatCard
+            {/* Chart side */}
+            <div className="flex-1 min-h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={taskBarData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: "#cbd5f5" }}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#020617",
+                      border: "1px solid #1e293b",
+                      fontSize: 11,
+                    }}
+                    labelStyle={{ color: "#f9fafb", fontWeight: 700 }}
+                    itemStyle={{ color: "#f9fafb", fontWeight: 600 }}
+                  />
+                  <Bar dataKey="value" fill="#38bdf8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Meeting Attendance */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 flex flex-col lg:flex-row gap-4">
+            <MiniStatList
               title="Meeting Attendance"
-              subtitle="Behaviour in reviews / meetings with guide."
+              description="Behaviour in reviews / meetings with guide."
               items={[
                 { label: "Total Meetings", value: meetingStats.totalMeetings },
                 { label: "Attended", value: meetingStats.attended },
@@ -345,9 +436,38 @@ export default function UserProfile() {
                 },
               ]}
             />
-            <StatCard
+            <div className="flex-1 min-h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={meetingBarData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: "#cbd5f5" }}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#020617",
+                      border: "1px solid #1e293b",
+                      fontSize: 11,
+                    }}
+                    labelStyle={{ color: "#f9fafb", fontWeight: 700 }}
+                    itemStyle={{ color: "#f9fafb", fontWeight: 600 }}
+                  />
+                  <Bar dataKey="value" fill="#22c55e" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Project Experience + Task Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Project Experience */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 flex flex-col lg:flex-row gap-4">
+            <MiniStatList
               title="Project Experience"
-              subtitle="Overall project exposure across different teams."
+              description="Overall project exposure across different teams."
               items={[
                 { label: "Total Projects", value: projectStats.totalProjects },
                 { label: "Active Projects", value: projectStats.activeProjects },
@@ -357,17 +477,44 @@ export default function UserProfile() {
                 },
               ]}
             />
+            <div className="flex-1 min-h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={projectBarData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: "#cbd5f5" }}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#020617",
+                      border: "1px solid #1e293b",
+                      fontSize: 11,
+                    }}
+                    labelStyle={{ color: "#f9fafb", fontWeight: 700 }}
+                    itemStyle={{ color: "#f9fafb", fontWeight: 600 }}
+                  />
+                  <Bar dataKey="value" fill="#a855f7" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Middle pie chart */}
-          <div className="lg:col-span-1 bg-slate-900/90 border border-slate-800 rounded-3xl p-4 flex flex-col">
-            <h3 className="text-sm font-semibold text-sky-100 mb-1">
-              Task Distribution
-            </h3>
-            <p className="text-[11px] text-slate-400 mb-2">
-              Visual view of tasks split into completed, in progress and pending
-              / overdue.
-            </p>
+          {/* Task Distribution – Pie */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 flex flex-col lg:flex-row gap-4">
+            <MiniStatList
+              title="Task Distribution"
+              description="Visual share of completed, in progress and pending / overdue tasks."
+              items={[
+                { label: "Completed", value: taskStats.completed },
+                { label: "In Progress", value: taskStats.inProgress },
+                {
+                  label: "Pending / Overdue",
+                  value: (taskStats.pending || 0) + (taskStats.overdue || 0),
+                },
+              ]}
+            />
             <div className="flex-1 min-h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -391,12 +538,12 @@ export default function UserProfile() {
                       border: "1px solid #1e293b",
                       fontSize: 11,
                     }}
-                    labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
+                    labelStyle={{ color: "#f9fafb", fontWeight: 700 }}
                     itemStyle={{ color: "#f9fafb", fontWeight: 600 }}
                   />
                   <Legend
                     formatter={(value) => (
-                      <span className="text-[11px] text-slate-200">
+                      <span className="text-[11px] text-slate-200 font-medium">
                         {value}
                       </span>
                     )}
@@ -405,46 +552,63 @@ export default function UserProfile() {
               </ResponsiveContainer>
             </div>
           </div>
+        </div>
 
-          {/* Right line chart */}
-          <div className="lg:col-span-1 bg-slate-900/90 border border-slate-800 rounded-3xl p-4 flex flex-col">
-            <h3 className="text-sm font-semibold text-sky-100 mb-1">
-              Performance Indicators
-            </h3>
-            <p className="text-[11px] text-slate-400 mb-2">
-              Comparison of task completion rate vs meeting attendance.
-            </p>
-            <div className="flex-1 min-h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={performanceLineData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 11, fill: "#cbd5f5" }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "#94a3b8" }}
-                    domain={[0, 100]}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#020617",
-                      border: "1px solid #1e293b",
-                      fontSize: 11,
-                    }}
-                    labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
-                    itemStyle={{ color: "#f9fafb", fontWeight: 600 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#38bdf8"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+        {/* Row 3: Performance Indicators – FULL WIDTH */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 flex flex-col lg:flex-row gap-4 w-full">
+          {/* Numeric card left */}
+          <MiniStatList
+            title="Performance Indicators"
+            description="Comparison of overall task completion rate vs meeting attendance."
+            items={[
+              {
+                label: "Task Completion %",
+                value:
+                  totalTasks === 0
+                    ? "0%"
+                    : `${Math.round(
+                        ((taskStats.completed || 0) / totalTasks) * 100
+                      )}%`,
+              },
+              {
+                label: "Attendance %",
+                value: `${Math.round(
+                  (meetingStats.attendanceRate || 0) * 100
+                )}%`,
+              },
+            ]}
+          />
+          {/* Line chart right */}
+          <div className="flex-1 min-h-[260px] lg:min-h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={performanceLineData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: "#cbd5f5" }}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "#94a3b8" }}
+                  domain={[0, 100]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#020617",
+                    border: "1px solid #1e293b",
+                    fontSize: 11,
+                  }}
+                  labelStyle={{ color: "#f9fafb", fontWeight: 700 }}
+                  itemStyle={{ color: "#f9fafb", fontWeight: 600 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#38bdf8"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
@@ -452,12 +616,13 @@ export default function UserProfile() {
   );
 }
 
-function StatCard({ title, subtitle, items }) {
+// small reusable numeric summary on left of each graph
+function MiniStatList({ title, description, items }) {
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4">
+    <div className="w-full lg:w-1/3">
       <h3 className="text-sm font-semibold text-sky-100 mb-0.5">{title}</h3>
-      {subtitle && (
-        <p className="text-[11px] text-slate-500 mb-2">{subtitle}</p>
+      {description && (
+        <p className="text-[11px] text-slate-500 mb-2">{description}</p>
       )}
       <dl className="space-y-1">
         {items.map((it) => (
