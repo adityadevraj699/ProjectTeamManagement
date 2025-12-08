@@ -74,9 +74,14 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
+const SLIDE_COUNT = 2; // 0 = Projects/Tasks/Meetings, 1 = Students
+
 export default function GuideDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
 
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
@@ -106,6 +111,17 @@ export default function GuideDashboard() {
       setLoading(false);
     }
   };
+
+  // 🔁 Auto slider (infinite) with pause
+  useEffect(() => {
+    if (!autoPlay) return;
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % SLIDE_COUNT);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [autoPlay]);
 
   const handleSummaryClick = (type) => {
     switch (type) {
@@ -144,8 +160,20 @@ export default function GuideDashboard() {
   const meetingsByStatus = mapToChartArray(stats.meetingsByStatus);
   const meetingsByMode = mapToChartArray(stats.meetingsByMode);
 
-  // Line chart: just to give a different visual for tasks
   const tasksStatusLineData = tasksByStatus;
+
+  // Slider controls
+  const goToNextSlide = () =>
+    setCurrentSlide((prev) => (prev + 1) % SLIDE_COUNT);
+  const goToPrevSlide = () =>
+    setCurrentSlide((prev) => (prev - 1 + SLIDE_COUNT) % SLIDE_COUNT);
+
+  const slideTitle =
+    currentSlide === 0 ? "Project, Task & Meeting Overview" : "Student Insights";
+  const slideSubtitle =
+    currentSlide === 0
+      ? "Your projects, tasks and meetings at a glance."
+      : "Course, branch, semester & section distribution for your mentees.";
 
   return (
     <div className="min-h-screen bg-slate-950 text-gray-100">
@@ -231,249 +259,365 @@ export default function GuideDashboard() {
           </div>
         </section>
 
-        {/* Students distribution – Course / Branch / Project status */}
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <ChartCard
-            title="Students by Course"
-            subtitle="Course-wise distribution under your guidance"
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={studentsByCourse}>
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value">
-                  {studentsByCourse.map((entry, index) => (
-                    <Cell
-                      key={`course-bar-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+        {/* 🔹 MAIN SLIDER – 2 slides, 4 cards each (2x2 grid) */}
+        <section className="mt-2 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-sky-200">
+                {slideTitle}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {slideSubtitle}
+              </p>
+            </div>
 
-          <ChartCard
-            title="Students by Branch"
-            subtitle="See how your students are split by branch"
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={studentsByBranch}>
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value">
-                  {studentsByBranch.map((entry, index) => (
-                    <Cell
-                      key={`branch-bar-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard
-            title="Projects by Status"
-            subtitle="Health of your assigned projects"
-            badge={stats.totalProjects ? `${stats.totalProjects} projects` : ""}
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={projectsByStatus}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={90}
-                  label
-                >
-                  {projectsByStatus.map((entry, index) => (
-                    <Cell
-                      key={`proj-pie-${entry.name}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </section>
-
-        {/* Tasks + Meetings */}
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Tasks by Status (pie) */}
-          <ChartCard
-            title="Tasks by Status"
-            subtitle="Pending, in-progress, completed tasks"
-            badge={stats.totalTasks ? `${stats.totalTasks} tasks` : ""}
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={tasksByStatus}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={90}
-                  label
-                >
-                  {tasksByStatus.map((entry, index) => (
-                    <Cell
-                      key={`taskstat-pie-${entry.name}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          {/* Tasks by Priority – Bar + Line (line graph requirement) */}
-          <ChartCard
-            title="Tasks by Priority"
-            subtitle="Load split into Low / Medium / High / Critical"
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={tasksStatusLineData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#38bdf8"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
+            <div className="flex items-center gap-3">
+              {/* autoplay status chip */}
+              <span
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] border ${
+                  autoPlay
+                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-200"
+                    : "bg-slate-800/70 border-slate-600 text-slate-200"
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    autoPlay ? "bg-emerald-400 animate-pulse" : "bg-slate-400"
+                  }`}
                 />
-              </LineChart>
-            </ResponsiveContainer>
-            <div className="mt-2 text-[11px] text-slate-400">
-              Line shows trend across different statuses. For exact split by
-              priority use the bar below.
-            </div>
-            <div className="mt-3 h-[160px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={tasksByPriority}>
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                  />
-                  <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value">
-                    {tasksByPriority.map((entry, index) => (
-                      <Cell
-                        key={`prio-bar-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+                {autoPlay ? "Auto sliding" : "Manual mode"}
+              </span>
 
-          {/* Meetings status / mode */}
-          <ChartCard
-            title="Meetings Overview"
-            subtitle="Status & mode of your meetings"
-            badge={stats.totalMeetings ? `${stats.totalMeetings} meetings` : ""}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={meetingsByStatus}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius={70}
-                    label
+              {/* Play / Pause button */}
+              <button
+                onClick={() => setAutoPlay((prev) => !prev)}
+                className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 text-[11px] text-slate-100 hover:border-sky-500 hover:bg-slate-800 transition"
+              >
+                {autoPlay ? "Pause slider" : "Play slider"}
+              </button>
+
+              {/* Prev / Next buttons */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={goToPrevSlide}
+                  className="px-2 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:border-sky-500 hover:bg-slate-800 transition"
+                >
+                  ◀
+                </button>
+                <button
+                  onClick={goToNextSlide}
+                  className="px-2 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:border-sky-500 hover:bg-slate-800 transition"
+                >
+                  ▶
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/80 rounded-2xl border border-sky-500/10 shadow-xl shadow-sky-500/15 overflow-hidden">
+            <div className="p-4">
+              {/* Slide 0 – Projects, Tasks, Priority, Meetings */}
+              {currentSlide === 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Projects by Status */}
+                  <ChartCard
+                    title="Projects by Status"
+                    subtitle="Health of your assigned projects"
+                    badge={
+                      stats.totalProjects ? `${stats.totalProjects} projects` : ""
+                    }
                   >
-                    {meetingsByStatus.map((entry, index) => (
-                      <Cell
-                        key={`meetstat-pie-${entry.name}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={projectsByStatus}
+                          dataKey="value"
+                          nameKey="name"
+                          outerRadius={90}
+                          label
+                        >
+                          {projectsByStatus.map((entry, index) => (
+                            <Cell
+                              key={`proj-pie-${entry.name}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
 
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={meetingsByMode}>
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                  />
-                  <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value">
-                    {meetingsByMode.map((entry, index) => (
-                      <Cell
-                        key={`meetmode-bar-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                  {/* Tasks by Status */}
+                  <ChartCard
+                    title="Tasks by Status"
+                    subtitle="Pending, in-progress, completed tasks"
+                    badge={
+                      stats.totalTasks ? `${stats.totalTasks} tasks` : ""
+                    }
+                  >
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={tasksByStatus}
+                          dataKey="value"
+                          nameKey="name"
+                          outerRadius={90}
+                          label
+                        >
+                          {tasksByStatus.map((entry, index) => (
+                            <Cell
+                              key={`taskstat-pie-${entry.name}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  {/* Tasks by Priority – line + bar combo block */}
+                  <ChartCard
+                    title="Tasks by Priority"
+                    subtitle="Load split into Low / Medium / High / Critical"
+                  >
+                    <ResponsiveContainer width="100%" height={180}>
+                      <LineChart data={tasksStatusLineData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#38bdf8"
+                          strokeWidth={2}
+                          dot={{ r: 3 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                    <div className="mt-2 text-[11px] text-slate-400">
+                      Line shows overall trend across different statuses. Bar chart
+                      below shows exact split by priority.
+                    </div>
+                    <div className="mt-3 h-[130px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={tasksByPriority}>
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                          />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Bar dataKey="value">
+                            {tasksByPriority.map((entry, index) => (
+                              <Cell
+                                key={`prio-bar-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </ChartCard>
+
+                  {/* Meetings Overview */}
+                  <ChartCard
+                    title="Meetings Overview"
+                    subtitle="Status & mode of your meetings"
+                    badge={
+                      stats.totalMeetings
+                        ? `${stats.totalMeetings} meetings`
+                        : ""
+                    }
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-[260px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={meetingsByStatus}
+                            dataKey="value"
+                            nameKey="name"
+                            outerRadius={70}
+                            label
+                          >
+                            {meetingsByStatus.map((entry, index) => (
+                              <Cell
+                                key={`meetstat-pie-${entry.name}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={meetingsByMode}>
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                          />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Bar dataKey="value">
+                            {meetingsByMode.map((entry, index) => (
+                              <Cell
+                                key={`meetmode-bar-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </ChartCard>
+                </div>
+              )}
+
+              {/* Slide 1 – Students (Course, Branch, Semester, Section) */}
+              {currentSlide === 1 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Students by Course */}
+                  <ChartCard
+                    title="Students by Course"
+                    subtitle="Course-wise distribution under your guidance"
+                  >
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={studentsByCourse}>
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="value">
+                          {studentsByCourse.map((entry, index) => (
+                            <Cell
+                              key={`course-bar-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  {/* Students by Branch */}
+                  <ChartCard
+                    title="Students by Branch"
+                    subtitle="See how your students are split by branch"
+                  >
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={studentsByBranch}>
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="value">
+                          {studentsByBranch.map((entry, index) => (
+                            <Cell
+                              key={`branch-bar-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  {/* Students by Semester */}
+                  <ChartCard
+                    title="Students by Semester"
+                    subtitle="Semester-wise load under you"
+                  >
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={studentsBySemester}>
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="value">
+                          {studentsBySemester.map((entry, index) => (
+                            <Cell
+                              key={`sem-bar-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  {/* Students by Section */}
+                  <ChartCard
+                    title="Students by Section"
+                    subtitle="Section-wise student split"
+                  >
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={studentsBySection}>
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="value">
+                          {studentsBySection.map((entry, index) => (
+                            <Cell
+                              key={`sec-bar-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+                </div>
+              )}
             </div>
-          </ChartCard>
+
+            {/* Slider dots */}
+            <div className="flex items-center justify-center gap-2 pb-3">
+              {Array.from({ length: SLIDE_COUNT }).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`w-2.5 h-2.5 rounded-full transition ${
+                    currentSlide === idx ? "bg-sky-400" : "bg-slate-600"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
         </section>
 
-        {/* Students by Semester & Section */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartCard
-            title="Students by Semester"
-            subtitle="Semester-wise load under you"
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={studentsBySemester}>
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value">
-                  {studentsBySemester.map((entry, index) => (
-                    <Cell
-                      key={`sem-bar-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard
-            title="Students by Section"
-            subtitle="Section-wise student split"
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={studentsBySection}>
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value">
-                  {studentsBySection.map((entry, index) => (
-                    <Cell
-                      key={`sec-bar-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </section>
-
-        {/* Team relation table – team vs students/tasks/meetings */}
+        {/* Team relation table – same as before */}
         <section>
           <div className="bg-slate-900/80 rounded-2xl border border-sky-500/10 shadow-xl shadow-sky-500/20 p-4 flex flex-col">
             <div className="flex items-center justify-between mb-3">

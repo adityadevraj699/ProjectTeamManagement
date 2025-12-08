@@ -81,7 +81,7 @@ export default function HomePage() {
       "Assistant Professor, Computer Science and Engineering, MIT-Meerut",
     email: "amol.sharma@mitmeerut.edu.in",
     linkedin: "https://www.linkedin.com/in/amol-sharma-mit",
-    img: "https://ui-avatars.com/api/?name=Amol+Sharma&background=022c43&color=ffffff&size=512",
+    img: "https://res.cloudinary.com/ddtcj9ks5/image/upload/v1765207144/amol_sharma_w6hqdk.webp",
   };
 
   const [index, setIndex] = useState(0);

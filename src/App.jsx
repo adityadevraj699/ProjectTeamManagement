@@ -45,6 +45,7 @@ import ChangePassword from "./components/ChangePassoword";
 import AllTeamReports from "./pages/admin/AllTeamReports";
 import TeamReports from "./pages/guide/TeamReports";
 import StudentDashboard from "./pages/student/StudentDashboard";
+import PublicQuerry from "./pages/admin/PublicQuerry";
 
 function App() {
   return (
@@ -97,6 +98,15 @@ function App() {
   element={
     <ProtectedRoute role="ADMIN">
       <AdminUserDetail/>
+    </ProtectedRoute>
+  }
+/>
+/admin/public-querry
+<Route
+  path="/admin/public-querry"
+  element={
+    <ProtectedRoute role="ADMIN">
+      <PublicQuerry/>
     </ProtectedRoute>
   }
 />

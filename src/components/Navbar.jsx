@@ -41,6 +41,7 @@ const Navbar = () => {
     { name: "Add Teacher", to: "/admin/add-teacher" },
     { name: "Student", to: "/admin/user-detail" },
     { name: "All Reports", to: "/admin/reports" },
+     { name: "Querry", to: "/admin/public-querry" },
   ];
 
   const roleLinks = user

@@ -1,48 +1,92 @@
 import React, { useState } from "react";
+import axios from "axios";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL; // http://localhost:8080/api
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    subject: "",
+    message: "",
+  });
   const [status, setStatus] = useState(null);
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+
     // basic front-end validation
     if (!form.name || !form.email || !form.message) {
-      setStatus({ type: "error", msg: "Please fill name, email and message." });
+      setStatus({
+        type: "error",
+        msg: "Please fill name, email and message.",
+      });
       return;
     }
 
-    // TODO: replace with API call (fetch/axios) to your backend endpoint
-    console.log("form submitted", form);
-    setStatus({ type: "success", msg: "Thanks! Your message has been sent." });
+    try {
+      // API call to backend -> POST /api/public-queries
+      await axios.post(`${API_BASE_URL}/public-queries`, form);
 
-    // clear form after submit (optional)
-    setForm({ name: "", email: "", phone: "", subject: "", message: "" });
+      setStatus({
+        type: "success",
+        msg: "Thanks! Your message has been sent.",
+      });
 
+      // clear form after submit
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        subject: "",
+        message: "",
+      });
+    } catch (err) {
+      console.error("Error while sending contact form:", err);
+      setStatus({
+        type: "error",
+        msg: "Something went wrong while sending your message.",
+      });
+    }
+
+    // hide status after 5 sec
     setTimeout(() => setStatus(null), 5000);
   }
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-300 flex flex-col">
       <main className="max-w-6xl mx-auto px-6 py-16 w-full flex-1">
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Get in touch</h1>
-        <p className="text-gray-400 mb-8">Have a question, feedback or want to work together? Send us a message and we'll reply shortly.</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+          Get in touch
+        </h1>
+        <p className="text-gray-400 mb-8">
+          Have a question, feedback or want to work together? Send us a message
+          and we'll reply shortly.
+        </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left - Contact info + map */}
           <div className="space-y-6">
             <div className="p-6 border border-gray-800 rounded-2xl bg-gradient-to-b from-gray-900 to-gray-950">
-              <h2 className="text-xl font-semibold text-white mb-3">Contact Information</h2>
+              <h2 className="text-xl font-semibold text-white mb-3">
+                Contact Information
+              </h2>
 
               <div className="space-y-3 text-sm text-gray-400">
                 <div>
                   <p className="font-medium text-gray-300">Email</p>
-                  <a href="mailto:aditya@zephronix.in" className="block hover:text-sky-400 transition-colors">aditya@zephronix.in</a>
+                  <a
+                    href="mailto:aditya@zephronix.in"
+                    className="block hover:text-sky-400 transition-colors"
+                  >
+                    aditya@zephronix.in
+                  </a>
                 </div>
 
                 <div>
@@ -52,20 +96,37 @@ export default function ContactPage() {
 
                 <div>
                   <p className="font-medium text-gray-300">Location</p>
-                  <p className="text-gray-400">Meerut Institute of Technology, Meerut, Uttar Pradesh, India</p>
+                  <p className="text-gray-400">
+                    Meerut Institute of Technology, Meerut, Uttar Pradesh, India
+                  </p>
                 </div>
 
                 <div>
                   <p className="font-medium text-gray-300">Portfolio</p>
-                  <a href="https://aditya-portfolio-org.vercel.app/" target="_blank" rel="noreferrer" className="hover:text-sky-400 transition-colors">aditya-portfolio-org.vercel.app</a>
+                  <a
+                    href="https://aditya-portfolio-org.vercel.app/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-sky-400 transition-colors"
+                  >
+                    aditya-portfolio-org.vercel.app
+                  </a>
                 </div>
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3 text-xs text-gray-400">
-                <div className="p-3 rounded bg-gray-900 border border-gray-800 text-center">Support</div>
-                <div className="p-3 rounded bg-gray-900 border border-gray-800 text-center">Sales</div>
-                <div className="p-3 rounded bg-gray-900 border border-gray-800 text-center">Careers</div>
-                <div className="p-3 rounded bg-gray-900 border border-gray-800 text-center">Partnerships</div>
+                <div className="p-3 rounded bg-gray-900 border border-gray-800 text-center">
+                  Support
+                </div>
+                <div className="p-3 rounded bg-gray-900 border border-gray-800 text-center">
+                  Sales
+                </div>
+                <div className="p-3 rounded bg-gray-900 border border-gray-800 text-center">
+                  Careers
+                </div>
+                <div className="p-3 rounded bg-gray-900 border border-gray-800 text-center">
+                  Partnerships
+                </div>
               </div>
             </div>
 
@@ -76,7 +137,7 @@ export default function ContactPage() {
                 width="100%"
                 height="320"
                 style={{ border: 0 }}
-                allowFullScreen=""
+                allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
@@ -86,7 +147,9 @@ export default function ContactPage() {
           {/* Right - Contact form */}
           <div>
             <div className="p-6 rounded-2xl border border-gray-800 bg-gradient-to-b from-gray-900 to-gray-950">
-              <h2 className="text-xl font-semibold text-white mb-4">Send a message</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">
+                Send a message
+              </h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -103,7 +166,9 @@ export default function ContactPage() {
                   </label>
 
                   <label className="block">
-                    <span className="text-xs text-gray-400">Email address *</span>
+                    <span className="text-xs text-gray-400">
+                      Email address *
+                    </span>
                     <input
                       name="email"
                       type="email"
@@ -165,19 +230,27 @@ export default function ContactPage() {
                     Send message
                   </button>
 
-                  <div className="text-sm text-gray-400">We typically reply within 1–2 business days</div>
+                  <div className="text-sm text-gray-400">
+                    We typically reply within 1–2 business days
+                  </div>
                 </div>
 
                 {status && (
-                  <div className={`p-3 rounded ${status.type === "success" ? "bg-green-900 text-green-300" : "bg-red-900 text-red-300"}`}>{status.msg}</div>
+                  <div
+                    className={`p-3 rounded ${
+                      status.type === "success"
+                        ? "bg-green-900 text-green-300"
+                        : "bg-red-900 text-red-300"
+                    }`}
+                  >
+                    {status.msg}
+                  </div>
                 )}
               </form>
             </div>
           </div>
         </div>
       </main>
-
-     
     </div>
   );
 }
