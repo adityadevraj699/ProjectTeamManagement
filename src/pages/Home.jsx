@@ -70,7 +70,7 @@ export default function HomePage() {
     bio: "DevOps & QA — CI/CD pipelines, testing and deployments.",
     email: "amrit.kumar.cs.2022@mitmeerut.ac.in",
     linkedin: "https://www.linkedin.com/in/amritekumar/",
-    img: "https://ui-avatars.com/api/?name=Amrit+Kumar&background=021126&color=ffffff&size=512",
+    img: "https://res.cloudinary.com/ddtcj9ks5/image/upload/v1765215270/WhatsApp_Image_2025-12-08_at_23.03.10_d4de079b_i7dlpu.jpg",
   },
   ];
 
