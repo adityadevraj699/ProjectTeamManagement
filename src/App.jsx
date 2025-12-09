@@ -46,6 +46,7 @@ import AllTeamReports from "./pages/admin/AllTeamReports";
 import TeamReports from "./pages/guide/TeamReports";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import PublicQuerry from "./pages/admin/PublicQuerry";
+import ChatWidget from "./components/ChatWidget";
 
 function App() {
   return (
@@ -256,6 +257,8 @@ element ={
 
           </Routes>
         </main>
+             {/* 👇 Community Help Desk (visible only when logged in) */}
+        <ChatWidget/>
         <Footer />
       </Router>
     </AuthProvider>

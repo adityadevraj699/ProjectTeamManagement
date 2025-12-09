@@ -1,8 +1,11 @@
+// polyfill for sockjs in browser
+window.global = window;
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import Loader from "./components/Loader";
+
 
 const Main = () => {
   const [loading, setLoading] = useState(true);

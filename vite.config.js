@@ -8,5 +8,9 @@ export default defineConfig({
    base: '/',   // 👈 Keep this (important for Vercel)
   build: {
     outDir: 'dist'
-  }
+  },
+  define: {
+    global: "window",   // 👈 ye line important hai
+    "process.env": {},   
+  },
 })
