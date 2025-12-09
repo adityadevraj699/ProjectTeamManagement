@@ -1,11 +1,17 @@
 // src/components/ChatWidget.jsx
 import React, { useContext, useEffect, useRef, useState } from "react";
 import SockJS from "sockjs-client";
-import { CompatClient, Stomp } from "@stomp/stompjs";
+import { Client } from "@stomp/stompjs"; // ✅ new style client
 import { AuthContext } from "../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-const WS_BASE = API_BASE.replace("/api", ""); // http://localhost:8080
+// ✅ Backend base URLs
+const API_BASE =
+  import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+
+// WS URL direct env se, warna API_BASE se derive
+const WS_ENDPOINT =
+  import.meta.env.VITE_WS_URL ||
+  API_BASE.replace(/\/api\/?$/, "") + "/ws-chat";
 
 const TAGS = [
   { key: "ANNOUNCEMENT", label: "@announcement" },
@@ -14,16 +20,13 @@ const TAGS = [
   { key: "PROBLEM", label: "@problem" },
 ];
 
-// Bubble background by tag + sender
 const bubbleClasses = (isMine, tag) => {
-  // NORMAL message
   if (!tag || tag === "NORMAL") {
     return isMine
       ? "bg-sky-600 text-white rounded-br-sm"
       : "bg-slate-800/90 text-gray-100 border border-white/10 rounded-bl-sm";
   }
 
-  // Tagged messages – all side, only tone change
   switch (tag) {
     case "ANNOUNCEMENT":
       return isMine
@@ -63,7 +66,6 @@ const tagBadgeStyle = (tag) => {
   }
 };
 
-// Time formatter
 const formatTime = (ts) => {
   if (!ts) return "";
   const d = new Date(ts);
@@ -88,7 +90,8 @@ const ChatWidget = () => {
   const [unread, setUnread] = useState(0);
   const [replyTo, setReplyTo] = useState(null);
   const [activeTag, setActiveTag] = useState(null);
-  const stompClientRef = useRef(/** @type {CompatClient | null} */ (null));
+
+  const stompClientRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   // ---------- History load ----------
@@ -99,6 +102,7 @@ const ChatWidget = () => {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
       },
+      credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => Array.isArray(data) && setMessages(data))
@@ -116,60 +120,66 @@ const ChatWidget = () => {
   useEffect(() => {
     if (!user) return;
 
-    const socket = new SockJS(`${WS_BASE}/ws-chat`);
-    const stompClient = Stomp.over(socket);
-    stompClient.debug = () => {}; // console spam off
-
-    stompClient.connect(
-      {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-      () => {
-        stompClient.subscribe("/topic/community", (message) => {
+    const client = new Client({
+      // ✅ Important: STOMP client new style
+      webSocketFactory: () => new SockJS(WS_ENDPOINT),
+      connectHeaders: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {},
+      debug: () => {}, // spam band
+      reconnectDelay: 5000, // auto reconnect
+      onConnect: () => {
+        // Messages
+        client.subscribe("/topic/community", (message) => {
           const body = JSON.parse(message.body);
           setMessages((prev) => [...prev, body]);
           if (!open) setUnread((u) => u + 1);
         });
 
-        stompClient.subscribe("/topic/notifications", (message) => {
-          // future: toast etc.
+        // Notifications (future)
+        client.subscribe("/topic/notifications", (message) => {
           console.log("Notification:", JSON.parse(message.body));
         });
       },
-      (error) => {
-        console.error("WebSocket error:", error);
-      }
-    );
+      onStompError: (frame) => {
+        console.error("Broker error:", frame);
+      },
+      onWebSocketError: (event) => {
+        console.error("WebSocket error:", event);
+      },
+    });
 
-    stompClientRef.current = stompClient;
+    client.activate();
+    stompClientRef.current = client;
 
     return () => {
-      if (stompClientRef.current && stompClientRef.current.connected) {
-        stompClientRef.current.disconnect();
-      }
+      client.deactivate();
+      stompClientRef.current = null;
     };
   }, [user, token, open]);
 
-  if (!user) return null; // only logged-in users
+  if (!user) return null;
 
   // ---------- Send message ----------
   const handleSend = () => {
     const content = input.trim();
-    if (!content || !stompClientRef.current || !stompClientRef.current.connected)
-      return;
+    const client = stompClientRef.current;
+
+    if (!content || !client || !client.connected) return;
 
     const payload = {
       content,
       replyToId: replyTo ? replyTo.id : null,
       senderId: user.id,
-      tag: activeTag, // backend DTO me 'tag' hona chahiye
+      tag: activeTag,
     };
 
-    stompClientRef.current.send(
-      "/app/community.send",
-      {},
-      JSON.stringify(payload)
-    );
+    client.publish({
+      destination: "/app/community.send",
+      body: JSON.stringify(payload),
+    });
 
     setInput("");
     setReplyTo(null);
@@ -202,10 +212,9 @@ const ChatWidget = () => {
         )}
       </button>
 
-      {/* Full-screen overlay */}
+      {/* Overlay */}
       {open && (
         <div className="fixed inset-0 bg-black/60 z-50 flex flex-col">
-          {/* Top close button aligned with navbar area */}
           <div className="flex justify-end px-4 pt-3">
             <button
               onClick={() => setOpen(false)}
@@ -215,7 +224,6 @@ const ChatWidget = () => {
             </button>
           </div>
 
-          {/* Centered big card: FULL width feel + 80vh height */}
           <div className="flex-1 flex justify-center items-center pb-6 px-2 sm:px-4">
             <div className="w-[96vw] h-[80vh] bg-gradient-to-br from-gray-900 via-slate-900 to-black rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
               {/* Header */}
@@ -245,7 +253,7 @@ const ChatWidget = () => {
                 </div>
               </div>
 
-              {/* Tag legend row (read-only) */}
+              {/* Tag legend */}
               <div className="px-5 py-2 border-b border-white/5 bg-slate-900/70 flex flex-wrap gap-2 text-[10px] text-gray-300">
                 <span className="uppercase tracking-wide text-[9px] text-gray-500 mr-1">
                   LEGEND:
@@ -264,7 +272,7 @@ const ChatWidget = () => {
                 </span>
               </div>
 
-              {/* Messages area */}
+              {/* Messages */}
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-[url('https://static.vecteezy.com/system/resources/previews/004/489/587/original/dark-gradient-blur-background-free-vector.jpg')] bg-cover bg-center">
                 {messages.map((msg) => {
                   const isMine = msg.senderId === user.id;
@@ -273,7 +281,9 @@ const ChatWidget = () => {
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                      className={`flex ${
+                        isMine ? "justify-end" : "justify-start"
+                      }`}
                     >
                       <div
                         className={
@@ -282,12 +292,10 @@ const ChatWidget = () => {
                         }
                         onClick={() => setReplyTo(msg)}
                       >
-                        {/* subtle left bar for tagged messages */}
                         {tag !== "NORMAL" && (
                           <div className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full bg-white/60 opacity-70" />
                         )}
 
-                        {/* Top row: name + tag + time */}
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-semibold opacity-95">
@@ -309,15 +317,13 @@ const ChatWidget = () => {
                           </span>
                         </div>
 
-                        {/* Reply preview */}
                         {msg.replyToId && msg.replyToContent && (
-                          <div className="mb-1 border-l-2 border-white/40 pl-2 text-[11px] italic bg-white/10/ bg-opacity-20 rounded-md">
+                          <div className="mb-1 border-l-2 border-white/40 pl-2 text-[11px] italic bg-white/10 bg-opacity-20 rounded-md">
                             Replying to: {msg.replyToContent.slice(0, 90)}
                             {msg.replyToContent.length > 90 && "..."}
                           </div>
                         )}
 
-                        {/* Actual content */}
                         <div className="whitespace-pre-wrap text-[13px] leading-snug">
                           {msg.content}
                         </div>
@@ -328,7 +334,7 @@ const ChatWidget = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Reply preview bar */}
+              {/* Reply preview */}
               {replyTo && (
                 <div className="px-4 py-2 bg-white/5 border-t border-white/10 flex items-start justify-between text-xs text-gray-200">
                   <div className="pr-2">
@@ -348,9 +354,8 @@ const ChatWidget = () => {
                 </div>
               )}
 
-              {/* Input + Tag selector */}
+              {/* Input + tags */}
               <div className="px-4 py-2 bg-slate-900/95 border-t border-white/10">
-                {/* Annotation buttons */}
                 <div className="flex flex-wrap gap-2 mb-2">
                   {TAGS.map((t) => (
                     <button
