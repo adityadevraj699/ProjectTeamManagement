@@ -30,6 +30,8 @@ export default function Student() {
 
   const [loading, setLoading] = useState(true); // Page-level loader
   const [actionLoading, setActionLoading] = useState(false); // Action loader
+  const [editMember, setEditMember] = useState(null);
+
 
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
@@ -61,6 +63,42 @@ export default function Student() {
       setLoading(false);
     }
   };
+
+
+  const handleUpdateDetails = async (m) => {
+  setActionLoading(true);
+  try {
+    await axios.put(
+      `${import.meta.env.VITE_API_URL}/guide/teams/${selectedTeam}/team/update`,
+      null,
+      {
+        ...axiosConfig,
+        params: {
+          memberId: m.id,
+          role: m.role,
+          name: m.user.name,
+          rollNumber: m.user.rollNumber,
+          branchId: m.user.branchId,
+          semesterId: m.user.semesterId,
+          sectionId: m.user.sectionId,
+        },
+      }
+    );
+
+    Swal.fire("Success", "Member details updated", "success");
+    setEditMember(null);
+    fetchMembers(selectedTeam);
+  } catch (err) {
+    Swal.fire(
+      "Error",
+      err.response?.data?.message || "Update failed",
+      "error"
+    );
+  } finally {
+    setActionLoading(false);
+  }
+};
+
 
   // ✅ Fetch members for selected team
   const fetchMembers = async (teamId) => {
@@ -465,6 +503,13 @@ export default function Student() {
                             >
                               Delete
                             </button>
+                            <button
+  onClick={() => setEditMember(m)}
+  className="px-3 py-1 bg-purple-600 rounded hover:bg-purple-700"
+>
+  Edit Details
+</button>
+
                           </>
                         )}
                       </td>
@@ -482,6 +527,140 @@ export default function Student() {
           </div>
         </>
       )}
+
+      {editMember && (
+  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div className="bg-slate-800 w-full max-w-xl p-6 rounded-xl">
+
+      <h2 className="text-xl text-sky-400 font-semibold mb-4">
+        Update Student Details
+      </h2>
+
+      <div className="grid grid-cols-2 gap-3">
+
+        {/* ✅ NAME */}
+        <input
+          value={editMember.user.name || ""}
+          onChange={(e) =>
+            setEditMember({
+              ...editMember,
+              user: { ...editMember.user, name: e.target.value },
+            })
+          }
+          className="bg-slate-700 p-2 rounded"
+          placeholder="Full Name"
+        />
+
+        {/* ✅ ROLL NUMBER */}
+        <input
+          value={editMember.user.rollNumber || ""}
+          onChange={(e) =>
+            setEditMember({
+              ...editMember,
+              user: { ...editMember.user, rollNumber: e.target.value },
+            })
+          }
+          className="bg-slate-700 p-2 rounded"
+          placeholder="Roll Number"
+        />
+
+        {/* ✅ EMAIL (READ ONLY) */}
+        <input
+          value={editMember.user.email || ""}
+          disabled
+          className="bg-slate-700 p-2 rounded opacity-60 cursor-not-allowed col-span-2"
+          placeholder="Email (cannot be changed)"
+        />
+
+        {/* ✅ BRANCH */}
+        <select
+          value={editMember.user.branchId}
+          onChange={(e) =>
+            setEditMember({
+              ...editMember,
+              user: { ...editMember.user, branchId: e.target.value },
+            })
+          }
+          className="bg-slate-700 p-2 rounded"
+        >
+          <option value="">Select Branch</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.branchName}
+            </option>
+          ))}
+        </select>
+
+        {/* ✅ SEMESTER */}
+        <select
+          value={editMember.user.semesterId}
+          onChange={(e) =>
+            setEditMember({
+              ...editMember,
+              user: { ...editMember.user, semesterId: e.target.value },
+            })
+          }
+          className="bg-slate-700 p-2 rounded"
+        >
+          <option value="">Select Semester</option>
+          {semesters.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.semesterName}
+            </option>
+          ))}
+        </select>
+
+        {/* ✅ SECTION */}
+        <select
+          value={editMember.user.sectionId}
+          onChange={(e) =>
+            setEditMember({
+              ...editMember,
+              user: { ...editMember.user, sectionId: e.target.value },
+            })
+          }
+          className="bg-slate-700 p-2 rounded col-span-2"
+        >
+          <option value="">Select Section</option>
+          {sections.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.sectionName}
+            </option>
+          ))}
+        </select>
+
+        {/* ✅ ROLE */}
+        <input
+          value={editMember.role || ""}
+          onChange={(e) =>
+            setEditMember({ ...editMember, role: e.target.value })
+          }
+          className="bg-slate-700 p-2 rounded col-span-2"
+          placeholder="Role (e.g. Backend Developer)"
+        />
+      </div>
+
+      {/* ✅ ACTION BUTTONS */}
+      <div className="flex justify-end gap-3 mt-6">
+        <button
+          onClick={() => setEditMember(null)}
+          className="px-4 py-2 bg-gray-600 rounded"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={() => handleUpdateDetails(editMember)}
+          className="px-4 py-2 bg-sky-600 rounded"
+        >
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 }
