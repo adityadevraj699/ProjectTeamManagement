@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import {
@@ -80,6 +80,38 @@ export default function GuideDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
+
+  // 🔹 Section filters (MUST be inside component)
+const [sectionFilters, setSectionFilters] = useState({
+  course: "ALL",
+  branch: "ALL",
+  semester: "ALL",
+});
+
+// 🔹 Safe access (stats null ho sakta hai)
+const sectionDetailed = stats?.studentsBySectionDetailed || [];
+
+// 🔹 Smart merge + filter logic
+const studentsBySectionFiltered = useMemo(() => {
+  const map = new Map();
+
+  sectionDetailed.forEach((s) => {
+    if (
+      (sectionFilters.course !== "ALL" && s.courseName !== sectionFilters.course) ||
+      (sectionFilters.branch !== "ALL" && s.branchName !== sectionFilters.branch) ||
+      (sectionFilters.semester !== "ALL" && s.semesterName !== sectionFilters.semester)
+    ) return;
+
+    map.set(s.sectionName, {
+      name: s.sectionName,
+      value: (map.get(s.sectionName)?.value || 0) + 1,
+    });
+  });
+
+  return Array.from(map.values());
+}, [sectionDetailed, sectionFilters]);
+
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
 
@@ -153,7 +185,7 @@ export default function GuideDashboard() {
   const studentsByCourse = mapToChartArray(stats.studentsByCourse);
   const studentsByBranch = mapToChartArray(stats.studentsByBranch);
   const studentsBySemester = mapToChartArray(stats.studentsBySemester);
-  const studentsBySection = mapToChartArray(stats.studentsBySection);
+  const studentsBySection = studentsBySectionFiltered;
   const projectsByStatus = mapToChartArray(stats.projectsByStatus);
   const tasksByStatus = mapToChartArray(stats.tasksByStatus);
   const tasksByPriority = mapToChartArray(stats.tasksByPriority);
@@ -571,33 +603,93 @@ export default function GuideDashboard() {
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
+{/* Students by Section */}
+<ChartCard
+  title="Students by Section"
+  subtitle="Section-wise student split (Course / Branch / Semester filter)"
+>
+  {/* 🔹 Section Filters */}
+  <div className="flex flex-wrap gap-2 mb-3">
+    {/* Course */}
+    <select
+      value={sectionFilters.course}
+      onChange={(e) =>
+        setSectionFilters((f) => ({ ...f, course: e.target.value }))
+      }
+      className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200"
+    >
+      <option value="ALL">All Courses</option>
+      {[...new Set(sectionDetailed.map(s => s.courseName))].map(course => (
+        <option key={course} value={course}>
+          {course}
+        </option>
+      ))}
+    </select>
 
-                  {/* Students by Section */}
-                  <ChartCard
-                    title="Students by Section"
-                    subtitle="Section-wise student split"
-                  >
-                    <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={studentsBySection}>
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="value">
-                          {studentsBySection.map((entry, index) => (
-                            <Cell
-                              key={`sec-bar-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
+    {/* Branch */}
+    <select
+      value={sectionFilters.branch}
+      onChange={(e) =>
+        setSectionFilters((f) => ({ ...f, branch: e.target.value }))
+      }
+      className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200"
+    >
+      <option value="ALL">All Branches</option>
+      {[...new Set(sectionDetailed.map(s => s.branchName))].map(branch => (
+        <option key={branch} value={branch}>
+          {branch}
+        </option>
+      ))}
+    </select>
+
+    {/* Semester */}
+    <select
+      value={sectionFilters.semester}
+      onChange={(e) =>
+        setSectionFilters((f) => ({ ...f, semester: e.target.value }))
+      }
+      className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200"
+    >
+      <option value="ALL">All Semesters</option>
+      {[...new Set(sectionDetailed.map(s => s.semesterName))].map(sem => (
+        <option key={sem} value={sem}>
+          {sem}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {/* 🔹 Chart / Empty State */}
+  {studentsBySection.length === 0 ? (
+    <div className="flex items-center justify-center h-[260px] text-sm text-slate-400">
+      No section data available
+    </div>
+  ) : (
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={studentsBySection}>
+        <XAxis
+          dataKey="name"
+          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+        />
+        <YAxis
+          allowDecimals={false}
+          tick={{ fontSize: 11, fill: "#e5e7eb" }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+          {studentsBySection.map((entry, index) => (
+            <Cell
+              key={`sec-bar-${entry.name}`}   // stable key
+              fill={COLORS[index % COLORS.length]}
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )}
+</ChartCard>
+
+
                 </div>
               )}
             </div>
