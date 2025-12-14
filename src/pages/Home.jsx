@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { 
   FiMail, 
   FiChevronLeft, 
@@ -10,7 +10,7 @@ import {
   FiLayout,
   FiZap,
   FiShield,
-  FiTrendingUp,
+  FiTrendingUp
 } from "react-icons/fi";
 import { 
   FaLinkedin, 
@@ -180,7 +180,6 @@ export default function HomePage() {
     setIndex((prev) => (prev + newDirection + slides.length) % slides.length);
   };
 
-  // ✅ Fixed: Define nextSlide and prevSlide functions properly
   const nextSlide = () => paginate(1);
   const prevSlide = () => paginate(-1);
 
@@ -192,7 +191,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#050a14] text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden">
 
-      {/* --- HERO SECTION (Sequential Slide Animation) --- */}
+  {/* --- HERO SECTION (Sequential Slide Animation - Clean Text) --- */}
       <section className="relative h-[80vh] w-full overflow-hidden flex items-center bg-[#02040a]">
         
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
@@ -201,15 +200,12 @@ export default function HomePage() {
              key={index}
              custom={direction}
              className="absolute inset-0 w-full h-full flex items-center"
-             // 1. Image Enter: From Right ("100%")
-             initial={{ x: "100%" }}
-             // 2. Image Animate: To Center (0)
+             initial={(dir) => ({ x: dir > 0 ? "100%" : "-100%" })}
              animate={{ x: 0 }}
-             // 3. Image Exit: To Left ("-100%") - Always slide to left on exit for continuous flow feel
-             exit={{ x: "-100%" }}
+             exit={(dir) => ({ x: dir > 0 ? "-100%" : "100%" })}
              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }} 
            >
-              {/* BACKGROUND IMAGE (Full Cover) */}
+              {/* 1. BACKGROUND IMAGE (Full Cover) */}
               <div 
                   className="absolute inset-0 bg-cover bg-center z-0"
                   style={{ backgroundImage: `url(${slides[index % slides.length].img})` }}
@@ -218,14 +214,11 @@ export default function HomePage() {
                    <div className="absolute inset-0 bg-gradient-to-r from-[#050a14] via-[#050a14]/60 to-transparent"></div>
               </div>
 
-              {/* TEXT CONTENT (Delayed Entrance) */}
+              {/* 2. TEXT CONTENT (Left Aligned, Delayed Entrance, No Border) */}
               <div className="relative z-10 w-full max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2">
                   <motion.div
-                     // 1. Text Enter: From Right (100) - same direction as image
                      initial={{ x: 100, opacity: 0 }}
-                     // 2. Text Animate: To Center (0)
                      animate={{ x: 0, opacity: 1 }}
-                     // 3. Text Exit: Controlled by parent motion.div, slides out to left with background
                      transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }} 
                      className="text-left"
                   >
@@ -233,12 +226,11 @@ export default function HomePage() {
                           Next Gen Management
                       </span>
                       
-                      {/* Responsive Heading */}
-                      <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight mb-6 drop-shadow-2xl whitespace-nowrap overflow-visible">
+                      <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight mb-6 drop-shadow-2xl whitespace-nowrap overflow-visible">
                           {slides[index % slides.length].title}
                       </h1>
                       
-                      <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-xl mb-10 font-light leading-relaxed border-l-4 border-cyan-500 pl-6">
+                      <p className="text-lg md:text-xl text-slate-300 max-w-xl mb-10 font-light leading-relaxed border-l-4 border-cyan-500 pl-6 drop-shadow-lg">
                           {slides[index % slides.length].subtitle}
                       </p>
                       
@@ -257,7 +249,6 @@ export default function HomePage() {
 
         {/* Floating Navigation Controls (Bottom Right) */}
         <div className="absolute bottom-8 right-6 md:bottom-12 md:right-12 z-20 flex items-center gap-4 md:gap-6">
-            {/* Dots */}
             <div className="flex gap-2 md:gap-3">
                  {slides.map((_, i) => (
                      <button
@@ -268,7 +259,6 @@ export default function HomePage() {
                  ))}
             </div>
 
-            {/* Arrows - Fixed Functions */}
             <div className="flex gap-2 md:gap-3 ml-2 md:ml-4">
                 <button 
                     className="p-3 md:p-4 rounded-full border border-white/10 bg-black/40 backdrop-blur-xl text-white hover:bg-cyan-500 hover:text-black hover:border-cyan-500 transition-all duration-300 group"
@@ -481,7 +471,7 @@ export default function HomePage() {
              </div>
         </section>
 
-       {/* --- GUIDE SECTION (Clean Hacker Style, Premium) --- */}
+    {/* --- GUIDE SECTION (Clean Hacker Style, Premium) --- */}
 <section className="py-20 relative overflow-hidden bg-[#02040a]">
 
   {/* Tech Grid Background */}
@@ -571,40 +561,47 @@ export default function HomePage() {
 </section>
 
 
-        {/* --- FOOTER CTA --- */}
-        <section className="py-32 bg-[#02040a] border-t border-slate-900 text-center relative overflow-hidden">
-             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
-             
-             <div className="max-w-4xl mx-auto px-6 relative z-10">
-                 <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter">Ready to <span className="text-cyan-500">Deploy?</span></h2>
-                 <p className="text-slate-400 mb-12 text-xl leading-relaxed max-w-2xl mx-auto">Join hundreds of students and guides managing projects effortlessly. Start your journey today.</p>
-                 
-                 <div className="flex flex-col sm:flex-row justify-center gap-6">
-                     <a href="/register" className="px-12 py-5 bg-white text-black font-black rounded-full hover:bg-cyan-50 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(34,211,238,0.5)] transform hover:-translate-y-1 text-lg">
-                        Get Started Free
-                     </a>
-                     <a href="/login" className="px-12 py-5 bg-transparent border-2 border-slate-700 text-white font-bold rounded-full hover:bg-slate-900 hover:border-white transition-all transform hover:-translate-y-1 text-lg">
-                        Login to Dashboard
-                     </a>
-                 </div>
+        {/* --- FOOTER CTA --- */}
+        <section className="py-32 bg-[#02040a] border-t border-slate-900 text-center relative overflow-hidden">
+             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
+             
+             <div className="max-w-4xl mx-auto px-6 relative z-10">
+                 <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter">Ready to <span className="text-cyan-500">Deploy?</span></h2>
+                 <p className="text-slate-400 mb-12 text-xl leading-relaxed max-w-2xl mx-auto">Join hundreds of students and guides managing projects effortlessly. Start your journey today.</p>
+                 
+                 <div className="flex flex-col sm:flex-row justify-center gap-6">
+                     <a href="/register" className="px-12 py-5 bg-white text-black font-black rounded-full hover:bg-cyan-50 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(34,211,238,0.5)] transform hover:-translate-y-1 text-lg">
+                        Get Started Free
+                     </a>
+                     <a href="/login" className="px-12 py-5 bg-transparent border-2 border-slate-700 text-white font-bold rounded-full hover:bg-slate-900 hover:border-white transition-all transform hover:-translate-y-1 text-lg">
+                        Login to Dashboard
+                     </a>
+                 </div>
 
-                
-             </div>
-        </section>
+                 <div className="mt-20 pt-10 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center text-slate-600 text-sm">
+                    <p>© 2025 EduProject Manager. MIT Meerut.</p>
+                    <div className="flex gap-6 mt-4 md:mt-0">
+                        <a href="#" className="hover:text-white transition-colors">Privacy</a>
+                        <a href="#" className="hover:text-white transition-colors">Terms</a>
+                        <a href="#" className="hover:text-white transition-colors">Contact</a>
+                    </div>
+                 </div>
+             </div>
+        </section>
 
-      </main>
-    </div>
-  );
+      </main>
+    </div>
+  );
 }
 
 // Helper: Stylish Social Button
 const SocialLink = ({ href, icon }) => (
-  <a 
-    href={href} 
-    target="_blank" 
-    rel="noreferrer"
-    className="w-12 h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-800 hover:border-cyan-500/50 hover:-translate-y-2 hover:shadow-lg shadow-cyan-500/20"
-  >
-    <span className="text-xl">{icon}</span>
-  </a>
+  <a 
+    href={href} 
+    target="_blank" 
+    rel="noreferrer"
+    className="w-12 h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-800 hover:border-cyan-500/50 hover:-translate-y-2 hover:shadow-lg shadow-cyan-500/20"
+  >
+    <span className="text-xl">{icon}</span>
+  </a>
 );
