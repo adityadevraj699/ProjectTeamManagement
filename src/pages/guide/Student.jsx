@@ -15,7 +15,7 @@ import {
 
 // 🔄 Reusable Loader Overlay Component
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm transition-opacity duration-300">
+  <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[100] backdrop-blur-sm transition-opacity duration-300">
     <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4 shadow-lg shadow-sky-500/20"></div>
     <p className="text-white text-lg font-medium tracking-wide animate-pulse">{message || "Loading..."}</p>
   </div>
@@ -67,7 +67,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
   );
 
   return (
-    <div className="relative w-full md:w-1/2" ref={wrapperRef}>
+    // ✅ Added z-50 to wrapper to ensure it stays above other content
+    <div className="relative w-full md:w-1/2 z-50" ref={wrapperRef}>
       {/* Trigger Area */}
       <div
         onClick={toggleDropdown}
@@ -83,12 +84,13 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-64 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-100">
+        // ✅ Added z-50 and max-h logic
+        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-60 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-100 w-full">
           
           {/* Search Input Sticky Header */}
           <div className="p-2 border-b border-slate-700 bg-slate-800 sticky top-0 z-10">
             <div className="flex items-center bg-slate-900 rounded-lg px-3 border border-slate-700 focus-within:border-sky-500 transition-colors">
-              <HiSearch className="text-slate-500 mr-2" />
+              <HiSearch className="text-slate-500 mr-2 shrink-0" />
               <input
                 ref={inputRef}
                 type="text"
@@ -96,11 +98,11 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-transparent py-2 text-sm text-white focus:outline-none placeholder-slate-500"
-                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking input
+                onClick={(e) => e.stopPropagation()} 
               />
               {searchTerm && (
                 <HiX
-                  className="text-slate-500 cursor-pointer hover:text-white"
+                  className="text-slate-500 cursor-pointer hover:text-white shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     setSearchTerm("");
@@ -406,8 +408,8 @@ export default function Student() {
         <p className="text-slate-400 text-sm">Manage student roles, details, and leadership within your teams.</p>
       </div>
 
-      {/* Select Team Section */}
-      <div className="max-w-7xl mx-auto mb-8 bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 backdrop-blur-sm">
+      {/* Select Team Section - Added z-index relative to ensure it stays on top */}
+      <div className="max-w-7xl mx-auto mb-8 bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 backdrop-blur-sm relative z-30">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <label className="text-slate-300 font-medium whitespace-nowrap">Select Team:</label>
           <SearchableSelect 
@@ -421,7 +423,7 @@ export default function Student() {
       </div>
 
       {selectedTeam && (
-        <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-3 gap-8 relative z-10">
           
           {/* Add New Member Form */}
           <div className="xl:col-span-1 bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 h-fit backdrop-blur-sm shadow-xl">
@@ -605,8 +607,8 @@ export default function Student() {
 
       {/* Edit Modal */}
       {editMember && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-          <div className="bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-700 overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-sm p-4">
+          <div className="bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-700 overflow-hidden animate-in fade-in zoom-in duration-200 relative z-[101]">
             <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700 flex justify-between items-center">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <HiPencil className="text-sky-400" /> Update Member
