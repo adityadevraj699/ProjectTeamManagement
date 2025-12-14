@@ -9,6 +9,7 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
   
   const { scrollY } = useScroll();
   const dropdownRef = useRef(null);
@@ -18,8 +19,18 @@ const Navbar = () => {
 
   const isHomePage = location.pathname === "/";
 
-  // Scroll Behavior Logic (Only for transparency toggle)
+  // Scroll Behavior Logic
   useMotionValueEvent(scrollY, "change", (latest) => {
+    const previous = scrollY.getPrevious();
+    
+    // Hide/Show Logic (Auto-hide on scroll down)
+    if (latest > previous && latest > 150) {
+      setHidden(true);
+    } else {
+      setHidden(false);
+    }
+
+    // Scrolled State Logic (for transparency toggle on home)
     if (latest > 50) {
         setScrolled(true);
     } else {
@@ -98,229 +109,269 @@ const Navbar = () => {
     setMobileMenuOpen(false);
   };
 
+  const navVariants = {
+    visible: { y: 0, opacity: 1, transition: { duration: 0.35, ease: "easeInOut" } },
+    hidden: { y: -100, opacity: 0, transition: { duration: 0.35, ease: "easeInOut" } },
+  };
+
   // Dynamic Background Style
   const getNavStyle = () => {
+    // Only transparent on Home Page when NOT scrolled
     if (isHomePage && !scrolled) {
-        return "bg-transparent border-b border-transparent shadow-none";
+        return "bg-transparent border-transparent shadow-none";
     }
-    // Solid background for other pages OR scrolled home page
-    return "bg-gradient-to-r from-gray-900 to-gray-800 shadow-md border-b border-gray-700/50 backdrop-blur-md";
+    // Solid/Glass background for all other pages OR scrolled home page
+    return "bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-800 shadow-lg shadow-black/10";
   };
 
   return (
-    <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-300 ${getNavStyle()}`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16"> {/* Compact Height: 64px */}
-          
-          {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-xl font-semibold tracking-wide hover:text-sky-400 transition-colors"
-          >
-            <div className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
-                <img
-                  src="https://res.cloudinary.com/ddtcj9ks5/image/upload/v1762627794/coordinator_o7hmxq.png"
-                  alt="EduProject Logo"
-                  className="relative h-8 w-8 rounded-full object-cover border border-gray-500"
-                />
-            </div>
-            <span className="hidden sm:inline font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">EduProject</span>
-            <span className="sm:hidden font-bold text-white">EduProject</span>
-          </Link>
-
-          {/* Center Role Links (Desktop) */}
-          {user && (
-            <div className="hidden lg:flex items-center gap-1">
-              {roleLinks.slice(0, 5).map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.to}
-                  className={`px-3 py-2 text-sm font-medium transition-colors rounded-md hover:bg-white/5 ${location.pathname === link.to ? "text-sky-400 bg-white/5" : "text-gray-300 hover:text-white"}`}
-                >
-                  {link.name}
-                </Link>
-              ))}
-              {/* More Dropdown */}
-              {roleLinks.length > 5 && (
-                  <div className="relative group/more ml-2">
-                       <button className="px-3 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1 rounded-md hover:bg-white/5">
-                           More <FaChevronDown className="text-[10px]"/>
-                       </button>
-                       <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl py-1 opacity-0 group-hover/more:opacity-100 invisible group-hover/more:visible transition-all duration-200 transform origin-top-right scale-95 group-hover/more:scale-100">
-                           {roleLinks.slice(5).map((link) => (
-                               <Link
-                                 key={link.name}
-                                 to={link.to}
-                                 className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                               >
-                                 {link.name}
-                               </Link>
-                           ))}
-                       </div>
-                  </div>
-              )}
-            </div>
-          )}
-
-          {/* Right User Avatar / Auth Buttons */}
-          <div className="hidden md:flex items-center gap-4">
-            {!user ? (
-              <>
-                <Link
-                  to="/login"
-                  className="px-4 py-1.5 rounded-full text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2"
-                >
-                  <FaSignInAlt /> Sign In
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-5 py-1.5 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold shadow-lg shadow-cyan-500/20 transition-all hover:scale-105"
-                >
-                  Get Started
-                </Link>
-              </>
-            ) : (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  className="flex items-center gap-2 focus:outline-none bg-white/5 hover:bg-white/10 px-2 py-1 rounded-full border border-white/10 transition-all"
-                >
+    <>
+      <motion.nav
+        variants={navVariants}
+        animate={hidden ? "hidden" : "visible"}
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${getNavStyle()}`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16"> {/* Compact Height: 64px */}
+            
+            {/* Logo */}
+            <Link
+              to="/"
+              className="flex items-center gap-3 group"
+            >
+              <div className="relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-500"></div>
                   <img
-                    src={user.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
-                    alt="User Avatar"
-                    className="w-7 h-7 rounded-full border border-gray-500 object-cover"
+                    src="https://res.cloudinary.com/ddtcj9ks5/image/upload/v1762627794/coordinator_o7hmxq.png"
+                    alt="EduProject Logo"
+                    className="relative h-8 w-8 rounded-full object-cover border-2 border-slate-800"
                   />
-                  <span className="hidden lg:inline text-xs font-semibold text-white ml-1">{user.name}</span>
-                  <FaChevronDown className={`text-[10px] text-gray-400 transition-transform duration-200 ml-1 ${menuOpen ? 'rotate-180' : ''}`}/>
-                </button>
+              </div>
+              <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 tracking-tight">EduProject</span>
+            </Link>
 
-                <AnimatePresence>
-                  {menuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-3 w-56 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-2 overflow-hidden"
-                    >
-                      <div className="px-4 py-3 border-b border-gray-700 mb-1">
-                          <p className="text-sm font-semibold text-white">{user.name}</p>
-                          <p className="text-xs text-gray-400 truncate">{user.email}</p>
-                          <p className="text-[10px] text-cyan-500 uppercase tracking-wider font-bold mt-1">{user.role}</p>
-                      </div>
-
-                      <DropdownItem to={dashboardPath} icon={<FaTachometerAlt/>} onClick={() => setMenuOpen(false)}>Dashboard</DropdownItem>
-                      <DropdownItem to="/profile" icon={<FaUserCircle/>} onClick={() => setMenuOpen(false)}>Profile</DropdownItem>
-                      <DropdownItem to="/change-password" icon={<FaKey/>} onClick={() => setMenuOpen(false)}>Change Password</DropdownItem>
-                      
-                      <div className="my-1 border-t border-gray-700"></div>
-                      
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-3"
-                      >
-                        <FaSignOutAlt /> Logout
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+            {/* Desktop Menu */}
+            {user && (
+              <div className="hidden lg:flex items-center gap-1">
+                {roleLinks.slice(0, 5).map((link) => (
+                  <NavLink key={link.name} to={link.to} active={location.pathname === link.to}>
+                    {link.name}
+                  </NavLink>
+                ))}
+                {roleLinks.length > 5 && (
+                    <div className="relative group/more ml-2">
+                        <button className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1 rounded-md hover:bg-white/5">
+                            More <FaChevronDown className="text-[10px]"/>
+                        </button>
+                        <div className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-2 opacity-0 group-hover/more:opacity-100 invisible group-hover/more:visible transition-all duration-200 transform origin-top-right scale-95 group-hover/more:scale-100">
+                            {roleLinks.slice(5).map((link) => (
+                                <Link
+                                  key={link.name}
+                                  to={link.to}
+                                  className="block px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                >
+                                  {link.name}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
               </div>
             )}
-          </div>
 
-          {/* Mobile Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-xl text-sky-400 p-2 rounded hover:bg-white/10"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <FaTimes /> : <FaBars />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            ref={mobileMenuRef}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="md:hidden bg-gray-900 border-t border-gray-800 overflow-hidden shadow-xl"
-          >
-            <div className="px-4 py-4 space-y-2">
+            {/* Right Section (Auth / Profile) */}
+            <div className="hidden md:flex items-center gap-4">
               {!user ? (
-                <div className="flex flex-col gap-3">
+                <>
                   <Link
                     to="/login"
-                    onClick={handleMobileLinkClick}
-                    className="block w-full py-2.5 text-center bg-sky-600 text-white font-semibold rounded-lg"
+                    className="px-4 py-2 rounded-full text-xs font-semibold text-slate-300 hover:text-white transition-colors flex items-center gap-2"
                   >
-                    Sign In
+                    <FaSignInAlt /> Sign In
                   </Link>
                   <Link
                     to="/register"
-                    onClick={handleMobileLinkClick}
-                    className="block w-full py-2.5 text-center border border-sky-500 text-sky-400 rounded-lg"
+                    className="px-5 py-2 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 transition-all hover:scale-105"
                   >
                     Get Started
                   </Link>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 px-3 py-3 mb-2 bg-gray-800 rounded-lg border border-gray-700">
-                      <img src={user.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"} alt="User" className="w-10 h-10 rounded-full border border-gray-600" />
-                      <div>
-                          <p className="text-white font-semibold text-sm">{user.name}</p>
-                          <p className="text-xs text-gray-400 uppercase tracking-wide">{user.role}</p>
-                      </div>
-                  </div>
-
-                  <Link to={dashboardPath} onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white font-medium transition-colors"><FaTachometerAlt/> Dashboard</Link>
-                  <Link to="/profile" onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white font-medium transition-colors"><FaUserCircle/> Profile</Link>
-                  
-                  <div className="h-px bg-gray-800 my-1"></div>
-                  
-                  {roleLinks.map((link) => (
-                    <Link
-                      key={link.name}
-                      to={link.to}
-                      onClick={handleMobileLinkClick}
-                      className="block px-4 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white font-medium transition-colors"
-                    >
-                      {link.name}
-                    </Link>
-                  ))}
-
-                  <div className="h-px bg-gray-800 my-1"></div>
-
-                  <Link to="/change-password" onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white font-medium transition-colors"><FaKey/> Change Password</Link>
-                  
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      handleMobileLinkClick();
-                    }}
-                    className="w-full text-left px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 font-semibold flex items-center gap-3 mt-2 transition-colors"
-                  >
-                    <FaSignOutAlt/> Logout
-                  </button>
                 </>
+              ) : (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    className="flex items-center gap-3 focus:outline-none bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full border border-white/5 transition-all"
+                  >
+                    <img
+                      src={user.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
+                      alt="User"
+                      className="w-7 h-7 rounded-full border border-slate-600 object-cover"
+                    />
+                    <div className="text-left hidden lg:block">
+                        <span className="block text-xs font-bold text-white">{user.name}</span>
+                        <span className="block text-[10px] text-slate-400 uppercase tracking-wider">{user.role}</span>
+                    </div>
+                    <FaChevronDown className={`text-[10px] text-slate-400 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`}/>
+                  </button>
+
+                  <AnimatePresence>
+                    {menuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-3 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 overflow-hidden"
+                      >
+                        <div className="px-4 py-3 border-b border-slate-800 mb-1">
+                            <p className="text-sm font-medium text-white">{user.name}</p>
+                            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                        </div>
+
+                        <DropdownItem to={dashboardPath} icon={<FaTachometerAlt/>} onClick={() => setMenuOpen(false)}>Dashboard</DropdownItem>
+                        <DropdownItem to="/profile" icon={<FaUserCircle/>} onClick={() => setMenuOpen(false)}>Profile</DropdownItem>
+                        <DropdownItem to="/change-password" icon={<FaKey/>} onClick={() => setMenuOpen(false)}>Change Password</DropdownItem>
+                        
+                        <div className="my-1 border-t border-slate-800"></div>
+                        
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setMenuOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-3"
+                        >
+                          <FaSignOutAlt /> Logout
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
+
+            {/* Mobile Toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              ref={mobileMenuRef}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="md:hidden bg-[#0f172a]/95 backdrop-blur-xl border-b border-slate-700 overflow-hidden"
+            >
+              <div className="px-4 py-6 space-y-3">
+                {!user ? (
+                  <div className="flex flex-col gap-3">
+                    <Link
+                      to="/login"
+                      onClick={handleMobileLinkClick}
+                      className="block w-full py-3 text-center bg-slate-800 text-white font-semibold rounded-xl border border-slate-700"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/register"
+                      onClick={handleMobileLinkClick}
+                      className="block w-full py-3 text-center bg-cyan-600 text-white font-semibold rounded-xl shadow-lg"
+                    >
+                      Get Started
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 px-2 mb-6 bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                        <img src={user.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"} alt="User" className="w-10 h-10 rounded-full border-2 border-white/10" />
+                        <div>
+                            <p className="text-white font-semibold">{user.name}</p>
+                            <p className="text-xs text-slate-400 uppercase tracking-wide">{user.role}</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <Link to={dashboardPath} onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition-colors">
+                           <FaTachometerAlt className="text-slate-500"/> Dashboard
+                        </Link>
+                        <Link to="/profile" onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition-colors">
+                           <FaUserCircle className="text-slate-500"/> Profile
+                        </Link>
+                    </div>
+                    
+                    <div className="h-px bg-slate-800 my-2 mx-4"></div>
+                    
+                    <div className="space-y-1">
+                        {roleLinks.map((link) => (
+                          <Link
+                            key={link.name}
+                            to={link.to}
+                            onClick={handleMobileLinkClick}
+                            className="block px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition-colors"
+                          >
+                            {link.name}
+                          </Link>
+                        ))}
+                    </div>
+
+                    <div className="h-px bg-slate-800 my-2 mx-4"></div>
+
+                    <Link to="/change-password" onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition-colors">
+                        <FaKey className="text-slate-500"/> Change Password
+                    </Link>
+                    
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        handleMobileLinkClick();
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 font-semibold flex items-center gap-3 mt-4"
+                    >
+                      <FaSignOutAlt/> Logout
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.nav>
+      
+      {/* SPACER: This empty div pushes page content down so it doesn't get hidden behind the fixed navbar.
+         It is conditionally rendered: NO spacer on Home (to allow banner to go under navbar),
+         YES spacer on all other pages.
+      */}
+      {!isHomePage && <div className="h-16 w-full"></div>}
+    </>
   );
 };
+
+// Helper: Desktop Nav Link
+const NavLink = ({ to, children, active }) => (
+    <Link
+      to={to}
+      className={`relative px-3 py-2 text-xs font-medium transition-colors ${
+        active ? "text-cyan-400" : "text-slate-300 hover:text-white"
+      }`}
+    >
+      {children}
+      {active && (
+        <motion.div
+          layoutId="navbar-underline"
+          className="absolute bottom-0 left-0 right-0 h-[2px] bg-cyan-400 rounded-full"
+        />
+      )}
+    </Link>
+);
 
 // Helper: Dropdown Item
 const DropdownItem = ({ to, children, icon, onClick }) => (
