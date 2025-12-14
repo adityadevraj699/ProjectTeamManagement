@@ -191,16 +191,14 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#050a14] text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden">
 
-{/* --- HERO SECTION (Full Screen Image, Floating White Frame, Split Content) --- */}
+{/* --- HERO SECTION (Thinner Frame, Full Image, Translucent Top) --- */}
       <section className="relative h-[95vh] w-full overflow-hidden flex items-center bg-[#02040a]">
         
-        {/* ✅ Decorative Bold White Frame (Overlay) 
-            - Starts below navbar (top-20)
-            - 10px margin on sides
-            - Pointer events none so clicks pass through
-            - Sits ON TOP of the image (z-40)
+        {/* ✅ Decorative White Frame (Thinner)
+            - Changed border-[3px] to border-2 
+            - Maintains the same positioning and rounded corners
         */}
-        <div className="absolute top-20 bottom-3 left-3 right-3 z-40 border-[3px] border-white pointer-events-none rounded-[2.5rem]"></div>
+        <div className="absolute top-20 bottom-3 left-3 right-3 z-40 border-2 border-white pointer-events-none rounded-[2.5rem]"></div>
 
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
            {/* WRAPPER FOR SLIDE CONTENT */}
@@ -213,9 +211,7 @@ export default function HomePage() {
              exit={(dir) => ({ x: dir > 0 ? "-100%" : "100%" })}
              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }} 
            >
-              {/* BACKGROUND IMAGE (Full Cover - No Constraints) 
-                  - This image now covers the entire section area
-              */}
+              {/* BACKGROUND IMAGE (Full Cover) */}
               <div 
                   className="absolute inset-0 bg-cover bg-center z-0"
                   style={{ backgroundImage: `url(${slides[index % slides.length].img})` }}
@@ -226,42 +222,41 @@ export default function HomePage() {
               </div>
 
               {/* TEXT CONTENT CONTAINER */}
-              <div className="relative z-50 w-full h-full px-12 md:px-24 pt-36 pb-16 flex flex-col justify-between">
+              <div className="relative z-10 w-full h-full px-12 md:px-24 pt-36 pb-16 flex flex-col justify-between">
                   
-                  {/* TOP RIGHT: TITLE & BADGE */}
+                  {/* TOP RIGHT: TITLE ONLY */}
                   <motion.div
-                     className="w-full text-right flex flex-col items-end"
+                     className="w-full text-right ml-auto"
                      initial={{ x: 100, opacity: 0 }}
                      animate={{ x: 0, opacity: 1 }}
                      transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
                   >
-                      {/* Title */}
-                      <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-white leading-tight drop-shadow-2xl max-w-4xl">
+                      <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-white leading-tight drop-shadow-2xl whitespace-nowrap">
                           {slides[index % slides.length].title}
                       </h1>
-
-                      {/* Badge (Right Aligned below Title) */}
-                      <span className="inline-block mt-4 py-1.5 px-5 rounded-full bg-cyan-500 text-white text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-cyan-500/50">
-                          Next Gen Management
-                      </span>
                   </motion.div>
 
-                  {/* BOTTOM LEFT: DESCRIPTION & BUTTONS */}
+                  {/* BOTTOM LEFT: BADGE, DESCRIPTION & BUTTONS */}
                   <motion.div
                      className="w-full text-left max-w-2xl mt-auto mb-8"
                      initial={{ x: -100, opacity: 0 }}
                      animate={{ x: 0, opacity: 1 }}
                      transition={{ delay: 0.6, duration: 0.8, ease: "easeOut" }} 
                   >
+                      {/* Badge */}
+                      <span className="inline-block py-1.5 px-5 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-cyan-500/20 mb-6 backdrop-blur-md">
+                          Next Gen Management
+                      </span>
+
                       <p className="text-lg md:text-xl text-slate-200 font-medium leading-relaxed drop-shadow-lg mb-10 border-l-4 border-cyan-500 pl-6">
                           {slides[index % slides.length].subtitle}
                       </p>
                       
                       <div className="flex flex-col sm:flex-row gap-6">
-                          <a href="/register" className="px-10 py-4 bg-cyan-500 hover:bg-cyan-400 text-white rounded-full font-bold text-lg shadow-xl shadow-cyan-500/30 transition-all hover:scale-105 flex items-center justify-center gap-3">
+                          <a href="/register" className="px-10 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full font-bold text-lg shadow-xl shadow-cyan-500/30 transition-all hover:scale-105 flex items-center justify-center gap-3">
                              Get Started <FaRocket/>
                           </a>
-                          <a href="#features" className="px-10 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/40 rounded-full font-bold text-lg backdrop-blur-md transition-all hover:bg-white hover:text-black flex items-center justify-center">
+                          <a href="#features" className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/20 rounded-full font-bold text-lg backdrop-blur-md transition-all hover:bg-white hover:text-black flex items-center justify-center">
                              Learn More
                           </a>
                       </div>
@@ -272,33 +267,35 @@ export default function HomePage() {
         </AnimatePresence>
 
         {/* --- NAVIGATION CONTROLS --- */}
-
-        {/* 1. Slide Indicators (Centered Bottom) */}
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 flex gap-3">
-             {slides.map((_, i) => (
-                 <button
-                    key={i}
-                    onClick={() => goTo(i)}
-                    className={`h-2 rounded-full transition-all duration-500 ${i === (index % slides.length) ? 'w-20 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)]' : 'w-4 bg-white/30 hover:bg-white'}`}
-                 />
-             ))}
+        <div className="absolute bottom-20 right-16 z-50 flex items-center gap-8">
+            <div className="flex gap-4">
+                <button 
+                    className="p-4 rounded-full border border-white/20 bg-black/40 backdrop-blur-xl text-white hover:bg-white hover:text-black transition-all duration-300 group"
+                    onClick={prevSlide}
+                >
+                    <FiChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform"/>
+                </button>
+                <button 
+                    className="p-4 rounded-full border border-white/20 bg-black/40 backdrop-blur-xl text-white hover:bg-white hover:text-black transition-all duration-300 group"
+                    onClick={nextSlide}
+                >
+                    <FiChevronRight size={24} className="group-hover:translate-x-1 transition-transform"/>
+                </button>
+            </div>
+            
+            <div className="flex gap-3">
+                 {slides.map((_, i) => (
+                     <button
+                        key={i}
+                        onClick={() => goTo(i)}
+                        className={`h-1.5 rounded-full transition-all duration-500 ${i === (index % slides.length) ? 'w-16 bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'w-4 bg-white/20 hover:bg-white/50'}`}
+                     />
+                 ))}
+            </div>
         </div>
 
-        {/* 2. Arrows (Bottom Right) */}
-        <div className="absolute bottom-16 right-16 z-50 flex gap-4">
-            <button 
-                className="p-4 rounded-full border-2 border-white/30 bg-black/20 backdrop-blur-xl text-white hover:bg-white hover:text-black hover:border-white transition-all duration-300 group"
-                onClick={prevSlide}
-            >
-                <FiChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform"/>
-            </button>
-            <button 
-                className="p-4 rounded-full border-2 border-white/30 bg-black/20 backdrop-blur-xl text-white hover:bg-white hover:text-black hover:border-white transition-all duration-300 group"
-                onClick={nextSlide}
-            >
-                <FiChevronRight size={24} className="group-hover:translate-x-1 transition-transform"/>
-            </button>
-        </div>
+        {/* Translucent Top Fade */}
+        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/80 to-transparent z-30 pointer-events-none"></div>
 
         {/* Seamless Bottom Transition Gradient */}
         <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-[#050a14] via-[#050a14]/80 to-transparent z-40 pointer-events-none"></div>
