@@ -306,64 +306,138 @@ export default function HomePage() {
 
       <main className="relative z-10 bg-[#050a14]">
         
-        {/* --- PROBLEM & SOLUTION --- */}
-        <section className="py-32 px-6 relative">
-            <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+   {/* --- PROBLEM & SOLUTION (Blue/Black Theme, Clean Cards) --- */}
+        <section className="py-32 px-6 relative overflow-hidden bg-[#02040a]">
+            
+            {/* Background Ambient Glows (Blue/Cyan) */}
+            <div className="absolute top-1/4 left-0 w-96 h-96 bg-blue-900/20 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-cyan-900/20 rounded-full blur-[120px] pointer-events-none"></div>
+
+            <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 lg:gap-20 items-stretch relative z-10">
+                 
+                 {/* --- THE PROBLEM CARD (The "Old Way" - Slate/Dark Blue) --- */}
                  <motion.div
                     initial={{ opacity: 0, x: -50 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.8 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="relative p-8 md:p-10 rounded-[2.5rem] border border-slate-800 bg-[#0b1120] hover:border-slate-700 transition-colors duration-300"
                  >
-                     <h2 className="text-4xl font-bold text-white mb-6 leading-tight">The <span className="text-rose-500">Problem</span> with Traditional Methods</h2>
-                     <p className="text-slate-400 text-lg leading-relaxed mb-6">
-                        Academic projects suffer from chaotic communication on WhatsApp, lost emails, and manual tracking via spreadsheets. This leads to confusion, missed deadlines, and a lack of accountability between students and guides.
-                     </p>
-                     <ul className="space-y-3 text-slate-300">
-                        <li className="flex items-center gap-3"><span className="text-rose-500">✕</span> Fragmented Communication</li>
-                        <li className="flex items-center gap-3"><span className="text-rose-500">✕</span> Manual MOM Documentation</li>
-                        <li className="flex items-center gap-3"><span className="text-rose-500">✕</span> No Real-time Progress Tracking</li>
-                     </ul>
+                     {/* Decorative Icon BG */}
+                     <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                        <span className="text-9xl font-black text-slate-700">?</span>
+                     </div>
+
+                     <div className="relative z-10">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 text-slate-400 text-xs font-bold uppercase tracking-widest mb-6">
+                            <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                            The Challenge
+                        </div>
+                        
+                        <h2 className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">
+                            Broken <br/><span className="text-slate-500">Workflows</span>
+                        </h2>
+                        
+                        <p className="text-slate-400 text-lg leading-relaxed mb-8">
+                           Academic projects suffer from chaotic communication on WhatsApp, lost emails, and manual tracking via spreadsheets. This leads to confusion and missed deadlines.
+                        </p>
+
+                        <ul className="space-y-4">
+                           {[
+                             "Fragmented Communication Channels",
+                             "Manual & Lost MOM Documentation",
+                             "Zero Real-time Progress Tracking"
+                           ].map((item, i) => (
+                             <li 
+                               key={i}
+                               className="flex items-center gap-4 text-slate-400 bg-slate-900/50 p-4 rounded-xl border border-slate-800"
+                             >
+                                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 shrink-0">✕</div>
+                                <span className="text-sm font-medium">{item}</span>
+                             </li>
+                           ))}
+                        </ul>
+                     </div>
                  </motion.div>
+
+                 {/* --- THE SOLUTION CARD (The "New Way" - SkyBlue/Cyan) --- */}
                  <motion.div
                     initial={{ opacity: 0, x: 50 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.8 }}
-                    className="bg-slate-900/50 p-8 rounded-3xl border border-slate-800 relative"
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="relative p-8 md:p-10 rounded-[2.5rem] border border-cyan-500/30 bg-gradient-to-b from-cyan-950/30 to-[#050a14] shadow-[0_0_60px_rgba(34,211,238,0.1)]"
                  >
-                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-[80px]"></div>
-                     <h2 className="text-4xl font-bold text-white mb-6 leading-tight">The <span className="text-emerald-400">EduProject</span> Solution</h2>
-                     <p className="text-slate-400 text-lg leading-relaxed mb-6">
-                        A unified cloud-based platform that centralizes every aspect of your academic project. From team formation to final submission, we automate the boring stuff so you can focus on building.
-                     </p>
-                     <ul className="space-y-3 text-slate-300">
-                        <li className="flex items-center gap-3"><FaCheckCircle className="text-emerald-400"/> Unified Dashboard</li>
-                        <li className="flex items-center gap-3"><FaCheckCircle className="text-emerald-400"/> Automated PDF Reports</li>
-                        <li className="flex items-center gap-3"><FaCheckCircle className="text-emerald-400"/> Industry-Standard Analytics</li>
-                     </ul>
+                     {/* Glowing Background Effect */}
+                     <div className="absolute -inset-[1px] bg-gradient-to-b from-cyan-500/50 to-transparent rounded-[2.5rem] opacity-20 pointer-events-none"></div>
+
+                     <div className="relative z-10">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-6 shadow-lg shadow-cyan-500/20">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                            The Solution
+                        </div>
+
+                        <h2 className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">
+                            Unified <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Intelligence</span>
+                        </h2>
+
+                        <p className="text-slate-300 text-lg leading-relaxed mb-8">
+                           A unified cloud-based platform that centralizes every aspect of your academic project. We automate the boring stuff so you can focus on building the future.
+                        </p>
+
+                        <ul className="space-y-4">
+                           {[
+                             "Centralized Dashboard & Chats",
+                             "Automated AI-Generated Reports",
+                             "Industry-Standard Analytics"
+                           ].map((item, i) => (
+                             <motion.li 
+                               key={i}
+                               initial={{ opacity: 0, y: 10 }}
+                               whileInView={{ opacity: 1, y: 0 }}
+                               transition={{ delay: 0.2 + (i * 0.1) }}
+                               className="flex items-center gap-4 text-white bg-cyan-950/30 p-4 rounded-xl border border-cyan-500/30 shadow-lg shadow-cyan-900/20"
+                             >
+                                <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-black shrink-0 shadow-[0_0_10px_rgba(34,211,238,0.6)]">
+                                    <FaCheckCircle className="text-lg"/>
+                                </div>
+                                <span className="text-sm font-bold tracking-wide">{item}</span>
+                             </motion.li>
+                           ))}
+                        </ul>
+                     </div>
                  </motion.div>
             </div>
         </section>
 
-        {/* --- FEATURES GRID (Hacker/Bento Style) --- */}
-        <section id="features" className="py-32 px-6 relative bg-[#0b1120]">
-             {/* Tech Lines */}
-             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
-             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+       {/* --- FEATURES GRID (Seamless Flow & Modern Glass) --- */}
+        <section id="features" className="py-24 px-6 relative bg-[#02040a]">
              
-             <div className="max-w-7xl mx-auto relative z-10">
+             {/* Seamless Top Gradient Blend */}
+             <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-[#02040a] via-[#02040a]/80 to-transparent z-10 pointer-events-none"></div>
+
+             {/* Background Effects */}
+             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
+             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+             <div className="max-w-7xl mx-auto relative z-20">
                   <motion.div 
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8 }}
-                    className="text-center mb-24"
+                    className="text-center mb-20"
                   >
-                    <span className="text-cyan-400 font-mono text-sm tracking-widest uppercase mb-2 block">System Capabilities</span>
-                    <h2 className="text-4xl md:text-6xl font-black text-white mb-6">Built for <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Innovation</span></h2>
-                    <p className="text-slate-400 max-w-2xl mx-auto text-xl">
-                      Enterprise-grade features scaled for academic excellence.
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 text-slate-300 text-xs font-mono uppercase tracking-widest mb-4">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                        System Capabilities
+                    </div>
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight">
+                        Built for <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Innovation</span>
+                    </h2>
+                    <p className="text-slate-400 max-w-2xl mx-auto text-lg font-light leading-relaxed">
+                      A comprehensive suite of enterprise-grade tools designed to elevate academic project management.
                     </p>
                   </motion.div>
 
@@ -374,52 +448,89 @@ export default function HomePage() {
                              initial={{ opacity: 0, y: 20 }}
                              whileInView={{ opacity: 1, y: 0 }}
                              viewport={{ once: true }}
-                             transition={{ delay: i * 0.05 }}
-                             whileHover={{ y: -10, scale: 1.02 }}
-                             className={`p-8 rounded-[2rem] border border-slate-800 bg-slate-900/60 backdrop-blur-sm hover:bg-slate-800 transition-all duration-300 relative overflow-hidden group`}
+                             transition={{ delay: i * 0.05, duration: 0.5 }}
+                             whileHover={{ y: -8 }}
+                             className="group relative p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] backdrop-blur-sm transition-all duration-300"
                           >
-                              {/* Animated Border Glow */}
-                              <div className={`absolute inset-0 border-2 border-transparent group-hover:border-cyan-500/20 rounded-[2rem] transition-all`}></div>
-                              <div className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-[80px] opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${f.glow}`}></div>
+                              {/* Hover Glow Effect */}
+                              <div className={`absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-b ${f.glow} to-transparent pointer-events-none`}></div>
                               
-                              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 border ${f.color} bg-[#050a14] shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                                  {f.icon}
+                              <div className="relative z-10">
+                                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 border border-white/10 bg-white/5 group-hover:scale-110 group-hover:bg-white/10 transition-all duration-300`}>
+                                      <div className="text-2xl group-hover:animate-pulse">
+                                        {f.icon}
+                                      </div>
+                                  </div>
+                                  
+                                  <h3 className="text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">
+                                    {f.title}
+                                  </h3>
+                                  
+                                  <p className="text-slate-400 text-sm leading-relaxed group-hover:text-slate-300 transition-colors">
+                                    {f.desc}
+                                  </p>
                               </div>
-                              <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-400 transition-colors">{f.title}</h3>
-                              <p className="text-slate-400 leading-relaxed text-sm font-medium">{f.desc}</p>
                           </motion.div>
                       ))}
                   </div>
              </div>
         </section>
 
-        {/* --- STATS SECTION --- */}
-        <section className="py-20 border-y border-slate-800 bg-gradient-to-r from-slate-900 to-[#050a14]">
-           <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
-             {statsData.map((s, i) => (
-               <motion.div 
-                 key={i} 
-                 initial={{ opacity: 0, scale: 0.5 }}
-                 whileInView={{ opacity: 1, scale: 1 }}
-                 viewport={{ once: true }}
-                 transition={{ delay: i * 0.1, type: "spring" }}
-                 className="flex flex-col items-center"
-               >
-                 <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-600 mb-2">{s.value}</div>
-                 <div className="text-xs font-bold text-cyan-500 uppercase tracking-[0.2em]">{s.label}</div>
-               </motion.div>
-             ))}
+    {/* --- STATS SECTION (3D Glass Cards & Glows) --- */}
+        <section className="py-24 relative bg-[#02040a]">
+           
+           {/* Background Texture & Blend */}
+           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none"></div>
+           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#02040a] to-transparent z-10 pointer-events-none"></div>
+
+           <div className="max-w-7xl mx-auto px-6 relative z-20">
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8">
+               {statsData.map((s, i) => (
+                 <motion.div 
+                   key={i} 
+                   initial={{ opacity: 0, y: 30 }}
+                   whileInView={{ opacity: 1, y: 0 }}
+                   viewport={{ once: true }}
+                   transition={{ delay: i * 0.1, type: "spring", stiffness: 100 }}
+                   whileHover={{ y: -10, scale: 1.05 }}
+                   className="group relative p-8 rounded-3xl border border-white/5 bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.05] hover:border-cyan-500/20 transition-all duration-300 flex flex-col items-center justify-center text-center overflow-hidden"
+                 >
+                   
+                   {/* Background Glow on Hover */}
+                   <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                   
+                   {/* Value (Number) */}
+                   <h3 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-600 mb-3 relative z-10 group-hover:from-cyan-300 group-hover:to-blue-500 transition-all duration-500">
+                     {s.value}
+                   </h3>
+                   
+                   {/* Label */}
+                   <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors relative z-10">
+                     {s.label}
+                   </p>
+                 </motion.div>
+               ))}
+             </div>
            </div>
         </section>
 
-        {/* --- TEAM SECTION (Fixed Avatar Clipping & Simplified Hover) --- */}
-        <section id="team" className="py-32 bg-[#050a14] relative perspective-1000">
-             <div className="max-w-7xl mx-auto px-6">
+    {/* =========================================
+            TEAM & GUIDE SECTIONS (Combined for tighter layout)
+           ========================================= */}
+        
+        {/* --- TEAM SECTION --- */}
+        <section id="team" className="pt-32 pb-10 bg-[#02040a] relative perspective-1000 overflow-hidden">
+             
+             {/* Shared Background Effects */}
+             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none"></div>
+             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
+
+             <div className="max-w-7xl mx-auto px-6 relative z-10">
                   <motion.div 
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="text-center mb-32" 
+                    className="text-center mb-24" 
                   >
                       <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-4">The <span className="text-cyan-500">Architects</span></h2>
                       <p className="text-slate-400 text-lg">Engineering the future of EdTech.</p>
@@ -438,12 +549,12 @@ export default function HomePage() {
                                {/* Card Container */}
                                <div className={`h-[400px] w-full rounded-[2.5rem] p-[2px] relative transition-all duration-500 group-hover:scale-[1.02] 
                                  ${member.leader 
-                                   ? 'bg-gradient-to-b from-cyan-400 via-blue-600 to-purple-600 shadow-2xl shadow-indigo-500/20' 
-                                   : 'bg-slate-800 hover:bg-slate-700 shadow-xl'
+                                   ? 'bg-gradient-to-b from-cyan-400 via-blue-600 to-purple-600 shadow-2xl shadow-cyan-500/20' 
+                                   : 'bg-gradient-to-b from-slate-800 to-slate-900 group-hover:from-cyan-500/50 group-hover:to-blue-500/50 shadow-xl'
                                  }
                                `}>
                                    
-                                   {/* Inner Card Content - Note: overflow-visible ensures avatar shows at top */}
+                                   {/* Inner Card Content */}
                                    <div className="h-full w-full bg-[#080f1e] rounded-[2.4rem] px-6 pb-8 pt-20 flex flex-col items-center text-center relative z-10 overflow-visible">
                                         
                                         {/* Leader Badge */}
@@ -453,9 +564,8 @@ export default function HomePage() {
                                             </div>
                                         )}
 
-                                        {/* Avatar Container - Absolute positioned relative to the CARD, completely outside flow initially */}
+                                        {/* Avatar Container */}
                                         <div className="absolute -top-16 w-32 h-32 z-30 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:translate-y-24 group-hover:scale-110">
-                                            {/* Simple Avatar Image with Static Border */}
                                             <img 
                                               src={member.img} 
                                               alt={member.name} 
@@ -465,7 +575,7 @@ export default function HomePage() {
                                             />
                                         </div>
 
-                                        {/* Spacer to push text down when avatar slides in */}
+                                        {/* Spacer */}
                                         <div className="h-0 w-full transition-all duration-500 group-hover:h-24"></div>
 
                                         <h3 className={`font-bold mb-1 tracking-tight transition-colors duration-300 group-hover:text-cyan-400 ${member.leader ? "text-2xl text-white" : "text-xl text-slate-200"}`}>
@@ -475,14 +585,14 @@ export default function HomePage() {
                                            {member.role}
                                         </p>
                                         
-                                        {/* Bio - Fades out on hover */}
+                                        {/* Bio */}
                                         <div className="h-20 overflow-hidden transition-all duration-300 opacity-100 group-hover:opacity-0 group-hover:h-0">
                                             <p className="text-sm text-slate-400 leading-relaxed font-medium line-clamp-3">
                                                 {member.bio}
                                             </p>
                                         </div>
 
-                                        {/* Social Icons - Fades in on hover */}
+                                        {/* Social Icons */}
                                         <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-4 opacity-0 translate-y-8 transition-all duration-500 group-hover:opacity-100 group-hover:translate-y-0 delay-100">
                                             <SocialLink href={`mailto:${member.email}`} icon={<FiMail/>}/>
                                             <SocialLink href={member.linkedin} icon={<FaLinkedin/>}/>
@@ -496,116 +606,139 @@ export default function HomePage() {
              </div>
         </section>
 
-    {/* --- GUIDE SECTION (Clean Hacker Style, Premium) --- */}
-<section className="py-20 relative overflow-hidden bg-[#02040a]">
+        {/* --- GUIDE SECTION (Reduced Top Padding to bring closer) --- */}
+        <section className="pb-32 pt-10 relative overflow-hidden bg-[#02040a]">
 
-  {/* Tech Grid Background */}
-  <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-20" />
+          {/* Tech Grid Background */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-20 pointer-events-none" />
 
-  <div className="max-w-[90%] mx-auto relative z-10">
+          <div className="max-w-[90%] mx-auto relative z-10">
 
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      viewport={{ once: true }}
-      className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl"
-    >
-
-      <div className="flex flex-col md:flex-row items-center gap-10 p-8 md:p-12">
-
-        {/* ===== Profile Avatar ===== */}
-        <div className="relative group shrink-0">
-
-          {/* Static Gradient Border */}
-          <div className="absolute inset-[-3px] rounded-full bg-gradient-to-tr from-emerald-500 via-cyan-400 to-blue-500 opacity-80" />
-
-          {/* Hover Glow */}
-          <div className="absolute inset-[-6px] rounded-full bg-emerald-500/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-          {/* Image */}
-          <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-slate-950 p-[3px]">
-            <img
-              src={guide.img}
-              alt={guide.name}
-              className="h-full w-full rounded-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-        </div>
-
-        {/* ===== Content ===== */}
-        <div className="flex-1 text-center md:text-left">
-
-          <div className="flex flex-col md:flex-row md:items-center gap-3 mb-3 justify-center md:justify-start">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white">
-              {guide.name}
-            </h2>
-            <span className="hidden md:block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span className="text-emerald-400 font-mono text-xs tracking-widest uppercase">
-              Project Guide
-            </span>
-          </div>
-
-          <h3 className="text-slate-400 text-base mb-4">
-            {guide.title}
-          </h3>
-
-          <p className="text-slate-300 text-sm leading-relaxed max-w-2xl mb-6">
-            Expertly guiding the project's technical architecture and execution.
-            Ensuring scalable, secure, and industry-ready solutions with strong
-            engineering discipline.
-          </p>
-
-          {/* ===== Actions ===== */}
-          <div className="flex gap-4 justify-center md:justify-start">
-
-            <a
-              href={`mailto:${guide.email}`}
-              className="px-5 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-sm font-semibold text-white
-                         hover:border-emerald-500 hover:text-emerald-400 transition-all duration-300 flex items-center gap-2"
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              viewport={{ once: true }}
+              className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl"
             >
-              <FiMail /> Connect
-            </a>
 
-            <a
-              href={guide.linkedin}
-              target="_blank"
-              rel="noreferrer"
-              className="px-5 py-2.5 rounded-lg border border-blue-500/40 text-sm font-semibold text-blue-400
-                         hover:bg-blue-500/10 transition-all duration-300 flex items-center gap-2"
-            >
-              <FaLinkedin className="text-lg" /> LinkedIn
-            </a>
+              <div className="flex flex-col md:flex-row items-center gap-10 p-8 md:p-12">
 
+                {/* ===== Profile Avatar ===== */}
+                <div className="relative group shrink-0">
+
+                  {/* Static Gradient Border */}
+                  <div className="absolute inset-[-3px] rounded-full bg-gradient-to-tr from-emerald-500 via-cyan-400 to-blue-500 opacity-80" />
+
+                  {/* Hover Glow */}
+                  <div className="absolute inset-[-6px] rounded-full bg-emerald-500/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  {/* Image */}
+                  <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-slate-950 p-[3px]">
+                    <img
+                      src={guide.img}
+                      alt={guide.name}
+                      className="h-full w-full rounded-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                </div>
+
+                {/* ===== Content ===== */}
+                <div className="flex-1 text-center md:text-left">
+
+                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-3 justify-center md:justify-start">
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-white">
+                      {guide.name}
+                    </h2>
+                    <span className="hidden md:block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-emerald-400 font-mono text-xs tracking-widest uppercase">
+                      Project Guide
+                    </span>
+                  </div>
+
+                  <h3 className="text-slate-400 text-base mb-4">
+                    {guide.title}
+                  </h3>
+
+                  <p className="text-slate-300 text-sm leading-relaxed max-w-2xl mb-6">
+                    Expertly guiding the project's technical architecture and execution.
+                    Ensuring scalable, secure, and industry-ready solutions with strong
+                    engineering discipline.
+                  </p>
+
+                  {/* ===== Actions ===== */}
+                  <div className="flex gap-4 justify-center md:justify-start">
+
+                    <a
+                      href={`mailto:${guide.email}`}
+                      className="px-5 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-sm font-semibold text-white
+                                 hover:border-emerald-500 hover:text-emerald-400 transition-all duration-300 flex items-center gap-2"
+                    >
+                      <FiMail /> Connect
+                    </a>
+
+                    <a
+                      href={guide.linkedin}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-5 py-2.5 rounded-lg border border-blue-500/40 text-sm font-semibold text-blue-400
+                                 hover:bg-blue-500/10 transition-all duration-300 flex items-center gap-2"
+                    >
+                      <FaLinkedin className="text-lg" /> LinkedIn
+                    </a>
+
+                  </div>
+                </div>
+
+              </div>
+            </motion.div>
           </div>
-        </div>
-
-      </div>
-    </motion.div>
-  </div>
-</section>
+        </section>
 
 
-        {/* --- FOOTER CTA --- */}
-        <section className="py-32 bg-[#02040a] border-t border-slate-900 text-center relative overflow-hidden">
-             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
-             
-             <div className="max-w-4xl mx-auto px-6 relative z-10">
-                 <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter">Ready to <span className="text-cyan-500">Deploy?</span></h2>
-                 <p className="text-slate-400 mb-12 text-xl leading-relaxed max-w-2xl mx-auto">Join hundreds of students and guides managing projects effortlessly. Start your journey today.</p>
-                 
-                 <div className="flex flex-col sm:flex-row justify-center gap-6">
-                     <a href="/register" className="px-12 py-5 bg-white text-black font-black rounded-full hover:bg-cyan-50 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(34,211,238,0.5)] transform hover:-translate-y-1 text-lg">
-                        Get Started Free
-                     </a>
-                     <a href="/login" className="px-12 py-5 bg-transparent border-2 border-slate-700 text-white font-bold rounded-full hover:bg-slate-900 hover:border-white transition-all transform hover:-translate-y-1 text-lg">
-                        Login to Dashboard
-                     </a>
-                 </div>
+{/* --- FOOTER CTA (Seamless, No Top Border/Glow) --- */}
+        <section className="py-20 relative overflow-hidden bg-[#02040a]">
+            
+            {/* Background Atmosphere */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-[#02040a] to-[#02040a] pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none"></div>
 
-                
-             </div>
-        </section>
+            <div className="max-w-6xl mx-auto px-6 relative z-10 text-center">
+                
+                <motion.div
+                   initial={{ opacity: 0, y: 40 }}
+                   whileInView={{ opacity: 1, y: 0 }}
+                   viewport={{ once: true }}
+                   transition={{ duration: 0.8, ease: "easeOut" }}
+                >
+                    {/* removed: Top Energy Beam Glow & Border */}
+
+                    <h2 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tighter">
+                        Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Deploy?</span>
+                    </h2>
+                    
+                    <p className="text-slate-400 mb-10 text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto font-light">
+                        Join hundreds of students and guides managing projects effortlessly. Streamline your academic journey today.
+                    </p>
+                    
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex flex-col sm:flex-row justify-center gap-6 mb-16"
+                    >
+                        <a href="/register" className="group relative px-12 py-5 bg-white text-black font-black rounded-full overflow-hidden shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(34,211,238,0.5)] transition-all hover:-translate-y-1">
+                            <span className="relative z-10 group-hover:text-cyan-900 transition-colors">Get Started Free</span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-200 to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </a>
+                        
+                        <a href="/login" className="px-12 py-5 bg-transparent border border-white/20 text-white font-bold rounded-full hover:bg-white/5 hover:border-white/50 transition-all backdrop-blur-md hover:-translate-y-1">
+                            Login to Dashboard
+                        </a>
+                    </motion.div>
+                </motion.div>
+            </div>
+        </section>
 
       </main>
     </div>
