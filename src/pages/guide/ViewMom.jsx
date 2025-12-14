@@ -2,12 +2,26 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { 
+  HiCalendar, 
+  HiClock, 
+  HiUserGroup, 
+  HiCheckCircle, 
+  HiXCircle,
+  HiClipboardList,
+  HiAnnotation,
+  HiArrowRight,
+  HiLocationMarker
+} from "react-icons/hi";
 
-// 🔄 Reusable Loader Overlay
+// 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
 
@@ -80,12 +94,22 @@ export default function ViewMom() {
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Yes, Update",
+      background: '#1e293b',
+      color: '#fff'
     }).then(async (result) => {
       if (result.isConfirmed) {
         setActionLoading(true);
         try {
           await axios.put(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`, updatedMom);
-          Swal.fire("Updated!", "MOM updated successfully.", "success");
+          Swal.fire({
+            icon: 'success',
+            title: 'Updated!',
+            text: "MOM updated successfully.",
+            timer: 1500,
+            showConfirmButton: false,
+            background: '#1e293b',
+            color: '#fff'
+          });
           setEditable(false);
         } catch {
           Swal.fire("Error", "Failed to update MOM.", "error");
@@ -103,14 +127,24 @@ export default function ViewMom() {
       text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
+      confirmButtonColor: "#ef4444",
       confirmButtonText: "Yes, Delete it!",
+      background: '#1e293b',
+      color: '#fff'
     }).then(async (result) => {
       if (result.isConfirmed) {
         setActionLoading(true);
         try {
           await axios.delete(`${import.meta.env.VITE_API_URL}/mom/${meetingId}`);
-          Swal.fire("Deleted!", "MOM deleted successfully.", "success");
+          Swal.fire({
+             icon: 'success',
+             title: 'Deleted!',
+             text: "MOM deleted successfully.",
+             timer: 1500,
+             showConfirmButton: false,
+             background: '#1e293b',
+             color: '#fff'
+          });
           navigate(-1);
         } catch {
           Swal.fire("Error", "Failed to delete MOM.", "error");
@@ -194,7 +228,7 @@ export default function ViewMom() {
                 {["summary", "actionItems", "nextSteps", "remarks"].map((field) => (
                   <textarea
                     key={field}
-                    className="w-full bg-slate-800 border border-slate-600 rounded-md p-3 text-gray-100"
+                    className="w-full bg-slate-800 border border-slate-600 rounded-md p-3 text-gray-100 focus:outline-none focus:border-indigo-500"
                     rows="2"
                     value={updatedMom[field]}
                     onChange={(e) =>
@@ -205,7 +239,7 @@ export default function ViewMom() {
                 ))}
                 <button
                   onClick={handleUpdate}
-                  className="bg-emerald-600 text-white px-5 py-2 rounded-md hover:bg-emerald-700"
+                  className="bg-emerald-600 text-white px-5 py-2 rounded-md hover:bg-emerald-700 w-full"
                 >
                   💾 Save Changes
                 </button>
@@ -294,7 +328,7 @@ export default function ViewMom() {
         <div className="text-center">
           <button
             onClick={handleDelete}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md"
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md transition-colors shadow-lg shadow-red-900/20"
           >
             🗑️ Delete MOM
           </button>
