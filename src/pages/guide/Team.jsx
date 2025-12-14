@@ -2,13 +2,16 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { HiSearch, HiUserGroup, HiCalendar, HiPencil, HiTrash, HiEye } from "react-icons/hi";
+import { HiSearch, HiUserGroup, HiCalendar, HiPencil, HiTrash, HiEye, HiPlus } from "react-icons/hi";
 
-// 🔄 Reusable Loader Overlay Component
+// 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
-    <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium tracking-wide">{message || "Loading..."}</p>
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
 
@@ -16,8 +19,8 @@ export default function Team() {
   const [teams, setTeams] = useState([]);
   const [filteredTeams, setFilteredTeams] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true); // Page load
-  const [deleting, setDeleting] = useState(false); // Delete loader
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
@@ -33,6 +36,8 @@ export default function Team() {
         text: "Please login to access this page.",
         icon: "warning",
         confirmButtonColor: "#0ea5e9",
+        background: "#1e293b",
+        color: "#fff",
       }).then(() => {
         navigate("/login");
       });
@@ -53,23 +58,17 @@ export default function Team() {
       setFilteredTeams(data);
     } catch (err) {
       console.error("Fetch error:", err);
-      const message =
-        err.response?.data?.message ||
-        err.response?.data ||
-        "Failed to load teams";
-
-      if (err.response?.status === 403) {
-        Swal.fire("Forbidden", "You are not authorized for this action.", "error").then(
-          () => navigate("/login")
-        );
-      } else if (err.code === "ERR_NETWORK") {
-        Swal.fire(
-          "Server Error",
-          "Cannot connect to backend (port or URL issue).",
-          "error"
-        );
-      } else {
-        Swal.fire("Error", message, "error");
+      const message = err.response?.data?.message || "Failed to load teams";
+      
+      if (err.response?.status !== 401) { // 401 is handled by useEffect
+         Swal.fire({
+            title: "Error",
+            text: message,
+            icon: "error",
+            confirmButtonColor: "#ef4444",
+            background: "#1e293b",
+            color: "#fff",
+         });
       }
     } finally {
       setLoading(false);
@@ -91,22 +90,23 @@ export default function Team() {
     setFilteredTeams(filtered);
   }, [searchTerm, teams]);
 
-  // ✅ Delete handler with loader
+  // ✅ Delete handler
   const handleDelete = async (teamId) => {
     const confirmed = await Swal.fire({
       title: "Delete Team?",
-      text: "This action cannot be undone. All team data will be lost.",
+      text: "This action cannot be undone. All project data will be lost.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Yes, delete it!",
+      confirmButtonText: "Yes, delete it",
       background: "#1e293b",
       color: "#fff",
+      customClass: { popup: 'border border-slate-700 rounded-2xl' }
     });
 
     if (confirmed.isConfirmed) {
-      setDeleting(true); // start loader
+      setDeleting(true);
       try {
         await axios.delete(
           `${import.meta.env.VITE_API_URL}/guide/teams/${teamId}`,
@@ -115,69 +115,81 @@ export default function Team() {
 
         const newTeams = teams.filter((t) => t.teamId !== teamId);
         setTeams(newTeams);
-        setFilteredTeams(newTeams); // Update filtered list too
+        setFilteredTeams(newTeams);
         
         Swal.fire({
           title: "Deleted!",
-          text: "Team has been removed successfully.",
+          text: "Team has been removed.",
           icon: "success",
-          confirmButtonColor: "#0ea5e9",
+          timer: 1500,
+          showConfirmButton: false,
           background: "#1e293b",
           color: "#fff",
         });
       } catch (err) {
-        console.error("Delete error:", err);
-        const message =
-          err.response?.data?.message ||
-          err.response?.data ||
-          "Failed to delete team";
-        Swal.fire("Error", message, "error");
+        Swal.fire({
+            title: "Error",
+            text: "Failed to delete team.",
+            icon: "error",
+            background: "#1e293b",
+            color: "#fff",
+        });
       } finally {
-        setDeleting(false); // stop loader
+        setDeleting(false);
       }
     }
   };
 
-  // ✅ Page-level loader
-  if (loading) return <LoaderOverlay message="Loading Your Teams..." />;
+  if (loading) return <LoaderOverlay message="Loading Teams..." />;
 
-  // ✅ Main UI
   return (
-    <div className="min-h-screen bg-slate-950 text-gray-100 p-6 md:p-8 relative font-sans">
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 p-6 md:p-10 font-sans selection:bg-sky-500/30">
       {deleting && <LoaderOverlay message="Deleting Team..." />}
 
-      {/* Header Section */}
-      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">My Teams</h1>
-          <p className="text-slate-400 text-sm mt-1">Manage your project teams and members</p>
+      {/* Header Area */}
+      <div className="max-w-7xl mx-auto mb-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Team Management</h1>
+            <p className="text-slate-400 mt-2 text-sm max-w-lg leading-relaxed">
+              Oversee your project groups, track progress, and manage team compositions efficiently.
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => navigate('/guide/create-team')} 
+            className="hidden md:flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-sky-900/20 hover:shadow-sky-900/40 active:scale-95"
+          >
+            <HiPlus className="text-xl" />
+            Create Team
+          </button>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative w-full md:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <HiSearch className="text-slate-400 text-lg" />
+        {/* Search & Filter Bar */}
+        <div className="relative group max-w-md">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <HiSearch className="text-slate-500 text-lg group-focus-within:text-sky-400 transition-colors" />
           </div>
           <input
             type="text"
-            placeholder="Search teams or projects..."
+            placeholder="Search by team name or project..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm placeholder-slate-500 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+            className="block w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-2xl text-sm placeholder-slate-500 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm hover:border-slate-600"
           />
         </div>
       </div>
 
-      {/* Content Grid */}
+      {/* Grid Content */}
       <div className="max-w-7xl mx-auto">
         {filteredTeams.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-slate-900/50 rounded-3xl border border-dashed border-slate-700">
-            <div className="bg-slate-800 p-4 rounded-full mb-4">
+          <div className="flex flex-col items-center justify-center py-24 bg-slate-900/30 rounded-3xl border border-dashed border-slate-800">
+            <div className="bg-slate-800/50 p-5 rounded-full mb-4 ring-1 ring-slate-700">
               <HiUserGroup className="text-4xl text-slate-500" />
             </div>
-            <h3 className="text-xl font-medium text-white mb-2">No teams found</h3>
-            <p className="text-slate-400 text-center max-w-md">
-              {searchTerm ? "Try adjusting your search terms." : "You haven't created any teams yet."}
+            <h3 className="text-xl font-semibold text-white mb-2">No teams found</h3>
+            <p className="text-slate-400 text-sm">
+              {searchTerm ? `No results for "${searchTerm}"` : "Get started by creating your first team."}
             </p>
           </div>
         ) : (
@@ -185,72 +197,71 @@ export default function Team() {
             {filteredTeams.map((team) => (
               <div
                 key={team.teamId}
-                className="group bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-sky-500/50 hover:shadow-lg hover:shadow-sky-500/10 transition-all duration-300 flex flex-col justify-between"
+                className="group relative bg-slate-800/40 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-6 hover:bg-slate-800/60 hover:border-sky-500/30 hover:shadow-xl hover:shadow-sky-900/10 transition-all duration-300 flex flex-col"
               >
-                {/* Card Header */}
-                <div className="mb-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-bold text-white group-hover:text-sky-400 transition-colors line-clamp-1">
-                      {team.teamName}
-                    </h3>
-                    <span className="bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded-md font-medium border border-slate-700">
+                {/* Status Indicator Line */}
+                <div className="absolute top-6 right-6 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+
+                {/* Content */}
+                <div className="mb-6">
+                  <div className="inline-flex items-center gap-2 mb-3">
+                    <span className="bg-slate-700/50 text-slate-300 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md border border-slate-600/50">
                       ID: {team.teamId}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-400 line-clamp-2 min-h-[2.5rem]">
-                    {team.projectTitle || "No Project Title"}
+                  
+                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-sky-400 transition-colors truncate">
+                    {team.teamName}
+                  </h3>
+                  <p className="text-sm text-slate-400 line-clamp-2 h-10 leading-relaxed">
+                    {team.projectTitle || "No Project Title Assigned"}
                   </p>
                 </div>
 
-                {/* Card Stats */}
-                <div className="bg-slate-950/50 rounded-xl p-3 mb-5 border border-slate-800/50">
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <div className="flex items-center text-slate-400">
-                      <HiUserGroup className="mr-1.5 text-sky-500" />
-                      Members
+                {/* Meta Data */}
+                <div className="grid grid-cols-2 gap-4 mb-6 border-t border-slate-700/50 pt-4">
+                  <div>
+                    <span className="text-[11px] text-slate-500 uppercase tracking-wide font-semibold block mb-1">Members</span>
+                    <div className="flex items-center gap-1.5 text-slate-200 font-medium">
+                      <HiUserGroup className="text-sky-500" />
+                      {team.totalMembers || 0}
                     </div>
-                    <span className="font-semibold text-slate-200">{team.totalMembers || 0}</span>
                   </div>
-                  
-                  <div className="w-full h-px bg-slate-800 my-2"></div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center text-slate-400">
-                      <HiCalendar className="mr-1.5 text-emerald-500" />
-                      Duration
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-slate-300">{team.projectStartDate || "N/A"}</span>
-                      <span className="block text-[10px] text-slate-500">to {team.projectEndDate || "N/A"}</span>
+                  <div>
+                    <span className="text-[11px] text-slate-500 uppercase tracking-wide font-semibold block mb-1">Timeline</span>
+                    <div className="flex items-center gap-1.5 text-slate-200 text-xs">
+                      <HiCalendar className="text-emerald-500" />
+                      <span className="truncate">{team.projectEndDate || "Ongoing"}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-3 gap-2 mt-auto">
+                {/* Actions */}
+                <div className="mt-auto flex items-center justify-between gap-3 pt-2">
                   <button
                     onClick={() => navigate(`/guide/TeamDetail/${team.teamId}`)}
-                    className="flex items-center justify-center px-3 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-medium hover:bg-sky-600 hover:text-white transition-all border border-slate-700 hover:border-transparent group/btn"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-700/50 text-slate-300 text-sm font-medium hover:bg-sky-600 hover:text-white transition-all group/btn"
                   >
-                    <HiEye className="mr-1.5 text-lg" />
                     View
                   </button>
                   
-                  <button
-                    onClick={() => navigate(`/guide/EditTeamDetail/${team.teamId}`)}
-                    className="flex items-center justify-center px-3 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-medium hover:bg-yellow-500 hover:text-white transition-all border border-slate-700 hover:border-transparent group/btn"
-                  >
-                    <HiPencil className="mr-1.5 text-lg" />
-                    Edit
-                  </button>
-                  
-                  <button
-                    onClick={() => handleDelete(team.teamId)}
-                    className="flex items-center justify-center px-3 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-medium hover:bg-red-500 hover:text-white transition-all border border-slate-700 hover:border-transparent group/btn"
-                  >
-                    <HiTrash className="mr-1.5 text-lg" />
-                    Delete
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigate(`/guide/EditTeamDetail/${team.teamId}`)}
+                      className="p-2.5 rounded-xl bg-slate-700/50 text-slate-300 hover:bg-yellow-500 hover:text-white transition-all"
+                      title="Edit Team"
+                    >
+                      <HiPencil className="text-lg" />
+                    </button>
+                    
+                    <button
+                      onClick={() => handleDelete(team.teamId)}
+                      className="p-2.5 rounded-xl bg-slate-700/50 text-slate-300 hover:bg-red-500 hover:text-white transition-all"
+                      title="Delete Team"
+                    >
+                      <HiTrash className="text-lg" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

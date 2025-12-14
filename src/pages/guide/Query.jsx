@@ -3,11 +3,14 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { HiMail, HiMailOpen, HiCheckCircle, HiUserCircle, HiSearch } from "react-icons/hi";
 
-// 🔄 Reusable Loader
+// 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
-    <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium tracking-wide">{message || "Loading..."}</p>
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
 

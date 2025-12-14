@@ -2,12 +2,26 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { motion } from "framer-motion";
+import { 
+  HiUserAdd, 
+  HiTrash, 
+  HiOfficeBuilding, 
+  HiAcademicCap, 
+  HiUserGroup,
+  HiCode,
+  HiCalendar,
+  HiCheckCircle,
+  HiPlus
+} from "react-icons/hi";
 
-// 🔄 Reusable Loader Overlay Component
+// 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg">{message || "Loading..."}</p>
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
 
@@ -42,11 +56,14 @@ const TeamMemberInput = ({
       if (isStudent) {
         const result = await Swal.fire({
           title: "Student Found",
-          text: "This student already exists. Do you want to autofill their details?",
-          icon: "question",
+          text: `Autofill details for ${data.name}?`,
+          icon: "info",
           showCancelButton: true,
+          confirmButtonColor: "#0ea5e9",
+          cancelButtonColor: "#64748b",
           confirmButtonText: "Yes, Autofill",
-          cancelButtonText: "No",
+          background: "#1e293b",
+          color: "#fff"
         });
 
         if (result.isConfirmed && data) {
@@ -57,23 +74,45 @@ const TeamMemberInput = ({
           handleChange(index, "sectionId", data.sectionId);
         }
       } else {
-        Swal.fire("Info", "Email exists but not a Student role", "info");
+        Swal.fire({
+            icon: 'info',
+            title: 'Info',
+            text: "Email exists but not a Student role",
+            background: "#1e293b",
+            color: "#fff"
+        });
       }
     } catch (err) {
-      Swal.fire("Error", "Failed to check email", "error");
+       // Silent fail or toast
     }
   };
 
   return (
-    <div className="flex flex-col gap-2 mb-4 border-b border-gray-600 pb-3">
-      <div className="flex gap-2 items-center flex-wrap">
+    <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 mb-4 transition-all hover:border-slate-600">
+      <div className="flex justify-between items-center mb-3">
+        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wide flex items-center gap-2">
+           <HiUserGroup className="text-sky-500"/> Member {index + 1}
+        </h4>
+        {canRemove && (
+          <button
+            type="button"
+            onClick={() => removeMember(index)}
+            className="text-rose-400 hover:text-rose-500 transition-colors p-1"
+            title="Remove Member"
+          >
+            <HiTrash className="text-lg" />
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <input
           type="email"
-          placeholder="Email"
+          placeholder="Email Address"
           value={member.email}
           onChange={(e) => handleChange(index, "email", e.target.value)}
           onBlur={(e) => handleEmailBlur(e.target.value)}
-          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none placeholder-slate-600"
           required
         />
         <input
@@ -81,7 +120,7 @@ const TeamMemberInput = ({
           placeholder="Full Name"
           value={member.name}
           onChange={(e) => handleChange(index, "name", e.target.value)}
-          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none placeholder-slate-600"
           required
         />
         <input
@@ -89,41 +128,24 @@ const TeamMemberInput = ({
           placeholder="Roll Number"
           value={member.rollNumber}
           onChange={(e) => handleChange(index, "rollNumber", e.target.value)}
-          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none placeholder-slate-600"
           required
         />
         <input
           type="text"
-          placeholder="Role"
+          placeholder="Project Role"
           value={member.role}
           onChange={(e) => handleChange(index, "role", e.target.value)}
-          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none placeholder-slate-600"
           required
         />
-        <label className="flex items-center gap-1 text-white">
-          <input
-            type="checkbox"
-            checked={member.isLeader}
-            onChange={(e) => handleChange(index, "isLeader", e.target.checked)}
-          />
-          Leader
-        </label>
-        {canRemove && (
-          <button
-            type="button"
-            onClick={() => removeMember(index)}
-            className="bg-red-600 px-3 py-1 rounded hover:bg-red-700 transition-colors"
-          >
-            X
-          </button>
-        )}
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <select
           value={member.branchId || ""}
           onChange={(e) => handleChange(index, "branchId", e.target.value)}
-          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
           required
         >
           <option value="">Select Branch</option>
@@ -137,7 +159,7 @@ const TeamMemberInput = ({
         <select
           value={member.semesterId || ""}
           onChange={(e) => handleChange(index, "semesterId", e.target.value)}
-          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
           required
         >
           <option value="">Select Semester</option>
@@ -151,7 +173,7 @@ const TeamMemberInput = ({
         <select
           value={member.sectionId || ""}
           onChange={(e) => handleChange(index, "sectionId", e.target.value)}
-          className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+          className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
           required
         >
           <option value="">Select Section</option>
@@ -162,6 +184,18 @@ const TeamMemberInput = ({
           ))}
         </select>
       </div>
+
+      <label className="inline-flex items-center gap-2 cursor-pointer group">
+        <input
+          type="checkbox"
+          checked={member.isLeader}
+          onChange={(e) => handleChange(index, "isLeader", e.target.checked)}
+          className="w-4 h-4 rounded border-slate-600 text-sky-600 focus:ring-sky-500 bg-slate-800"
+        />
+        <span className={`text-sm font-medium transition-colors ${member.isLeader ? "text-sky-400" : "text-slate-400 group-hover:text-slate-300"}`}>
+          Assign as Team Leader
+        </span>
+      </label>
     </div>
   );
 };
@@ -209,7 +243,13 @@ export default function TeamManagement() {
         setSemesters(sRes.data);
         setSections(secRes.data);
       } catch {
-        Swal.fire("Error", "Failed to load branches/semesters/sections", "error");
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load academic data',
+            background: '#1e293b',
+            color: '#fff'
+        });
       } finally {
         setLoading(false);
       }
@@ -248,11 +288,23 @@ export default function TeamManagement() {
 
   const validateForm = () => {
     if (!project.title || !teamName) {
-      Swal.fire("Error", "Project title & team name required", "error");
+      Swal.fire({
+        icon: 'warning',
+        title: 'Missing Info',
+        text: 'Project title & Team name are required.',
+        background: '#1e293b',
+        color: '#fff'
+      });
       return false;
     }
     if (members.filter((m) => m.isLeader).length !== 1) {
-      Swal.fire("Error", "Select exactly one leader", "error");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Leader Required',
+            text: 'Please select exactly one team leader.',
+            background: '#1e293b',
+            color: '#fff'
+        });
       return false;
     }
     return true;
@@ -289,7 +341,15 @@ export default function TeamManagement() {
         payload,
         axiosConfig
       );
-      Swal.fire("Success", "Project & Team created!", "success");
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: 'Project & Team created successfully.',
+        background: '#1e293b',
+        color: '#fff',
+        timer: 2000,
+        showConfirmButton: false
+      });
       setProject({
         title: "",
         description: "",
@@ -311,113 +371,162 @@ export default function TeamManagement() {
         },
       ]);
     } catch (err) {
-      Swal.fire("Error", err.response?.data || "Something went wrong", "error");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.response?.data || "Something went wrong",
+        background: '#1e293b',
+        color: '#fff'
+      });
     } finally {
       setSubmitting(false); // stop loader
     }
   };
 
-  if (loading) return <LoaderOverlay message="Loading Project Form..." />;
+  if (loading) return <LoaderOverlay message="Initializing..." />;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-200 p-10 relative">
+    <div className="min-h-screen bg-[#0b1120] text-slate-200 p-4 md:p-8 font-sans selection:bg-sky-500/30">
       {submitting && <LoaderOverlay message="Creating Project & Team..." />}
 
-      <motion.h1
-        className="text-3xl font-bold mb-6 text-sky-400"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        Create Project & Team
-      </motion.h1>
-
-      <form
-        onSubmit={handleSubmit}
-        className="bg-slate-800 border border-sky-600 rounded-2xl p-6 shadow-lg"
-      >
-        <h2 className="text-xl font-semibold mb-4 text-sky-300">Project Info</h2>
-
-        <input
-          type="text"
-          placeholder="Project Title"
-          value={project.title}
-          onChange={(e) => handleProjectChange("title", e.target.value)}
-          className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
-          required
-        />
-        <textarea
-          placeholder="Description"
-          value={project.description}
-          onChange={(e) => handleProjectChange("description", e.target.value)}
-          className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
-        />
-        <input
-          type="text"
-          placeholder="Technologies Used"
-          value={project.technologies}
-          onChange={(e) => handleProjectChange("technologies", e.target.value)}
-          className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
-        />
-
-        <div className="flex gap-3 mb-3 flex-wrap">
-          <input
-            type="date"
-            value={project.startDate}
-            onChange={(e) => handleProjectChange("startDate", e.target.value)}
-            className="p-3 rounded-lg bg-slate-900 border border-white/20 flex-1"
-            min={new Date().toISOString().split("T")[0]}
-          />
-          <input
-            type="date"
-            value={project.endDate}
-            onChange={(e) => handleProjectChange("endDate", e.target.value)}
-            className="p-3 rounded-lg bg-slate-900 border border-white/20 flex-1"
-            min={project.startDate || new Date().toISOString().split("T")[0]}
-          />
-        </div>
-
-        <h2 className="text-xl font-semibold mb-4 text-sky-300">Team Info</h2>
-        <input
-          type="text"
-          placeholder="Team Name"
-          value={teamName}
-          onChange={(e) => setTeamName(e.target.value)}
-          className="w-full p-3 mb-3 rounded-lg bg-slate-900 border border-white/20"
-          required
-        />
-
-        <h3 className="text-lg font-semibold mb-2 text-sky-400">Members</h3>
-        {members.map((member, idx) => (
-          <TeamMemberInput
-            key={idx}
-            member={member}
-            index={idx}
-            handleChange={handleMemberChange}
-            removeMember={removeMember}
-            canRemove={members.length > 1}
-            branches={branches}
-            semesters={semesters}
-            sections={sections}
-            token={token}
-          />
-        ))}
-
-        <button
-          type="button"
-          onClick={addMember}
-          className="bg-sky-600 px-5 py-2 rounded hover:bg-sky-700 transition-colors mb-4"
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-8"
         >
-          Add Member
-        </button>
-        <br />
-        <button
-          type="submit"
-          className="bg-green-600 px-6 py-3 rounded hover:bg-green-700 transition-colors"
-        >
-          Create Project & Team
-        </button>
-      </form>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+             <HiUserGroup className="text-sky-500" /> Create Project & Team
+          </h1>
+          <p className="text-slate-400 mt-2 text-sm">Define project scope and assemble your team roster.</p>
+        </motion.div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          
+          {/* Project Details Section */}
+          <div className="bg-slate-800/60 border border-slate-700/60 backdrop-blur-xl p-8 rounded-3xl shadow-xl">
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2 border-b border-slate-700/50 pb-4">
+              <HiCode className="text-sky-400"/> Project Details
+            </h2>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">Project Title</label>
+                <input
+                  type="text"
+                  placeholder="Enter project title..."
+                  value={project.title}
+                  onChange={(e) => handleProjectChange("title", e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600"
+                  required
+                />
+              </div>
+
+              <div>
+                 <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">Description</label>
+                 <textarea
+                  placeholder="Project description..."
+                  value={project.description}
+                  onChange={(e) => handleProjectChange("description", e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600 min-h-[100px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                   <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">Technologies</label>
+                   <input
+                    type="text"
+                    placeholder="e.g. React, Node.js..."
+                    value={project.technologies}
+                    onChange={(e) => handleProjectChange("technologies", e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600"
+                  />
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">Team Name</label>
+                   <input
+                    type="text"
+                    placeholder="Enter team name"
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide flex items-center gap-2"><HiCalendar/> Start Date</label>
+                    <input
+                      type="date"
+                      value={project.startDate}
+                      onChange={(e) => handleProjectChange("startDate", e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all uppercase text-sm"
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide flex items-center gap-2"><HiCalendar/> End Date</label>
+                    <input
+                      type="date"
+                      value={project.endDate}
+                      onChange={(e) => handleProjectChange("endDate", e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all uppercase text-sm"
+                      min={project.startDate || new Date().toISOString().split("T")[0]}
+                    />
+                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Team Members Section */}
+          <div className="bg-slate-800/60 border border-slate-700/60 backdrop-blur-xl p-8 rounded-3xl shadow-xl">
+            <div className="flex justify-between items-center mb-6 border-b border-slate-700/50 pb-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <HiUserAdd className="text-emerald-400"/> Team Members
+              </h2>
+              <button
+                type="button"
+                onClick={addMember}
+                className="flex items-center gap-2 bg-sky-600/10 text-sky-400 px-4 py-2 rounded-lg hover:bg-sky-600/20 transition-colors font-medium text-sm border border-sky-600/20"
+              >
+                <HiPlus className="text-lg"/> Add Member
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {members.map((member, idx) => (
+                <TeamMemberInput
+                  key={idx}
+                  member={member}
+                  index={idx}
+                  handleChange={handleMemberChange}
+                  removeMember={removeMember}
+                  canRemove={members.length > 1}
+                  branches={branches}
+                  semesters={semesters}
+                  sections={sections}
+                  token={token}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-4">
+            <button
+              type="submit"
+              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 active:scale-95 transition-all flex items-center gap-2"
+            >
+              <HiCheckCircle className="text-xl"/> Create Project & Team
+            </button>
+          </div>
+
+        </form>
+      </div>
     </div>
   );
 }
