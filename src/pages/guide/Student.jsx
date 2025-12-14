@@ -13,11 +13,14 @@ import {
   HiOutlineUser
 } from "react-icons/hi";
 
-// 🔄 Reusable Loader Overlay Component
+// 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[100] backdrop-blur-sm transition-opacity duration-300">
-    <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4 shadow-lg shadow-sky-500/20"></div>
-    <p className="text-white text-lg font-medium tracking-wide animate-pulse">{message || "Loading..."}</p>
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
 
@@ -42,7 +45,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
   // Auto-focus input when opened & Reset search
   useEffect(() => {
     if (isOpen) {
-        setSearchTerm(""); // Reset search on open
+        setSearchTerm(""); 
         if(inputRef.current) {
             inputRef.current.focus();
         }
@@ -67,7 +70,6 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
   );
 
   return (
-    // ✅ Added z-50 to wrapper to ensure it stays above other content
     <div className="relative w-full md:w-1/2 z-50" ref={wrapperRef}>
       {/* Trigger Area */}
       <div
@@ -84,7 +86,6 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
 
       {/* Dropdown Menu */}
       {isOpen && (
-        // ✅ Added z-50 and max-h logic
         <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-60 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-100 w-full">
           
           {/* Search Input Sticky Header */}
