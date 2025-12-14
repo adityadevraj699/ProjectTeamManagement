@@ -1,15 +1,17 @@
-// src/components/GuideMeetings.jsx
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { HiChevronDown, HiSearch, HiX } from "react-icons/hi"; // Make sure to install react-icons
+import { HiChevronDown, HiSearch, HiX } from "react-icons/hi"; 
 
-// 🔄 Reusable loader overlay component
+// 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
 
@@ -18,6 +20,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const wrapperRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -30,22 +33,40 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Find selected label
-  const selectedOption = options.find((opt) => String(opt.value) === String(value));
+  // Auto-focus input when opened & Reset search
+  useEffect(() => {
+    if (isOpen) {
+        setSearchTerm(""); 
+        if(inputRef.current) {
+            inputRef.current.focus();
+        }
+    }
+  }, [isOpen]);
 
-  // Filter options based on search
+  const toggleDropdown = () => {
+    if (!isLoading) setIsOpen(!isOpen);
+  };
+
+  const handleSelect = (val) => {
+    onChange(val);
+    setIsOpen(false);
+    setSearchTerm("");
+  };
+
+  const selectedOption = options.find((opt) => String(opt.value) === String(value));
+  
+  // Filter options based on search term
   const filteredOptions = options.filter((opt) =>
     opt.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="relative w-full md:w-1/2" ref={wrapperRef}>
-      {/* Trigger Button */}
+    <div className="relative w-full md:w-1/2 z-50" ref={wrapperRef}>
       <div
-        onClick={() => !isLoading && setIsOpen(!isOpen)}
+        onClick={toggleDropdown}
         className={`bg-slate-700 text-white border ${
           isOpen ? "border-sky-400 ring-1 ring-sky-400" : "border-slate-600"
-        } rounded-lg p-3 flex items-center justify-between cursor-pointer transition-all`}
+        } rounded-lg p-3 flex items-center justify-between cursor-pointer transition-all hover:border-slate-500`}
       >
         <span className={`truncate ${!selectedOption ? "text-gray-400" : ""}`}>
           {selectedOption ? selectedOption.label : placeholder}
@@ -53,41 +74,40 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
         <HiChevronDown className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </div>
 
-      {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl z-50 max-h-64 flex flex-col">
-          {/* Search Input */}
-          <div className="p-2 border-b border-slate-700 sticky top-0 bg-slate-800 z-10 rounded-t-lg">
-            <div className="flex items-center bg-slate-900 rounded px-2 border border-slate-600">
-              <HiSearch className="text-gray-400 mr-2" />
+        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl z-50 max-h-64 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-100 w-full">
+          
+          <div className="p-2 border-b border-slate-700 bg-slate-800 sticky top-0 z-10">
+            <div className="flex items-center bg-slate-900 rounded px-2 border border-slate-600 focus-within:border-sky-500 transition-colors">
+              <HiSearch className="text-gray-400 mr-2 shrink-0" />
               <input
+                ref={inputRef}
                 type="text"
                 placeholder="Search team..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                autoFocus
                 className="w-full bg-transparent py-2 text-sm text-white focus:outline-none"
+                onClick={(e) => e.stopPropagation()} 
               />
               {searchTerm && (
                 <HiX
-                  className="text-gray-400 cursor-pointer hover:text-white"
-                  onClick={() => setSearchTerm("")}
+                  className="text-gray-400 cursor-pointer hover:text-white shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSearchTerm("");
+                    inputRef.current?.focus();
+                  }}
                 />
               )}
             </div>
           </div>
 
-          {/* Options List */}
           <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((opt) => (
                 <div
                   key={opt.value}
-                  onClick={() => {
-                    onChange(opt.value);
-                    setIsOpen(false);
-                    setSearchTerm("");
-                  }}
+                  onClick={() => handleSelect(opt.value)}
                   className={`px-4 py-2 cursor-pointer hover:bg-sky-900/50 transition-colors text-sm ${
                     String(value) === String(opt.value) ? "bg-sky-900 text-sky-300" : "text-gray-200"
                   }`}
@@ -104,8 +124,6 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
     </div>
   );
 };
-
-// --- Main Component ---
 
 export default function GuideMeetings() {
   const navigate = useNavigate();
@@ -186,7 +204,7 @@ export default function GuideMeetings() {
 
   useEffect(() => {
     if (selectedTeamId) fetchMeetings(selectedTeamId);
-    else setMeetings([]); // Clear meetings if no team selected
+    else setMeetings([]); 
   }, [selectedTeamId]);
 
   // ✅ Input handler
@@ -335,7 +353,7 @@ export default function GuideMeetings() {
     }
   };
 
-  // Prepare options for the Searchable Select
+  // Prepare options for Searchable Select
   const teamOptions = teams.map(t => ({
     value: t.teamId,
     label: t.teamName
