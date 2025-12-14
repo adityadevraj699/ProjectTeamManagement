@@ -26,12 +26,14 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
+// 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-[60] backdrop-blur">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium tracking-wide">
-      {message || "Loading..."}
-    </p>
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
 
@@ -140,7 +142,7 @@ export default function StudentDashboard() {
   const attendanceByFlag = mapToChartArray(stats.attendanceByFlag);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-gray-100">
+    <div className="min-h-screen bg-slate-950 text-gray-100 font-sans selection:bg-sky-500/30">
       {/* Header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-sky-500/10 to-violet-500/15 blur-3xl opacity-70 pointer-events-none" />
@@ -156,8 +158,7 @@ export default function StudentDashboard() {
               Your Project & Task Summary
             </h1>
             <p className="text-sm text-slate-300 mt-1 max-w-xl">
-              Dekho tumhare tasks, meetings, team aur MOM ka pura snapshot ek
-              jagah.
+              Track your tasks, meetings, team, and MOM – all in one focused dashboard.
             </p>
           </div>
 
