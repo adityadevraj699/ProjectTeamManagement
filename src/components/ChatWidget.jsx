@@ -1,18 +1,24 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
-import { AuthContext } from "../context/AuthContext"; 
+import { AuthContext } from "../context/AuthContext";
 import {
   HiMiniChatBubbleLeftRight,
   HiMiniXMark,
   HiMiniUsers,
   HiMiniUserGroup,
   HiChevronLeft,
+  HiPaperAirplane,
+  HiCheck,
+  HiCheckCircle,
+  HiTrash,
+  HiReply,
+  HiClock // Import Clock Icon for pending state
 } from "react-icons/hi2";
 
 // ================= CONFIG =================
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-const WS_ENDPOINT = import.meta.env.VITE_WS_URL || "http://localhost:8080/ws-chat";
+const API_BASE = import.meta.env.VITE_API_URL || "http://eduproject.site/api";
+const WS_ENDPOINT = import.meta.env.VITE_WS_URL || "http://eduproject.site/ws-chat";
 
 // ================= TAGS CONSTANTS =================
 const TAGS = [
@@ -22,107 +28,110 @@ const TAGS = [
   { key: "PROBLEM", label: "@problem", description: "Issues/Bugs" },
 ];
 
-// ================= STYLING HELPERS =================
-const bubbleClasses = (isMine, tag) => {
-  if (!tag || tag === "NORMAL") {
-    return isMine
-      ? "bg-sky-600 text-white rounded-br-none"
-      : "bg-slate-800 text-gray-100 border border-white/10 rounded-bl-none";
-  }
-  const colors = {
-    ANNOUNCEMENT: isMine ? "bg-purple-600" : "bg-purple-900 border-purple-400/30",
-    IMPORTANT: isMine ? "bg-red-600" : "bg-red-900 border-red-400/30",
-    ENQUIRY: isMine ? "bg-amber-600 text-white" : "bg-amber-900 border-amber-400/30",
-    PROBLEM: isMine ? "bg-orange-600" : "bg-orange-900 border-orange-400/30",
-  };
-  return `${colors[tag] || colors.NORMAL} text-white rounded-xl ${
-    isMine ? "rounded-br-none" : "rounded-bl-none"
-  }`;
-};
+// ================= HELPER COMPONENTS =================
 
-const tagBadgeStyle = (tag) => {
-  const styles = {
-    ANNOUNCEMENT: "bg-purple-400/20 text-purple-200",
-    IMPORTANT: "bg-red-400/20 text-red-200",
-    ENQUIRY: "bg-amber-400/20 text-amber-200",
-    PROBLEM: "bg-orange-400/20 text-orange-200",
-  };
-  return styles[tag] || "bg-gray-600/30";
-};
+// 1. Message Bubble Component
+const MessageBubble = ({ msg, isMine, onReply, onDelete }) => {
+  const isDeleted = msg.isDeleted;
+  const isPending = msg.status === "sending"; // Check if message is pending
+  const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-const formatTime = (ts) => {
-  if (!ts) return "";
-  const d = new Date(ts);
-  return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  return (
+    <div className={`flex w-full mb-2 ${isMine ? "justify-end" : "justify-start"} group`}>
+      <div className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm shadow-sm 
+        ${isMine ? "bg-emerald-700 text-white rounded-tr-none" : "bg-slate-800 text-gray-200 rounded-tl-none"}
+        ${isDeleted ? "italic opacity-60 border border-red-500/30" : ""}
+        ${isPending ? "opacity-70" : ""} 
+      `}>
+        
+        {/* Reply Preview */}
+        {msg.replyToContent && (
+          <div className="mb-1 p-1 bg-black/20 rounded border-l-2 border-white/50 text-xs opacity-80 truncate">
+            <span className="font-bold block text-[10px]">{msg.replyToSender}</span>
+            {msg.replyToContent}
+          </div>
+        )}
+
+        {/* Sender Name (in Group) */}
+        {!isMine && msg.type !== 'PRIVATE' && (
+          <div className="text-[10px] font-bold text-orange-400 mb-0.5">
+            {msg.senderName}
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="whitespace-pre-wrap leading-relaxed">
+          {isDeleted ? <span className="flex items-center gap-1"><HiTrash className="w-3 h-3"/> This message was deleted</span> : msg.content}
+        </div>
+
+        {/* Footer: Time & Status */}
+        <div className="flex items-center justify-end gap-1 mt-1 text-[9px] opacity-70">
+          <span>{time}</span>
+          {isMine && !isDeleted && (
+            <span>
+              {isPending ? (
+                <HiClock className="w-3 h-3 text-gray-300" /> // Show Clock if sending
+              ) : (
+                msg.isRead || (msg.seenByNames && msg.seenByNames.length > 0) ? (
+                  <HiCheckCircle className="w-3 h-3 text-blue-300" title={`Seen by: ${msg.seenByNames?.join(', ') || 'User'}`} />
+                ) : (
+                  <HiCheck className="w-3 h-3 text-gray-300" />
+                )
+              )}
+            </span>
+          )}
+        </div>
+
+        {/* Hover Actions (Reply/Delete) - Only if sent */}
+        {!isDeleted && !isPending && (
+          <div className={`absolute top-0 ${isMine ? "-left-16" : "-right-16"} hidden group-hover:flex bg-slate-900 rounded-md shadow-lg p-1`}>
+            <button onClick={() => onReply(msg)} className="p-1.5 hover:bg-slate-700 text-gray-300 rounded"><HiReply/></button>
+            {isMine && (
+              <button onClick={() => onDelete(msg.id)} className="p-1.5 hover:bg-red-900/50 text-red-400 rounded"><HiTrash/></button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const ChatWidget = () => {
   const { user, token } = useContext(AuthContext);
 
-  // UI State
+  // --- STATE ---
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("GROUPS"); // "GROUPS" or "DIRECT"
   const [view, setView] = useState("LIST"); // "LIST" or "CHAT"
   
-  // Data State
-  const [myTeams, setMyTeams] = useState([]);
+  // Data
+  const [teamList, setTeamList] = useState([]);
+  const [userList, setUserList] = useState([]); // For Direct Messages
+  const [activeChat, setActiveChat] = useState(null); // { id, name, type: 'TEAM'|'PRIVATE'|'COMMUNITY' }
   const [messages, setMessages] = useState([]);
-  const [unreadTotal, setUnreadTotal] = useState(0);
-
-  // Chat Logic State
-  const [activeChat, setActiveChat] = useState({
-    type: "community", // "community" | "team"
-    id: null,
-    name: "Community",
-  });
-
-  // Input State
+  
+  // Input
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState(null);
-  const [showTagMenu, setShowTagMenu] = useState(false);
-  const [tagQuery, setTagQuery] = useState("");
 
   // Refs
   const stompClientRef = useRef(null);
-  const messagesEndRef = useRef(null);
-  const subscriptionRef = useRef(null);
+  const scrollRef = useRef(null);
 
-  // ================= 1. FETCH TEAMS =================
+  // --- 1. INITIAL FETCH ---
   useEffect(() => {
     if (user && token && open) {
-      fetch(`${API_BASE}/team-chat/my-teams`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => {
-            if(!res.ok) throw new Error("Failed to fetch teams");
-            return res.json();
-        })
-        .then((data) => {
-            // console.log("My Teams Loaded:", data);
-            setMyTeams(data || []);
-        })
-        .catch((err) => console.error("Failed to load teams", err));
+      // Fetch Teams
+      fetch(`${API_BASE}/team-chat/my-teams`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => setTeamList(d || [])).catch(console.error);
+
+      // Fetch Available Users for DM
+      fetch(`${API_BASE}/chat/available-users`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => setUserList(d || [])).catch(() => setUserList([])); 
     }
   }, [user, token, open]);
 
-  // ================= 2. LOAD HISTORY =================
-  useEffect(() => {
-    if (!open || view === "LIST") return;
-
-    setMessages([]); 
-    const endpoint =
-      activeChat.type === "community"
-        ? `${API_BASE}/community/messages`
-        : `${API_BASE}/team-chat/${activeChat.id}/messages`;
-
-    fetch(endpoint, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => setMessages(data))
-      .catch((err) => console.error("Failed to load messages", err));
-  }, [activeChat, open, view, token]);
-
-  // ================= 3. WEBSOCKET CONNECTION =================
+  // --- 2. WEBSOCKET CONNECTION ---
   useEffect(() => {
     if (!user || !open) return;
 
@@ -131,324 +140,270 @@ const ChatWidget = () => {
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
       onConnect: () => {
-        // console.log("WS Connected");
-        subscribeToActiveChat(client);
-      },
-      onStompError: (frame) => console.error("Broker error", frame),
+        // Subscribe to Personal Queue (For DMs and Read Receipts)
+        client.subscribe(`/user/${user.id}/queue/messages`, (msg) => {
+          handleIncomingMessage(JSON.parse(msg.body));
+        });
+      }
     });
 
     client.activate();
     stompClientRef.current = client;
 
-    return () => {
-      client.deactivate();
-    };
+    return () => client.deactivate();
   }, [user, token, open]);
 
-  // Re-subscribe when active chat changes
+  // --- 3. CHAT ROOM LOGIC ---
   useEffect(() => {
-    if (stompClientRef.current?.connected) {
-      subscribeToActiveChat(stompClientRef.current);
+    if (!stompClientRef.current || !activeChat || view !== "CHAT") return;
+
+    const client = stompClientRef.current;
+    let sub;
+
+    // Load History
+    const url = activeChat.type === 'PRIVATE' 
+      ? `${API_BASE}/chat/private/${activeChat.id}`
+      : `${API_BASE}/team-chat/${activeChat.id}/messages`;
+
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(setMessages)
+      .catch(console.error);
+
+    // Subscribe to Room
+    if (activeChat.type === 'TEAM') {
+      sub = client.subscribe(`/topic/team/${activeChat.id}`, (m) => handleIncomingMessage(JSON.parse(m.body)));
+    } else if (activeChat.type === 'COMMUNITY') {
+      sub = client.subscribe(`/topic/community`, (m) => handleIncomingMessage(JSON.parse(m.body)));
     }
+
+    return () => { if (sub) sub.unsubscribe(); };
   }, [activeChat, view]);
 
-  const subscribeToActiveChat = (client) => {
-    if (subscriptionRef.current) {
-      subscriptionRef.current.unsubscribe();
-      subscriptionRef.current = null;
-    }
-
-    if (view !== "CHAT") return;
-
-    const topic =
-      activeChat.type === "community"
-        ? "/topic/community"
-        : `/topic/team/${activeChat.id}`;
-
-    // console.log("Subscribing to:", topic);
-
-    subscriptionRef.current = client.subscribe(topic, (message) => {
-      const body = JSON.parse(message.body);
-      setMessages((prev) => [...prev, body]);
-    });
-  };
-
-  // ================= 4. SCROLL HANDLING =================
+  // --- 4. AUTO SCROLL ---
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if(scrollRef.current) {
+        scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, view]);
 
-  // ================= 5. SEND MESSAGE =================
-  const handleSend = () => {
-    const content = input.trim();
-    if (!content || !stompClientRef.current?.connected) return;
+  // --- 5. HANDLERS ---
+  
+  const handleIncomingMessage = (newMsg) => {
+    setMessages(prev => {
+      // 1. DELETE Event
+      if(newMsg.isDeleted && newMsg.id) {
+        return prev.map(m => m.id === newMsg.id ? { ...m, isDeleted: true, content: "🚫 This message was deleted" } : m);
+      }
+      
+      // 2. READ RECEIPT Event
+      if(newMsg.type === 'READ_RECEIPT') {
+        return prev.map(m => m.id === newMsg.messageId ? { ...m, isRead: true, seenByNames: newMsg.seenByNames } : m);
+      }
 
-    let finalTag = null;
-    const lowerInput = content.toLowerCase();
-    TAGS.forEach((t) => {
-      if (lowerInput.startsWith(t.label)) finalTag = t.key;
+      // 3. NEW MESSAGE (Optimistic UI Handling)
+      // Agar ye message MERA hai, toh check karo kya mere pass "sending" wala version hai?
+      if (newMsg.senderId === user.id) {
+        // Find if we have a temporary message with same content
+        const tempIndex = prev.findIndex(m => m.status === "sending" && m.content === newMsg.content);
+        
+        if (tempIndex !== -1) {
+          // Replace temporary message with real one from server (Updates ID and Status)
+          const newArr = [...prev];
+          newArr[tempIndex] = newMsg; 
+          return newArr;
+        }
+        
+        // Agar duplicate hone ka dar hai (e.g. fast network), check by ID
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+      }
+
+      // Normal message from others
+      return [...prev, newMsg];
     });
-
-    if (activeChat.type === "community") {
-      const payload = {
-        content,
-        senderId: user.id,
-        replyToId: replyTo?.id || null,
-        tag: finalTag,
-      };
+    
+    // Send Read Receipt if active and not mine
+    if(activeChat && newMsg.senderId !== user.id) {
       stompClientRef.current.publish({
-        destination: "/app/community.send",
-        body: JSON.stringify(payload),
-      });
-    } else {
-      const payload = {
-        teamId: activeChat.id,
-        senderId: user.id,
-        content,
-        tag: finalTag,
-      };
-      stompClientRef.current.publish({
-        destination: "/app/team.send",
-        body: JSON.stringify(payload),
+        destination: "/app/chat.read",
+        body: JSON.stringify({ messageId: newMsg.id, type: activeChat.type })
       });
     }
+  };
 
+  // 🔥 UPDATED: Send with Optimistic UI (Instant Show)
+  const handleSend = () => {
+    if (!input.trim()) return;
+
+    const content = input;
+    const replyId = replyTo?.id || null;
+
+    // 1. Create Temporary Message
+    const tempMsg = {
+      id: `temp-${Date.now()}`, // Temporary ID
+      content: content,
+      senderId: user.id,
+      senderName: user.name || "Me",
+      createdAt: new Date().toISOString(),
+      type: activeChat.type,
+      isRead: false,
+      isDeleted: false,
+      status: "sending", // Special flag
+      replyToContent: replyTo ? replyTo.content : null,
+      replyToSender: replyTo ? replyTo.senderName : null
+    };
+
+    // 2. Update UI Immediately
+    setMessages(prev => [...prev, tempMsg]);
     setInput("");
     setReplyTo(null);
-    setShowTagMenu(false);
-  };
 
-  // ================= 6. @TAG LOGIC =================
-  const handleInputChange = (e) => {
-    const val = e.target.value;
-    setInput(val);
-    if (val.includes("@") && !val.includes(" ")) {
-      setShowTagMenu(true);
-      setTagQuery(val.substring(val.indexOf("@") + 1).toLowerCase());
+    // 3. Send to Server
+    const payload = {
+      content: content,
+      senderId: user.id,
+      recipientId: activeChat.type === 'PRIVATE' ? activeChat.id : null,
+      teamId: activeChat.type === 'TEAM' ? activeChat.id : null,
+      replyToId: replyId,
+      type: activeChat.type
+    };
+
+    const dest = activeChat.type === 'PRIVATE' ? "/app/private.send" : 
+                 activeChat.type === 'TEAM' ? "/app/team.send" : "/app/community.send";
+
+    if(stompClientRef.current && stompClientRef.current.connected) {
+        stompClientRef.current.publish({ destination: dest, body: JSON.stringify(payload) });
     } else {
-      setShowTagMenu(false);
+        console.error("WebSocket not connected");
+        // Optional: Mark message as failed
     }
   };
 
-  const selectTag = (tagLabel) => {
-    setInput(tagLabel + " ");
-    setShowTagMenu(false);
+  const handleDelete = (msgId) => {
+    if(!confirm("Delete for everyone?")) return;
+    stompClientRef.current.publish({
+      destination: "/app/chat.delete",
+      body: JSON.stringify({ messageId: msgId, type: activeChat.type, userId: user.id })
+    });
   };
 
-  // ================= 7. RENDER HELPERS =================
-  const selectChat = (type, id, name) => {
-    setActiveChat({ type, id, name });
-    setView("CHAT");
-  };
-
-  if(!user) return null;
+  // --- RENDER ---
+  if (!user) return null;
 
   return (
     <>
-      {/* TOGGLE BUTTON */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-sky-600 hover:bg-sky-500 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-105"
-      >
+      <button onClick={() => setOpen(!open)} className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform">
         {open ? <HiMiniXMark size={28} /> : <HiMiniChatBubbleLeftRight size={28} />}
-        {!open && unreadTotal > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">
-            {unreadTotal}
-          </span>
-        )}
       </button>
 
-      {/* CHAT WINDOW */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-40 w-[90vw] sm:w-[400px] h-[600px] max-h-[80vh] bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed bottom-24 right-6 w-[90vw] sm:w-[400px] h-[600px] max-h-[80vh] bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-40">
           
-          {/* === HEADER === */}
-          <div className="bg-slate-900 p-3 border-b border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {view === "CHAT" && (
-                <button
-                  onClick={() => setView("LIST")}
-                  className="p-1 hover:bg-slate-800 rounded-full text-gray-400"
-                >
-                  <HiChevronLeft size={20} />
-                </button>
-              )}
-              
-              <div className={`p-2 rounded-full ${view === 'CHAT' && activeChat.type === 'team' ? 'bg-indigo-600' : 'bg-sky-600'}`}>
-                {view === "LIST" ? (
-                  <HiMiniChatBubbleLeftRight className="text-white" />
-                ) : activeChat.type === "community" ? (
-                  <HiMiniUsers className="text-white" />
-                ) : (
-                  <HiMiniUserGroup className="text-white" />
-                )}
-              </div>
-
-              <div>
-                <h3 className="text-sm font-bold text-gray-100">
-                  {view === "LIST" ? "Messages" : activeChat.name}
-                </h3>
-                <p className="text-[10px] text-emerald-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                  {view === "LIST" ? "Select a conversation" : "Online"}
-                </p>
-              </div>
+          {/* Header */}
+          <div className="bg-slate-900 p-3 border-b border-slate-800 flex items-center gap-3">
+            {view === "CHAT" && (
+              <button onClick={() => setView("LIST")} className="p-1 hover:bg-slate-800 rounded-full text-gray-400">
+                <HiChevronLeft size={20} />
+              </button>
+            )}
+            <div>
+              <h3 className="text-sm font-bold text-gray-100">
+                {view === "LIST" ? "Messages" : activeChat?.name}
+              </h3>
+              <p className="text-[10px] text-emerald-400">
+                {view === "CHAT" && activeChat?.type === 'PRIVATE' ? "Online" : "Project Management Chat"}
+              </p>
             </div>
           </div>
 
-          {/* === BODY: LIST VIEW === */}
+          {/* List View */}
           {view === "LIST" && (
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-thin scrollbar-thumb-slate-800">
-              
-              {/* Community Option */}
-              <div
-                onClick={() => selectChat("community", null, "Community Global")}
-                className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/50 hover:bg-slate-800 cursor-pointer border border-transparent hover:border-slate-700 transition-all"
-              >
-                <div className="w-10 h-10 bg-sky-900/50 rounded-full flex items-center justify-center text-sky-400">
-                  <HiMiniUsers size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-200">Community Global</h4>
-                  <p className="text-xs text-gray-500">Public discussion for everyone</p>
-                </div>
+            <div className="flex flex-col h-full">
+              {/* Tabs */}
+              <div className="flex border-b border-slate-800">
+                <button 
+                  onClick={() => setActiveTab("GROUPS")} 
+                  className={`flex-1 py-3 text-xs font-bold ${activeTab === "GROUPS" ? "text-emerald-400 border-b-2 border-emerald-400" : "text-gray-500"}`}
+                >
+                  Groups
+                </button>
+                <button 
+                  onClick={() => setActiveTab("DIRECT")} 
+                  className={`flex-1 py-3 text-xs font-bold ${activeTab === "DIRECT" ? "text-emerald-400 border-b-2 border-emerald-400" : "text-gray-500"}`}
+                >
+                  Direct Messages
+                </button>
               </div>
 
-              <div className="px-2 mt-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                My Teams
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {activeTab === "GROUPS" ? (
+                  <>
+                    <div onClick={() => { setActiveChat({ type: 'COMMUNITY', id: 'global', name: 'Community Global' }); setView('CHAT'); }} className="p-3 hover:bg-slate-900 rounded-lg cursor-pointer flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-900/50 rounded-full flex items-center justify-center text-blue-400"><HiMiniUsers size={20}/></div>
+                      <div><h4 className="text-sm text-gray-200 font-medium">Community Global</h4></div>
+                    </div>
+                    {teamList.map(t => (
+                      <div key={t.teamId} onClick={() => { setActiveChat({ type: 'TEAM', id: t.teamId, name: t.teamName }); setView('CHAT'); }} className="p-3 hover:bg-slate-900 rounded-lg cursor-pointer flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-900/50 rounded-full flex items-center justify-center text-indigo-400"><HiMiniUserGroup size={20}/></div>
+                        <div><h4 className="text-sm text-gray-200 font-medium">{t.teamName}</h4></div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  userList.length === 0 ? <div className="text-center text-xs text-gray-500 mt-4">No contacts available.</div> :
+                  userList.map(u => (
+                    <div key={u.id} onClick={() => { setActiveChat({ type: 'PRIVATE', id: u.id, name: u.name }); setView('CHAT'); }} className="p-3 hover:bg-slate-900 rounded-lg cursor-pointer flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-900/50 rounded-full flex items-center justify-center text-emerald-400 font-bold">{u.name[0]}</div>
+                      <div>
+                        <h4 className="text-sm text-gray-200 font-medium">{u.name}</h4>
+                        <p className="text-[10px] text-gray-500">{u.role}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-
-              {myTeams.length === 0 ? (
-                <div className="text-center py-4 text-xs text-gray-600 italic">
-                  No teams found. 
-                  <br/><span className="opacity-50 text-[10px]">Logged in as: {user.role}</span>
-                </div>
-              ) : (
-                myTeams.map((team) => (
-                  <div
-                    key={team.teamId}
-                    onClick={() => selectChat("team", team.teamId, team.teamName)}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/50 hover:bg-slate-800 cursor-pointer border border-transparent hover:border-slate-700 transition-all"
-                  >
-                    <div className="w-10 h-10 bg-indigo-900/50 rounded-full flex items-center justify-center text-indigo-400">
-                      <HiMiniUserGroup size={20} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-200">{team.teamName}</h4>
-                      <p className="text-xs text-gray-500">Project Team Group</p>
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
           )}
 
-          {/* === BODY: CHAT VIEW === */}
+          {/* Chat View */}
           {view === "CHAT" && (
             <>
-              {/* MESSAGES AREA */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-950 scrollbar-thin scrollbar-thumb-slate-800">
-                {messages.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center opacity-40">
-                    <HiMiniChatBubbleLeftRight size={40} className="mb-2" />
-                    <span className="text-xs">No messages yet. Start chatting!</span>
-                  </div>
-                )}
-                
-                {messages.map((msg, idx) => {
-                  const isMine = msg.senderId === user.id;
-                  const tag = msg.tag || "NORMAL";
-                  
-                  return (
-                    <div key={idx} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[80%] p-3 relative shadow-md ${bubbleClasses(isMine, tag)}`}>
-                        
-                        <div className="flex items-center justify-between gap-4 mb-1 border-b border-white/10 pb-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wide opacity-90">
-                            {msg.senderName || "User"} 
-                            {msg.senderRole && <span className="ml-1 opacity-70 font-normal">({msg.senderRole})</span>}
-                          </span>
-                          <span className="text-[9px] opacity-60">{formatTime(msg.createdAt)}</span>
-                        </div>
-
-                        {msg.replyToContent && (
-                          <div className="text-[10px] bg-black/20 p-1.5 rounded mb-1 border-l-2 border-white/50 italic opacity-80 truncate">
-                            Replying to: {msg.replyToContent}
-                          </div>
-                        )}
-
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                        
-                        {tag !== "NORMAL" && (
-                          <div className={`mt-2 text-[9px] px-2 py-0.5 rounded inline-block font-semibold tracking-wider ${tagBadgeStyle(tag)}`}>
-                            {tag}
-                          </div>
-                        )}
-
-                        {activeChat.type === 'community' && !isMine && (
-                          <button 
-                            onClick={() => setReplyTo(msg)}
-                            className="absolute -right-6 top-2 text-gray-600 hover:text-sky-500"
-                            title="Reply"
-                          >
-                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                              <path fillRule="evenodd" d="M7.793 2.232a.75.75 0 01-.025 1.06L3.622 7.25h10.003a5.375 5.375 0 010 10.75H10.75a.75.75 0 010-1.5h2.875a3.875 3.875 0 000-7.75H3.622l4.146 3.957a.75.75 0 01-1.036 1.085l-5.5-5.25a.75.75 0 010-1.085l5.5-5.25a.75.75 0 011.06.025z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
+              <div className="flex-1 overflow-y-auto p-3 bg-[#0b141a] scrollbar-thin">
+                {messages.map((msg, i) => (
+                  <MessageBubble 
+                    key={msg.id || i} // Use ID if available, else index
+                    msg={msg} 
+                    isMine={msg.senderId === user.id} 
+                    onReply={setReplyTo} 
+                    onDelete={handleDelete}
+                  />
+                ))}
+                <div ref={scrollRef} />
               </div>
 
-              {/* REPLY PREVIEW BAR */}
+              {/* Reply Preview */}
               {replyTo && (
-                <div className="bg-slate-900 px-3 py-2 border-t border-slate-800 flex justify-between items-center text-xs">
-                  <div className="text-gray-300">
-                    Replying to <span className="text-sky-400 font-bold">{replyTo.senderName}</span>
+                <div className="px-3 py-2 bg-slate-900 border-l-4 border-emerald-500 flex justify-between items-center">
+                  <div className="text-xs text-gray-300">
+                    <span className="text-emerald-400 font-bold block">Replying to {replyTo.senderName}</span>
+                    <span className="truncate block max-w-[200px]">{replyTo.content}</span>
                   </div>
-                  <button onClick={() => setReplyTo(null)} className="text-red-400 hover:text-red-300 font-bold">Cancel</button>
+                  <button onClick={() => setReplyTo(null)}><HiMiniXMark/></button>
                 </div>
               )}
 
-              {/* INPUT AREA */}
-              <div className="p-3 bg-slate-900 border-t border-slate-800 relative">
-                {showTagMenu && (
-                  <div className="absolute bottom-16 left-3 bg-slate-800 border border-slate-700 rounded-lg shadow-xl w-48 overflow-hidden z-50">
-                    {TAGS.filter(t => t.label.includes(tagQuery)).map(tag => (
-                      <div 
-                        key={tag.key} 
-                        onClick={() => selectTag(tag.label)}
-                        className="px-3 py-2 hover:bg-slate-700 cursor-pointer text-xs text-gray-200 border-b border-slate-700/50 last:border-0"
-                      >
-                        <div className="font-bold text-sky-400">{tag.label}</div>
-                        <div className="text-[10px] text-gray-500">{tag.description}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={handleInputChange}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder={activeChat.type === 'community' ? "Global message (@tag...)" : "Team message..."}
-                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500 transition-colors"
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim()}
-                    className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-800 disabled:text-gray-500 text-white p-2 rounded-xl transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 transform rotate-90">
-                      <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
-                    </svg>
-                  </button>
-                </div>
+              {/* Input */}
+              <div className="p-2 bg-slate-900 border-t border-slate-800 flex gap-2 items-end">
+                <textarea 
+                  value={input} 
+                  onChange={e => setInput(e.target.value)} 
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+                  placeholder="Type a message..." 
+                  className="flex-1 bg-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none resize-none h-11 max-h-24"
+                />
+                <button onClick={handleSend} disabled={!input.trim()} className="bg-emerald-600 p-3 rounded-full text-white hover:bg-emerald-500 disabled:opacity-50">
+                  <HiPaperAirplane className="w-5 h-5 transform rotate-90" />
+                </button>
               </div>
             </>
           )}
