@@ -1,15 +1,28 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { HiMail, HiMailOpen, HiCheckCircle, HiUserCircle, HiSearch } from "react-icons/hi";
+
+// 🔄 Reusable Loader
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+    <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p className="text-white text-lg font-medium tracking-wide">{message || "Loading..."}</p>
+  </div>
+);
 
 export default function Query() {
   const [messages, setMessages] = useState([]);
+  const [filteredMessages, setFilteredMessages] = useState([]);
+  const [filterType, setFilterType] = useState("UNREAD"); // "UNREAD" (default) or "ALL"
   const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
   const BASE = import.meta.env.VITE_API_URL || "/api";
   const token = localStorage.getItem("token");
   const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
+  // --- 1. Fetch Messages ---
   useEffect(() => {
     fetchMessages();
   }, []);
@@ -18,8 +31,10 @@ export default function Query() {
     setLoading(true);
     try {
       const res = await axios.get(`${BASE}/messages/received`, config);
-      // res.data.messages expected as an array of ContactMessageDTO
-      setMessages(res.data.messages || []);
+      const data = res.data.messages || [];
+      // Sort: Latest first
+      const sorted = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setMessages(sorted);
     } catch (err) {
       console.error("fetchMessages err:", err);
       Swal.fire("Error", "Unable to load messages", "error");
@@ -28,83 +43,205 @@ export default function Query() {
     }
   }
 
-  async function markRead(id) {
-    setMarking(true);
+  // --- 2. Filter Logic (Runs when messages or filterType changes) ---
+  useEffect(() => {
+    if (filterType === "UNREAD") {
+      setFilteredMessages(messages.filter((m) => !m.readByGuide));
+    } else {
+      setFilteredMessages(messages);
+    }
+  }, [filterType, messages]);
+
+  // --- 3. Mark as Read ---
+  async function markRead(e, id) {
+    e.stopPropagation(); // Prevent opening modal
+    setActionLoading(true);
     try {
       await axios.put(`${BASE}/messages/${id}/mark-read`, {}, config);
-      Swal.fire("Marked", "Message marked read", "success");
-      fetchMessages();
+      // Optimistic Update: Update local state immediately
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, readByGuide: true } : m))
+      );
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Marked as read',
+        showConfirmButton: false,
+        timer: 1500
+      });
     } catch (err) {
       console.error(err);
       Swal.fire("Error", "Failed to mark read", "error");
     } finally {
-      setMarking(false);
+      setActionLoading(false);
     }
   }
 
+  // --- 4. View Message Modal ---
   function viewMessage(m) {
-    const html = `
-      <div style="padding:10px;">
-        <p><strong>Subject:</strong> ${escapeHtml(m.subject)}</p>
-        <p><strong>From:</strong> ${escapeHtml(m.senderName || "Unknown")}</p>
-        <p><strong>Team:</strong> ${escapeHtml(m.teamName || "N/A")}</p>
-        <p style="margin-top:8px;">${escapeHtml(m.message).replace(/\n/g,'<br/>')}</p>
-        <p style="font-size:12px;color:#999;margin-top:8px">${m.createdAt ? new Date(m.createdAt).toLocaleString() : ""}</p>
-      </div>
-    `;
-    Swal.fire({ title: m.subject || "Message", html, width: 700, showCloseButton: true });
+    // Automatically mark as read when viewed if unread
+    if (!m.readByGuide) {
+        axios.put(`${BASE}/messages/${m.id}/mark-read`, {}, config)
+             .then(() => {
+                 setMessages((prev) => prev.map((msg) => (msg.id === m.id ? { ...msg, readByGuide: true } : msg)));
+             })
+             .catch(console.error);
+    }
+
+    Swal.fire({
+      title: `<span class="text-xl font-bold text-gray-800">${m.subject || "Message"}</span>`,
+      html: `
+        <div class="text-left bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-lg">
+                ${(m.senderName || "U").charAt(0).toUpperCase()}
+            </div>
+            <div>
+                <p class="text-sm font-bold text-gray-800">${m.senderName || "Unknown"}</p>
+                <p class="text-xs text-gray-500">${m.teamName || "No Team"}</p>
+            </div>
+          </div>
+          <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+            ${m.message || "No content"}
+          </div>
+          <p class="text-xs text-gray-400 mt-4 text-right">
+            Sent: ${m.createdAt ? new Date(m.createdAt).toLocaleString() : "Unknown"}
+          </p>
+        </div>
+      `,
+      width: 600,
+      showCloseButton: true,
+      showConfirmButton: false,
+      background: '#fff',
+      customClass: {
+        popup: 'rounded-xl shadow-2xl'
+      }
+    });
   }
 
-  function escapeHtml(str = "") {
-    return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;");
-  }
+  // --- 5. Helper: Format Time ---
+  const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays === 1) {
+        return "Yesterday";
+    } else {
+        return date.toLocaleDateString();
+    }
+  };
+
+  // --- RENDER ---
+  if (loading) return <LoaderOverlay message="Loading Inbox..." />;
 
   return (
-    <div className="min-h-screen bg-[#071226] text-slate-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-semibold text-sky-300 mb-4">Messages</h2>
+    <div className="min-h-screen bg-slate-950 text-gray-100 p-4 md:p-8 font-sans">
+      {actionLoading && <LoaderOverlay message="Updating..." />}
 
-        {loading ? (
-          <div className="p-6 text-center">Loading messages...</div>
-        ) : messages.length === 0 ? (
-          <div className="p-6 text-center text-slate-400">No messages found</div>
-        ) : (
-          <div className="space-y-3">
-            {messages.map((m) => (
-              <div key={m.id} className={`p-4 rounded-lg shadow ${m.readByGuide ? "bg-slate-800" : "bg-slate-900 ring-1 ring-amber-600/30"}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-slate-100">{m.subject}</div>
-                        <div className="text-xs text-slate-400">{m.senderName || "Unknown"} • {m.teamName || "No Team"}</div>
-                      </div>
-                      {!m.readByGuide && <span className="ml-2 px-2 py-0.5 bg-amber-500 text-black text-xs rounded">NEW</span>}
-                    </div>
+      <div className="max-w-5xl mx-auto">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <h2 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+            <HiMail className="text-emerald-500" /> Inbox
+          </h2>
 
-                    <div className="mt-2 text-sm text-slate-300 line-clamp-3">{m.message}</div>
+          {/* Filter Tabs */}
+          <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
+            <button
+              onClick={() => setFilterType("UNREAD")}
+              className={`px-5 py-2 rounded-md text-sm font-medium transition-all ${
+                filterType === "UNREAD"
+                  ? "bg-emerald-600 text-white shadow-lg"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              Unread
+              {messages.filter(m => !m.readByGuide).length > 0 && (
+                <span className="ml-2 bg-white text-emerald-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {messages.filter(m => !m.readByGuide).length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setFilterType("ALL")}
+              className={`px-5 py-2 rounded-md text-sm font-medium transition-all ${
+                filterType === "ALL"
+                  ? "bg-sky-600 text-white shadow-lg"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              All Messages
+            </button>
+          </div>
+        </div>
 
-                    <div className="mt-2 text-xs text-slate-500">{m.createdAt ? new Date(m.createdAt).toLocaleString() : ""}</div>
+        {/* Messages List Container */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden min-h-[400px]">
+          
+          {filteredMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-96 text-slate-500">
+              <HiMailOpen className="w-16 h-16 mb-4 opacity-20" />
+              <p className="text-lg">No {filterType.toLowerCase()} messages found.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-800">
+              {filteredMessages.map((m) => (
+                <div
+                  key={m.id}
+                  onClick={() => viewMessage(m)}
+                  className={`group relative p-4 flex items-start gap-4 cursor-pointer transition-all duration-200 hover:bg-slate-800/50 
+                    ${!m.readByGuide ? "bg-slate-800/30 border-l-4 border-emerald-500" : "border-l-4 border-transparent"}
+                  `}
+                >
+                  {/* Avatar */}
+                  <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-bold shadow-md
+                    ${!m.readByGuide ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-400"}
+                  `}>
+                    {(m.senderName || "U").charAt(0).toUpperCase()}
                   </div>
 
-                  <div className="flex flex-col items-end gap-2">
-                    <button onClick={() => viewMessage(m)} className="px-3 py-1 bg-sky-600 rounded text-white text-xs">View</button>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <h4 className={`text-base truncate ${!m.readByGuide ? "font-bold text-white" : "font-medium text-slate-300"}`}>
+                        {m.senderName || "Unknown Sender"}
+                      </h4>
+                      <span className={`text-xs whitespace-nowrap ${!m.readByGuide ? "text-emerald-400 font-bold" : "text-slate-500"}`}>
+                        {formatTime(m.createdAt)}
+                      </span>
+                    </div>
+                    
+                    <p className="text-xs text-slate-400 mb-1 truncate">{m.teamName || "No Team Associated"}</p>
+                    
+                    <p className={`text-sm line-clamp-1 ${!m.readByGuide ? "text-slate-200" : "text-slate-500"}`}>
+                      <span className="font-semibold text-slate-400">{m.subject} — </span>
+                      {m.message}
+                    </p>
+                  </div>
 
+                  {/* Actions (Visible on Hover or if Unread) */}
+                  <div className="flex flex-col items-end justify-center self-center pl-2">
                     {!m.readByGuide && (
-                      <button onClick={() => markRead(m.id)} disabled={marking} className="px-3 py-1 bg-emerald-600 rounded text-white text-xs">
-                        {marking ? "..." : "Mark read"}
+                      <button
+                        onClick={(e) => markRead(e, m.id)}
+                        className="p-2 rounded-full text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                        title="Mark as Read"
+                      >
+                        <HiCheckCircle className="w-6 h-6" />
                       </button>
                     )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
