@@ -1,13 +1,26 @@
-// src/pages/GuideDashboard.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import { 
+  HiDownload, 
+  HiRefresh, 
+  HiFilter, 
+  HiOfficeBuilding, 
+  HiAcademicCap, 
+  HiUserGroup, 
+  HiCalendar, 
+  HiCheckCircle, 
+  HiClock,
+  HiEye,
+  HiDocumentDownload
+} from "react-icons/hi";
 
+// 🔄 Reusable Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[100] backdrop-blur-md">
+    <div className="w-16 h-16 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-6 shadow-2xl shadow-sky-500/20"></div>
+    <p className="text-white text-lg font-semibold tracking-wide animate-pulse">{message || "Processing..."}</p>
   </div>
 );
 
@@ -17,28 +30,29 @@ export default function TeamReports() {
   const [downloading, setDownloading] = useState(false);
   const [branches, setBranches] = useState([]);
   const [semesters, setSemesters] = useState([]);
+  
+  // Filters
   const [branchFilter, setBranchFilter] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("");
+  const [showFilters, setShowFilters] = useState(false); // For mobile toggle
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
 
+  // --- 1. Init ---
   useEffect(() => {
     if (!token) {
-      Swal.fire("Unauthorized", "Please login first", "warning").then(() => {
-        navigate("/login");
-      });
+      navigate("/login");
       return;
     }
     fetchAuxData();
     fetchTeams();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // --- 2. API Calls ---
   const fetchAuxData = async () => {
     try {
-      // adjust endpoints if your API uses different paths
       const [bRes, sRes] = await Promise.all([
         axios.get(`${import.meta.env.VITE_API_URL}/branches`, axiosConfig).catch(() => ({ data: [] })),
         axios.get(`${import.meta.env.VITE_API_URL}/semesters`, axiosConfig).catch(() => ({ data: [] }))
@@ -46,16 +60,14 @@ export default function TeamReports() {
       setBranches(Array.isArray(bRes.data) ? bRes.data : []);
       setSemesters(Array.isArray(sRes.data) ? sRes.data : []);
     } catch (err) {
-      console.warn("Could not fetch branches/semesters", err);
+      console.warn("Aux fetch failed", err);
     }
   };
 
-  const buildQuery = (extra = {}) => {
+  const buildQuery = () => {
     const params = new URLSearchParams();
-    const b = extra.branchId ?? branchFilter;
-    const s = extra.semesterId ?? semesterFilter;
-    if (b) params.append("branchId", b);
-    if (s) params.append("semesterId", s);
+    if (branchFilter) params.append("branchId", branchFilter);
+    if (semesterFilter) params.append("semesterId", semesterFilter);
     const q = params.toString();
     return q ? `?${q}` : "";
   };
@@ -67,256 +79,264 @@ export default function TeamReports() {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/dashboard/teams${q}`, axiosConfig);
       setTeams(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error(err);
       Swal.fire("Error", "Failed to load teams", "error");
-      setTeams([]); // ensure empty state on error
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApplyFilters = () => {
-    fetchTeams();
-  };
-
-  const handleClearFilters = () => {
-    setBranchFilter("");
-    setSemesterFilter("");
-    fetchTeams();
-  };
-
+  // --- 3. Downloads ---
   const downloadBlob = (res, defaultName) => {
-    const blob = new Blob([res.data], { type: res.headers["content-type"] || "application/octet-stream" });
+    const blob = new Blob([res.data], { type: res.headers["content-type"] });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const disposition = res.headers["content-disposition"] || res.headers["Content-Disposition"];
-    let filename = defaultName;
-    if (disposition) {
-      const match = disposition.match(/filename\*?=?(?:UTF-8''|")?(.*?)"?$/);
-      if (match && match[1]) filename = decodeURIComponent(match[1]);
-    }
-    link.setAttribute("download", filename);
+    link.setAttribute("download", defaultName); // Simplified for brevity
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.URL.revokeObjectURL(url);
   };
 
-  const handleDownloadPdfAll = async () => {
+  const handleDownload = async (type, teamId = null) => {
+    setDownloading(true);
     try {
-      setDownloading(true);
       const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/dashboard/pdf${q}`, { ...axiosConfig, responseType: "blob" });
-      downloadBlob(res, "guide_report.pdf");
+      let url, filename;
+
+      if (type === "PDF_ALL") {
+        url = `${import.meta.env.VITE_API_URL}/guide/dashboard/pdf${q}`;
+        filename = "guide_report.pdf";
+      } else if (type === "EXCEL") {
+        url = `${import.meta.env.VITE_API_URL}/guide/dashboard/excel${q}`;
+        filename = "guide_report.xlsx";
+      } else if (type === "PDF_TEAM") {
+        url = `${import.meta.env.VITE_API_URL}/guide/dashboard/pdf/${teamId}${q}`;
+        filename = `team_${teamId}.pdf`;
+      }
+
+      const res = await axios.get(url, { ...axiosConfig, responseType: "blob" });
+      downloadBlob(res, filename);
     } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download PDF", "error");
+      Swal.fire("Error", "Download failed", "error");
     } finally {
       setDownloading(false);
     }
   };
 
-  const handleDownloadTeamPdf = async (teamId) => {
-    try {
-      setDownloading(true);
-      const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/dashboard/pdf/${teamId}${q}`, { ...axiosConfig, responseType: "blob" });
-      downloadBlob(res, `team_${teamId}.pdf`);
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download team PDF", "error");
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  const handleDownloadExcel = async () => {
-    try {
-      setDownloading(true);
-      const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/dashboard/excel${q}`, { ...axiosConfig, responseType: "blob" });
-      downloadBlob(res, "guide_report.xlsx");
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download Excel", "error");
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  // IMPORTANT: don't early return when there are no teams.
-  // Show filters and buttons always. Show "No teams found" in the table area instead.
-  if (loading) return <LoaderOverlay message="Loading Your Teams..." />;
+  if (loading) return <LoaderOverlay message="Gathering Intelligence..." />;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-100 p-6 relative">
-      {downloading && <LoaderOverlay message="Preparing export..." />}
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 p-4 md:p-8 font-sans selection:bg-sky-500/30">
+      {downloading && <LoaderOverlay message="Generating Report..." />}
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-sky-400">Guide Dashboard</h1>
-
-        <div className="flex items-center gap-3">
-          <button onClick={fetchTeams} className="px-4 py-2 rounded bg-slate-700 hover:bg-slate-600 transition">Refresh</button>
-          <button onClick={handleDownloadPdfAll} className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-700 transition text-white">
-            Export PDF (All / Filtered)
-          </button>
-          <button onClick={handleDownloadExcel} className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 transition text-white">
-            Export Excel (All / Filtered)
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-slate-800 p-4 rounded-md border border-white/5 mb-6">
-        <div className="flex flex-wrap gap-4 items-end">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8">
           <div>
-            <label className="text-xs text-gray-400">Branch</label>
-            <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="block mt-1 bg-slate-700 text-white px-3 py-2 rounded">
-              <option value="">All Branches</option>
-              {branches.map(b => (<option key={b.id} value={b.id}>{b.branchName}</option>))}
-            </select>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+              Dashboard <span className="text-sky-500">Overview</span>
+            </h1>
+            <p className="text-slate-400 mt-2 text-sm md:text-base max-w-2xl">
+              Real-time insights into team performance, project status, and academic distribution.
+            </p>
           </div>
 
-          <div>
-            <label className="text-xs text-gray-400">Semester</label>
-            <select value={semesterFilter} onChange={(e) => setSemesterFilter(e.target.value)} className="block mt-1 bg-slate-700 text-white px-3 py-2 rounded">
-              <option value="">All Semesters</option>
-              {semesters.map(s => (<option key={s.id} value={s.id}>{s.semesterName}</option>))}
-            </select>
-          </div>
-
-          <div className="flex gap-2">
-            <button onClick={handleApplyFilters} className="px-4 py-2 bg-sky-600 rounded">Apply</button>
-            <button onClick={handleClearFilters} className="px-4 py-2 bg-gray-600 rounded">Clear</button>
+          <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+            <button 
+              onClick={() => handleDownload("PDF_ALL")} 
+              className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-rose-900/20 active:scale-95"
+            >
+              <HiDocumentDownload className="text-lg" /> Export PDF
+            </button>
+            <button 
+              onClick={() => handleDownload("EXCEL")} 
+              className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
+            >
+              <HiDownload className="text-lg" /> Export Excel
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Top-level table */}
-      <div className="overflow-x-auto bg-slate-800 p-4 rounded-2xl border border-white/10">
-        <table className="min-w-full text-left">
-          <thead>
-            <tr className="text-xs text-gray-400">
-              <th className="py-3 px-4">Team Name</th>
-              <th className="py-3 px-4">Project Title</th>
-              <th className="py-3 px-4">Members</th>
-              <th className="py-3 px-4">Start</th>
-              <th className="py-3 px-4">End</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4">Created</th>
-              <th className="py-3 px-4">Actions</th>
-            </tr>
-          </thead>
+        {/* Filter Bar */}
+        <div className="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 mb-8 backdrop-blur-sm">
+          <div className="flex items-center justify-between lg:hidden mb-4 cursor-pointer" onClick={() => setShowFilters(!showFilters)}>
+            <span className="font-semibold text-slate-300 flex items-center gap-2"><HiFilter /> Filter Results</span>
+            <span className="text-xs bg-slate-700 px-2 py-1 rounded">{showFilters ? "Hide" : "Show"}</span>
+          </div>
 
-          <tbody>
-            {teams.length === 0 ? (
-              <tr>
-                <td className="py-6 px-4 text-center text-gray-400" colSpan={8}>No teams found for the selected filters.</td>
-              </tr>
-            ) : (
-              teams.map(team => {
-                const project = team.project || {};
-                const members = team.members || [];
-                return (
-                  <tr key={team.teamId} className="border-t border-slate-700">
-                    <td className="py-3 px-4 font-medium">{team.teamName || "-"}</td>
-                    <td className="py-3 px-4 text-sm text-gray-300">{project.projectTitle || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{members.length}</td>
-                    <td className="py-3 px-4 text-sm">{project.startDate || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{project.endDate || "-"}</td>
-                    <td className="py-3 px-4 text-sm">
-                      <span className={
-                        `px-2 py-1 rounded text-xs font-semibold ` +
-                        (project.status === "COMPLETED" ? "bg-green-800 text-green-300" :
-                          project.status === "ONGOING" ? "bg-yellow-900 text-yellow-300" :
-                            "bg-slate-700 text-gray-300")
-                      }>
-                        {project.status || "N/A"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">{team.createdDate || "-"}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <button onClick={() => navigate(`/guide/TeamDetail/${team.teamId}`)} className="px-3 py-1 bg-sky-600 rounded text-white text-sm hover:bg-sky-700 transition">View</button>
-                        <button onClick={() => handleDownloadTeamPdf(team.teamId)} className="px-3 py-1 bg-gray-600 rounded text-white text-sm hover:bg-gray-700 transition">Export</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+          <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row gap-4 items-end`}>
+            <div className="w-full lg:w-1/4">
+              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Branch</label>
+              <div className="relative">
+                <HiOfficeBuilding className="absolute left-3 top-3 text-slate-500" />
+                <select 
+                  value={branchFilter} 
+                  onChange={(e) => setBranchFilter(e.target.value)} 
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 appearance-none transition-all"
+                >
+                  <option value="">All Branches</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.branchName}</option>)}
+                </select>
+              </div>
+            </div>
 
-        {/* Expanded details per team */}
-        <div className="mt-6 space-y-4">
-          {teams.length === 0 ? (
-            <div className="text-center text-gray-400">Use the filters above to find teams. Buttons remain available to export the current selection.</div>
-          ) : (
-            teams.map(team => {
+            <div className="w-full lg:w-1/4">
+              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Semester</label>
+              <div className="relative">
+                <HiAcademicCap className="absolute left-3 top-3 text-slate-500" />
+                <select 
+                  value={semesterFilter} 
+                  onChange={(e) => setSemesterFilter(e.target.value)} 
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 appearance-none transition-all"
+                >
+                  <option value="">All Semesters</option>
+                  {semesters.map(s => <option key={s.id} value={s.id}>{s.semesterName}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 w-full lg:w-auto mt-2 lg:mt-0">
+              <button 
+                onClick={fetchTeams} 
+                className="flex-1 lg:flex-none px-6 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-sky-900/20 active:scale-95 flex items-center justify-center gap-2"
+              >
+                Apply
+              </button>
+              <button 
+                onClick={() => { setBranchFilter(""); setSemesterFilter(""); fetchTeams(); }} 
+                className="flex-1 lg:flex-none px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <HiRefresh /> Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Display */}
+        {teams.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-slate-800/30 rounded-3xl border border-dashed border-slate-700">
+            <HiUserGroup className="text-5xl text-slate-600 mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No teams found</h3>
+            <p className="text-slate-400 text-sm">Try adjusting your filters to see results.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {teams.map((team) => {
+              const project = team.project || {};
               const members = team.members || [];
+              const isCompleted = project.status === "COMPLETED";
+              const isOngoing = project.status === "ONGOING";
+
               return (
-                <div key={`detail-${team.teamId}`} className="bg-slate-900 p-4 rounded-md border border-slate-700">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold text-sky-400">{team.teamName}</h3>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Project:</strong> {team.project?.projectTitle || "N/A"}</p>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Tech:</strong> {team.project?.technologiesUsed || "N/A"}</p>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Description:</strong> {team.project?.description || "N/A"}</p>
+                <div key={team.teamId} className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden hover:border-sky-500/30 transition-all duration-300 shadow-xl">
+                  
+                  {/* Card Header (Clickable/Expandable Logic can be added) */}
+                  <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 items-center">
+                    
+                    {/* Team & Project Info */}
+                    <div className="lg:col-span-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-sky-500/10 rounded-lg">
+                          <HiUserGroup className="text-sky-400 text-xl" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white truncate">{team.teamName}</h3>
+                      </div>
+                      <p className="text-sm text-slate-400 line-clamp-1 pl-11">{project.projectTitle || "No Title"}</p>
                     </div>
 
-                    <div className="text-right text-sm">
-                      <p><strong>Members:</strong> {members.length}</p>
-                      <p className="mt-1"><strong>Status:</strong> {team.project?.status || "N/A"}</p>
-                      <p className="mt-1"><strong>Guide:</strong> {team.project?.guide?.name || team.project?.guide?.email || "N/A"}</p>
+                    {/* Status & Timeline */}
+                    <div className="lg:col-span-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                          isCompleted ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                          isOngoing ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                          "bg-slate-700 text-slate-300 border-slate-600"
+                        }`}>
+                          {isCompleted ? <HiCheckCircle /> : <HiClock />}
+                          {project.status || "PENDING"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-2">
+                        <HiCalendar />
+                        {project.startDate} — {project.endDate || "Present"}
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="lg:col-span-1 flex gap-8">
+                      <div>
+                        <span className="block text-xs font-bold text-slate-500 uppercase">Members</span>
+                        <span className="text-lg font-mono text-white">{members.length}</span>
+                      </div>
+                      <div>
+                        <span className="block text-xs font-bold text-slate-500 uppercase">Tech</span>
+                        <span className="text-sm text-slate-300 line-clamp-1 max-w-[150px]" title={project.technologiesUsed}>
+                          {project.technologiesUsed || "-"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="lg:col-span-1 flex justify-start lg:justify-end gap-3">
+                      <button 
+                        onClick={() => navigate(`/guide/TeamDetail/${team.teamId}`)}
+                        className="p-2.5 rounded-xl bg-slate-700/50 text-sky-400 hover:bg-sky-500 hover:text-white transition-all border border-slate-600 hover:border-transparent"
+                        title="View Details"
+                      >
+                        <HiEye className="text-lg" />
+                      </button>
+                      <button 
+                        onClick={() => handleDownload("PDF_TEAM", team.teamId)}
+                        className="p-2.5 rounded-xl bg-slate-700/50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all border border-slate-600 hover:border-transparent"
+                        title="Export Team Report"
+                      >
+                        <HiDocumentDownload className="text-lg" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Members table */}
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="text-xs text-gray-400">
-                        <tr>
-                          <th className="px-3 py-2">Name</th>
-                          <th className="px-3 py-2">Email</th>
-                          <th className="px-3 py-2">Contact</th>
-                          <th className="px-3 py-2">Roll</th>
-                          <th className="px-3 py-2">Role</th>
-                          <th className="px-3 py-2">Branch</th>
-                          <th className="px-3 py-2">Course</th>
-                          <th className="px-3 py-2">Section</th>
-                          <th className="px-3 py-2">Semester</th>
-                          <th className="px-3 py-2">Leader</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {members.length === 0 ? (
-                          <tr>
-                            <td className="px-3 py-4 text-center text-gray-400" colSpan={10}>No members match the current filters.</td>
+                  {/* Members Table Preview (Hidden on very small screens if desired, but good for context) */}
+                  <div className="bg-slate-900/50 border-t border-slate-700/50 px-6 py-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead>
+                          <tr className="text-xs text-slate-500 uppercase">
+                            <th className="pb-2 font-semibold">Student</th>
+                            <th className="pb-2 font-semibold">Roll No</th>
+                            <th className="pb-2 font-semibold">Role</th>
+                            <th className="pb-2 font-semibold">Branch</th>
                           </tr>
-                        ) : members.map((m, idx) => (
-                          <tr key={idx} className={m.leader ? "bg-[#0d1a33] ring-1 ring-green-500/20" : ""}>
-                            <td className="px-3 py-2">{m.name || "-"}</td>
-                            <td className="px-3 py-2 text-sky-400">{m.email || "-"}</td>
-                            <td className="px-3 py-2">{m.contactNo || "-"}</td>
-                            <td className="px-3 py-2">{m.rollNumber || "-"}</td>
-                            <td className="px-3 py-2">{m.role || "-"}</td>
-                            <td className="px-3 py-2">{m.branchName || "-"}</td>
-                            <td className="px-3 py-2">{m.courseName || "-"}</td>
-                            <td className="px-3 py-2">{m.sectionName || "-"}</td>
-                            <td className="px-3 py-2">{m.semesterName || "-"}</td>
-                            <td className="px-3 py-2">{m.leader ? <span className="text-green-400 font-semibold">✔</span> : "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700/50">
+                          {members.slice(0, 3).map((m, idx) => (
+                            <tr key={idx}>
+                              <td className="py-2 text-slate-300 font-medium">{m.name} {m.leader && <span className="text-amber-400 text-xs ml-1">★</span>}</td>
+                              <td className="py-2 text-slate-400 font-mono text-xs">{m.rollNumber}</td>
+                              <td className="py-2 text-slate-400">{m.role}</td>
+                              <td className="py-2 text-slate-400">{m.branchName}</td>
+                            </tr>
+                          ))}
+                          {members.length > 3 && (
+                            <tr>
+                              <td colSpan={4} className="pt-2 text-xs text-sky-500 cursor-pointer hover:underline" onClick={() => navigate(`/guide/TeamDetail/${team.teamId}`)}>
+                                + {members.length - 3} more members...
+                              </td>
+                            </tr>
+                          )}
+                          {members.length === 0 && (
+                            <tr><td colSpan={4} className="py-2 text-slate-500 italic">No members assigned yet.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
+
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
