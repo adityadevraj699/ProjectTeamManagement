@@ -1,14 +1,108 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { 
+  HiUserGroup, 
+  HiUserAdd, 
+  HiTrash, 
+  HiPencil, 
+  HiStar, 
+  HiSearch, 
+  HiChevronDown, 
+  HiX,
+  HiOutlineUser
+} from "react-icons/hi";
 
 // 🔄 Reusable Loader Overlay Component
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+  <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm transition-opacity duration-300">
+    <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4 shadow-lg shadow-sky-500/20"></div>
+    <p className="text-white text-lg font-medium tracking-wide animate-pulse">{message || "Loading..."}</p>
   </div>
 );
+
+// Custom Searchable Dropdown Component
+const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find((opt) => String(opt.value) === String(value));
+  const filteredOptions = options.filter((opt) =>
+    opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="relative w-full md:w-1/2" ref={wrapperRef}>
+      <div
+        onClick={() => !isLoading && setIsOpen(!isOpen)}
+        className={`bg-slate-900 border ${
+          isOpen ? "border-sky-500 ring-1 ring-sky-500" : "border-slate-700"
+        } rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all hover:border-slate-600`}
+      >
+        <span className={`truncate ${!selectedOption ? "text-slate-500" : "text-slate-200"}`}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <HiChevronDown className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </div>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-64 flex flex-col overflow-hidden">
+          <div className="p-2 border-b border-slate-700 bg-slate-800 sticky top-0 z-10">
+            <div className="flex items-center bg-slate-900 rounded-lg px-3 border border-slate-700 focus-within:border-sky-500 transition-colors">
+              <HiSearch className="text-slate-500 mr-2" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoFocus
+                className="w-full bg-transparent py-2 text-sm text-white focus:outline-none placeholder-slate-500"
+              />
+              {searchTerm && (
+                <HiX
+                  className="text-slate-500 cursor-pointer hover:text-white"
+                  onClick={() => setSearchTerm("")}
+                />
+              )}
+            </div>
+          </div>
+          <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <div
+                  key={opt.value}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                    setSearchTerm("");
+                  }}
+                  className={`px-4 py-2.5 cursor-pointer hover:bg-slate-700/50 transition-colors text-sm ${
+                    String(value) === String(opt.value) ? "bg-sky-500/10 text-sky-400" : "text-slate-300"
+                  }`}
+                >
+                  {opt.label}
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-slate-500 text-sm">No options found</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function Student() {
   const [teams, setTeams] = useState([]);
@@ -28,10 +122,9 @@ export default function Student() {
     leader: false,
   });
 
-  const [loading, setLoading] = useState(true); // Page-level loader
-  const [actionLoading, setActionLoading] = useState(false); // Action loader
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [editMember, setEditMember] = useState(null);
-
 
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
@@ -64,41 +157,45 @@ export default function Student() {
     }
   };
 
-
   const handleUpdateDetails = async (m) => {
-  setActionLoading(true);
-  try {
-    await axios.put(
-      `${import.meta.env.VITE_API_URL}/guide/teams/${selectedTeam}/team/update`,
-      null,
-      {
-        ...axiosConfig,
-        params: {
-          memberId: m.id,
-          role: m.role,
-          name: m.user.name,
-          rollNumber: m.user.rollNumber,
-          branchId: m.user.branchId,
-          semesterId: m.user.semesterId,
-          sectionId: m.user.sectionId,
-        },
-      }
-    );
+    setActionLoading(true);
+    try {
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/guide/teams/${selectedTeam}/team/update`,
+        null,
+        {
+          ...axiosConfig,
+          params: {
+            memberId: m.id,
+            role: m.role,
+            name: m.user.name,
+            rollNumber: m.user.rollNumber,
+            branchId: m.user.branchId,
+            semesterId: m.user.semesterId,
+            sectionId: m.user.sectionId,
+          },
+        }
+      );
 
-    Swal.fire("Success", "Member details updated", "success");
-    setEditMember(null);
-    fetchMembers(selectedTeam);
-  } catch (err) {
-    Swal.fire(
-      "Error",
-      err.response?.data?.message || "Update failed",
-      "error"
-    );
-  } finally {
-    setActionLoading(false);
-  }
-};
-
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: 'Member details updated successfully',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      setEditMember(null);
+      fetchMembers(selectedTeam);
+    } catch (err) {
+      Swal.fire(
+        "Error",
+        err.response?.data?.message || "Update failed",
+        "error"
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // ✅ Fetch members for selected team
   const fetchMembers = async (teamId) => {
@@ -106,7 +203,15 @@ export default function Student() {
     setActionLoading(true);
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/teams/${teamId}/members`, axiosConfig);
-      setMembers(res.data || []);
+      const data = res.data || [];
+      // Sort: Leader first, then alphabetically by name
+      const sortedData = data.sort((a, b) => {
+        if (a.leader === b.leader) {
+          return a.user.name.localeCompare(b.user.name);
+        }
+        return a.leader ? -1 : 1;
+      });
+      setMembers(sortedData);
     } catch {
       Swal.fire("Error", "Failed to load team members", "error");
     } finally {
@@ -121,9 +226,9 @@ export default function Student() {
 
   useEffect(() => {
     if (selectedTeam) fetchMembers(selectedTeam);
+    else setMembers([]);
   }, [selectedTeam]);
 
-  // ✅ Email check (autofill)
   const handleEmailBlur = async (email) => {
     if (!email) return;
     try {
@@ -135,9 +240,11 @@ export default function Student() {
       if (exists && isStudent && data) {
         const confirm = await Swal.fire({
           title: "Student Found",
-          text: "Autofill student details?",
-          icon: "question",
+          text: `Autofill details for ${data.name}?`,
+          icon: "info",
           showCancelButton: true,
+          confirmButtonColor: "#0ea5e9",
+          cancelButtonColor: "#64748b",
         });
         if (confirm.isConfirmed) {
           setNewMember({
@@ -151,11 +258,10 @@ export default function Student() {
         }
       }
     } catch {
-      Swal.fire("Error", "Failed to check email", "error");
+      // Silent fail or minimal toast
     }
   };
 
-  // ✅ Add member
   const handleAddMember = async () => {
     const { email, role } = newMember;
     if (!selectedTeam) return Swal.fire("Error", "Select a team first", "error");
@@ -168,7 +274,13 @@ export default function Student() {
         { ...newMember, leader: false },
         axiosConfig
       );
-      Swal.fire("Success", "Member added successfully", "success");
+      Swal.fire({
+        icon: 'success',
+        title: 'Added!',
+        text: 'Member added successfully',
+        timer: 1500,
+        showConfirmButton: false
+      });
       setNewMember({
         email: "",
         name: "",
@@ -188,20 +300,28 @@ export default function Student() {
     }
   };
 
-  // ✅ Delete member
   const handleDeleteMember = async (memberId) => {
     const confirm = await Swal.fire({
-      title: "Are you sure?",
-      text: "This member will be removed!",
+      title: "Remove Member?",
+      text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, remove",
     });
 
     if (confirm.isConfirmed) {
       setActionLoading(true);
       try {
         await axios.delete(`${import.meta.env.VITE_API_URL}/guide/teams/members/${memberId}`, axiosConfig);
-        Swal.fire("Deleted!", "Member removed successfully", "success");
+        Swal.fire({
+            icon: 'success',
+            title: 'Removed',
+            text: 'Member removed successfully',
+            timer: 1500,
+            showConfirmButton: false
+        });
         fetchMembers(selectedTeam);
       } catch {
         Swal.fire("Error", "Failed to delete member", "error");
@@ -211,7 +331,6 @@ export default function Student() {
     }
   };
 
-  // ✅ Update role or leader dynamically
   const handleUpdate = async (memberId, role, leader) => {
     setActionLoading(true);
     try {
@@ -221,446 +340,340 @@ export default function Student() {
         { ...axiosConfig, params: { role, leader } }
       );
 
-      let message = "Member updated successfully!";
-      if (leader === true) message = "Member promoted to Leader!";
-      else if (leader === false) message = "Member removed from Leader role.";
-
+      const message = leader ? "Promoted to Leader!" : "Removed from Leader role.";
+      
       Swal.fire({
         icon: "success",
         title: "Updated",
         text: message,
-        timer: 2000,
+        timer: 1500,
         showConfirmButton: false,
       });
 
       fetchMembers(selectedTeam);
     } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        "Failed to update member";
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: msg,
-      });
+      const msg = err.response?.data?.message || "Failed to update member";
+      Swal.fire("Error", msg, "error");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Save role updates
-  const handleSaveRole = async (memberId, role) => {
-    if (!role || role.trim() === "")
-      return Swal.fire("Error", "Role cannot be empty", "error");
+  // Prepare options for searchable select
+  const teamOptions = teams.map(t => ({
+    value: t.teamId,
+    label: t.teamName
+  }));
 
-    setActionLoading(true);
-    try {
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/guide/teams/members/${memberId}`,
-        null,
-        { ...axiosConfig, params: { role } }
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: "Updated",
-        text: "Member role updated successfully!",
-        timer: 1800,
-        showConfirmButton: false,
-      });
-
-      fetchMembers(selectedTeam);
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        "Failed to update member role";
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: msg,
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // ✅ Show main loader until base data loads
-  if (loading) return <LoaderOverlay message="Loading Team Data..." />;
+  if (loading) return <LoaderOverlay message="Loading Data..." />;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-100 p-8 relative">
-      {actionLoading && <LoaderOverlay message="Processing Request..." />}
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 p-6 md:p-10 font-sans selection:bg-sky-500/30">
+      {actionLoading && <LoaderOverlay message="Processing..." />}
 
-      <h1 className="text-3xl font-bold text-sky-400 mb-6">Manage Team Members</h1>
+      <div className="max-w-7xl mx-auto mb-10">
+        <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">Team Members</h1>
+        <p className="text-slate-400 text-sm">Manage student roles, details, and leadership within your teams.</p>
+      </div>
 
-      {/* Select Team */}
-      <div className="mb-6">
-        <label className="text-sky-300 font-semibold mr-3">Select Team:</label>
-        <select
-          value={selectedTeam}
-          onChange={(e) => setSelectedTeam(e.target.value)}
-          className="bg-slate-800 text-white border border-sky-600 rounded-lg p-2"
-        >
-          <option value="">-- Choose a Team --</option>
-          {teams.map((t) => (
-            <option key={t.teamId} value={t.teamId}>
-              {t.teamName}
-            </option>
-          ))}
-        </select>
+      {/* Select Team Section */}
+      <div className="max-w-7xl mx-auto mb-8 bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 backdrop-blur-sm">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <label className="text-slate-300 font-medium whitespace-nowrap">Select Team:</label>
+          <SearchableSelect 
+            options={teamOptions} 
+            value={selectedTeam} 
+            onChange={setSelectedTeam} 
+            placeholder="-- Search & Select Team --"
+            isLoading={loading}
+          />
+        </div>
       </div>
 
       {selectedTeam && (
-        <>
-          {/* Add New Member */}
-          <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-sky-700/30 mb-6">
-            <h2 className="text-xl font-semibold text-sky-300 mb-4">Add New Member</h2>
-
-            <div className="flex flex-wrap gap-3 mb-3">
-              <input
-                type="email"
-                placeholder="Student Email"
-                value={newMember.email}
-                onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                onBlur={(e) => handleEmailBlur(e.target.value)}
-                className="flex-1 bg-slate-700 px-3 py-2 rounded text-white border border-slate-600"
-              />
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={newMember.name}
-                onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-                className="flex-1 bg-slate-700 px-3 py-2 rounded text-white border border-slate-600"
-              />
-              <input
-                type="text"
-                placeholder="Roll Number"
-                value={newMember.rollNumber}
-                onChange={(e) => setNewMember({ ...newMember, rollNumber: e.target.value })}
-                className="flex-1 bg-slate-700 px-3 py-2 rounded text-white border border-slate-600"
-              />
+        <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-3 gap-8">
+          
+          {/* Add New Member Form */}
+          <div className="xl:col-span-1 bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 h-fit backdrop-blur-sm shadow-xl">
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-700/50 pb-4">
+              <div className="p-2 bg-sky-500/10 rounded-lg">
+                <HiUserAdd className="text-sky-400 text-xl" />
+              </div>
+              <h2 className="text-lg font-bold text-white">Add Member</h2>
             </div>
 
-            {/* Branch, Semester, Section */}
-            <div className="flex flex-wrap gap-3 mb-3">
-              <select
-                value={newMember.branchId}
-                onChange={(e) => setNewMember({ ...newMember, branchId: e.target.value })}
-                className="flex-1 bg-slate-700 px-3 py-2 rounded text-white border border-slate-600"
-              >
-                <option value="">Select Branch</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.branchName}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Student Info</label>
+                <input
+                  type="email"
+                  placeholder="Student Email"
+                  value={newMember.email}
+                  onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+                  onBlur={(e) => handleEmailBlur(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all mb-3"
+                />
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={newMember.name}
+                  onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all mb-3"
+                />
+                <input
+                  type="text"
+                  placeholder="Roll Number"
+                  value={newMember.rollNumber}
+                  onChange={(e) => setNewMember({ ...newMember, rollNumber: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
+                />
+              </div>
 
-              <select
-                value={newMember.semesterId}
-                onChange={(e) => setNewMember({ ...newMember, semesterId: e.target.value })}
-                className="flex-1 bg-slate-700 px-3 py-2 rounded text-white border border-slate-600"
-              >
-                <option value="">Select Semester</option>
-                {semesters.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.semesterName}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Academic Details</label>
+                <div className="grid grid-cols-1 gap-3">
+                  <select
+                    value={newMember.branchId}
+                    onChange={(e) => setNewMember({ ...newMember, branchId: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((b) => <option key={b.id} value={b.id}>{b.branchName}</option>)}
+                  </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      value={newMember.semesterId}
+                      onChange={(e) => setNewMember({ ...newMember, semesterId: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
+                    >
+                      <option value="">Semester</option>
+                      {semesters.map((s) => <option key={s.id} value={s.id}>{s.semesterName}</option>)}
+                    </select>
+                    <select
+                      value={newMember.sectionId}
+                      onChange={(e) => setNewMember({ ...newMember, sectionId: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
+                    >
+                      <option value="">Section</option>
+                      {sections.map((s) => <option key={s.id} value={s.id}>{s.sectionName}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
 
-              <select
-                value={newMember.sectionId}
-                onChange={(e) => setNewMember({ ...newMember, sectionId: e.target.value })}
-                className="flex-1 bg-slate-700 px-3 py-2 rounded text-white border border-slate-600"
-              >
-                <option value="">Select Section</option>
-                {sections.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.sectionName}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Role</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Backend Developer"
+                  value={newMember.role}
+                  onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
+                />
+              </div>
 
-            {/* Role Input */}
-            <div className="flex flex-wrap gap-3 items-center">
-              <input
-                type="text"
-                placeholder="Role (e.g., Backend Developer)"
-                value={newMember.role}
-                onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
-                className="flex-1 bg-slate-700 px-3 py-2 rounded text-white border border-slate-600"
-              />
               <button
                 onClick={handleAddMember}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 rounded text-white"
+                className="w-full mt-2 bg-sky-600 hover:bg-sky-500 text-white font-medium py-2.5 rounded-xl transition-all shadow-lg shadow-sky-900/20 active:scale-95"
               >
                 Add Member
               </button>
             </div>
           </div>
 
-          {/* Members Table */}
-          <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-white/10">
-            <h2 className="text-2xl font-semibold text-sky-400 mb-4">Team Members</h2>
-            <table className="w-full text-sm text-left border border-slate-700 rounded-xl overflow-hidden">
-              <thead className="bg-slate-700 text-gray-200">
-                <tr>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Branch</th>
-                  <th className="px-4 py-3">Semester</th>
-                  <th className="px-4 py-3">Section</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Leader</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700">
-                {members.length ? (
-                  members.map((m) => (
-                    <tr key={m.id}>
-                      <td className="px-4 py-2">{m.user.name}</td>
-                      <td className="px-4 py-2 text-sky-400">{m.user.email}</td>
-                      <td className="px-4 py-2">{m.user.branch || "N/A"}</td>
-                      <td className="px-4 py-2">{m.user.semester || "N/A"}</td>
-                      <td className="px-4 py-2">{m.user.section || "N/A"}</td>
+          {/* Members List Table */}
+          <div className="xl:col-span-2 bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 backdrop-blur-sm shadow-xl flex flex-col">
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-700/50 pb-4">
+              <div className="p-2 bg-emerald-500/10 rounded-lg">
+                <HiUserGroup className="text-emerald-400 text-xl" />
+              </div>
+              <h2 className="text-lg font-bold text-white">Team Roster <span className="text-slate-500 font-normal text-sm ml-2">({members.length} Members)</span></h2>
+            </div>
 
-                      <td className="px-4 py-2">
-                        {m.editing ? (
-                          <input
-                            type="text"
-                            value={m.role}
-                            onChange={(e) =>
-                              setMembers((prev) =>
-                                prev.map((mem) =>
-                                  mem.id === m.id ? { ...mem, role: e.target.value } : mem
-                                )
-                              )
-                            }
-                            className="bg-slate-700 text-white px-2 py-1 rounded border border-slate-600"
-                          />
-                        ) : (
-                          m.role
-                        )}
-                      </td>
-
-                      <td className="px-4 py-2 text-center">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={m.leader}
-                            onChange={() => handleUpdate(m.id, m.role, !m.leader)}
-                          />
-                          <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
-                        </label>
-                      </td>
-
-                      <td className="px-4 py-2 space-x-2">
-                        {m.editing ? (
-                          <>
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-700/80 text-xs text-slate-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 font-semibold">Student</th>
+                    <th className="px-4 py-3 font-semibold">Contact</th>
+                    <th className="px-4 py-3 font-semibold">Academic</th>
+                    <th className="px-4 py-3 font-semibold">Role</th>
+                    <th className="px-4 py-3 font-semibold text-center">Leader</th>
+                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {members.length > 0 ? (
+                    members.map((m) => (
+                      <tr key={m.id} className={`group hover:bg-slate-700/30 transition-colors ${m.leader ? "bg-amber-500/5 hover:bg-amber-500/10" : ""}`}>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${m.leader ? "bg-amber-500 text-black" : "bg-slate-700 text-slate-300"}`}>
+                              {m.user.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-medium text-white">{m.user.name}</div>
+                              <div className="text-xs text-slate-500">{m.user.rollNumber}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-slate-400 text-xs font-mono">{m.user.email}</td>
+                        <td className="px-4 py-4 text-slate-300 text-xs">
+                          {m.user.branch || "-"} <br/>
+                          <span className="text-slate-500">{m.user.semester} • {m.user.section}</span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="bg-slate-700/50 border border-slate-600 px-2.5 py-1 rounded-lg text-xs text-slate-300">
+                            {m.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <button 
+                            onClick={() => handleUpdate(m.id, m.role, !m.leader)}
+                            className={`p-1.5 rounded-lg transition-all ${m.leader ? "text-amber-400 bg-amber-400/10 hover:bg-amber-400/20" : "text-slate-600 hover:text-slate-400 hover:bg-slate-700"}`}
+                            title={m.leader ? "Demote Leader" : "Promote to Leader"}
+                          >
+                            <HiStar className={`text-lg ${m.leader ? "fill-current" : ""}`} />
+                          </button>
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
-                              onClick={() => handleSaveRole(m.id, m.role)}
-                              className="px-3 py-1 bg-green-600 rounded hover:bg-green-700"
+                              onClick={() => setEditMember(m)}
+                              className="p-2 rounded-lg bg-slate-700/50 text-sky-400 hover:bg-sky-500 hover:text-white transition-all"
+                              title="Edit Details"
                             >
-                              Save
+                              <HiPencil />
                             </button>
-                            <button
-                              onClick={() =>
-                                setMembers((prev) =>
-                                  prev.map((mem) =>
-                                    mem.id === m.id ? { ...mem, editing: false } : mem
-                                  )
-                                )
-                              }
-                              className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-700"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() =>
-                                setMembers((prev) =>
-                                  prev.map((mem) =>
-                                    mem.id === m.id ? { ...mem, editing: true } : mem
-                                  )
-                                )
-                              }
-                              className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-700"
-                            >
-                              Edit Role
-                            </button>
-
                             <button
                               onClick={() => handleDeleteMember(m.id)}
-                              className="px-3 py-1 bg-red-600 rounded hover:bg-red-700"
+                              className="p-2 rounded-lg bg-slate-700/50 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                              title="Remove Member"
                             >
-                              Delete
+                              <HiTrash />
                             </button>
-                            <button
-  onClick={() => setEditMember(m)}
-  className="px-3 py-1 bg-purple-600 rounded hover:bg-purple-700"
->
-  Edit Details
-</button>
-
-                          </>
-                        )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="text-center py-12 text-slate-500">
+                        <div className="flex flex-col items-center">
+                          <HiOutlineUser className="text-4xl mb-2 opacity-20" />
+                          <p>No members added yet.</p>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="8" className="text-center py-4 text-gray-400">
-                      No members in this team yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </>
+        </div>
       )}
 
+      {/* Edit Modal */}
       {editMember && (
-  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-    <div className="bg-slate-800 w-full max-w-xl p-6 rounded-xl">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+          <div className="bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-700 overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <HiPencil className="text-sky-400" /> Update Member
+              </h2>
+              <button onClick={() => setEditMember(null)} className="text-slate-400 hover:text-white transition-colors">
+                <HiX className="text-xl" />
+              </button>
+            </div>
 
-      <h2 className="text-xl text-sky-400 font-semibold mb-4">
-        Update Student Details
-      </h2>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Name</label>
+                  <input
+                    value={editMember.user.name || ""}
+                    onChange={(e) => setEditMember({ ...editMember, user: { ...editMember.user, name: e.target.value } })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Roll No</label>
+                  <input
+                    value={editMember.user.rollNumber || ""}
+                    onChange={(e) => setEditMember({ ...editMember, user: { ...editMember.user, rollNumber: e.target.value } })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                  />
+                </div>
+              </div>
 
-      <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                <input
+                  value={editMember.user.email || ""}
+                  disabled
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                />
+              </div>
 
-        {/* ✅ NAME */}
-        <input
-          value={editMember.user.name || ""}
-          onChange={(e) =>
-            setEditMember({
-              ...editMember,
-              user: { ...editMember.user, name: e.target.value },
-            })
-          }
-          className="bg-slate-700 p-2 rounded"
-          placeholder="Full Name"
-        />
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Academic Info</label>
+                <div className="grid grid-cols-1 gap-3">
+                  <select
+                    value={editMember.user.branchId}
+                    onChange={(e) => setEditMember({ ...editMember, user: { ...editMember.user, branchId: e.target.value } })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                  >
+                    <option value="">Branch</option>
+                    {branches.map((b) => <option key={b.id} value={b.id}>{b.branchName}</option>)}
+                  </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      value={editMember.user.semesterId}
+                      onChange={(e) => setEditMember({ ...editMember, user: { ...editMember.user, semesterId: e.target.value } })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                    >
+                      <option value="">Semester</option>
+                      {semesters.map((s) => <option key={s.id} value={s.id}>{s.semesterName}</option>)}
+                    </select>
+                    <select
+                      value={editMember.user.sectionId}
+                      onChange={(e) => setEditMember({ ...editMember, user: { ...editMember.user, sectionId: e.target.value } })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                    >
+                      <option value="">Section</option>
+                      {sections.map((s) => <option key={s.id} value={s.id}>{s.sectionName}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
 
-        {/* ✅ ROLL NUMBER */}
-        <input
-          value={editMember.user.rollNumber || ""}
-          onChange={(e) =>
-            setEditMember({
-              ...editMember,
-              user: { ...editMember.user, rollNumber: e.target.value },
-            })
-          }
-          className="bg-slate-700 p-2 rounded"
-          placeholder="Roll Number"
-        />
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Role</label>
+                <input
+                  value={editMember.role || ""}
+                  onChange={(e) => setEditMember({ ...editMember, role: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                />
+              </div>
+            </div>
 
-        {/* ✅ EMAIL (READ ONLY) */}
-        <input
-          value={editMember.user.email || ""}
-          disabled
-          className="bg-slate-700 p-2 rounded opacity-60 cursor-not-allowed col-span-2"
-          placeholder="Email (cannot be changed)"
-        />
-
-        {/* ✅ BRANCH */}
-        <select
-          value={editMember.user.branchId}
-          onChange={(e) =>
-            setEditMember({
-              ...editMember,
-              user: { ...editMember.user, branchId: e.target.value },
-            })
-          }
-          className="bg-slate-700 p-2 rounded"
-        >
-          <option value="">Select Branch</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.branchName}
-            </option>
-          ))}
-        </select>
-
-        {/* ✅ SEMESTER */}
-        <select
-          value={editMember.user.semesterId}
-          onChange={(e) =>
-            setEditMember({
-              ...editMember,
-              user: { ...editMember.user, semesterId: e.target.value },
-            })
-          }
-          className="bg-slate-700 p-2 rounded"
-        >
-          <option value="">Select Semester</option>
-          {semesters.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.semesterName}
-            </option>
-          ))}
-        </select>
-
-        {/* ✅ SECTION */}
-        <select
-          value={editMember.user.sectionId}
-          onChange={(e) =>
-            setEditMember({
-              ...editMember,
-              user: { ...editMember.user, sectionId: e.target.value },
-            })
-          }
-          className="bg-slate-700 p-2 rounded col-span-2"
-        >
-          <option value="">Select Section</option>
-          {sections.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.sectionName}
-            </option>
-          ))}
-        </select>
-
-        {/* ✅ ROLE */}
-        <input
-          value={editMember.role || ""}
-          onChange={(e) =>
-            setEditMember({ ...editMember, role: e.target.value })
-          }
-          className="bg-slate-700 p-2 rounded col-span-2"
-          placeholder="Role (e.g. Backend Developer)"
-        />
-      </div>
-
-      {/* ✅ ACTION BUTTONS */}
-      <div className="flex justify-end gap-3 mt-6">
-        <button
-          onClick={() => setEditMember(null)}
-          className="px-4 py-2 bg-gray-600 rounded"
-        >
-          Cancel
-        </button>
-
-        <button
-          onClick={() => handleUpdateDetails(editMember)}
-          className="px-4 py-2 bg-sky-600 rounded"
-        >
-          Save Changes
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-
+            <div className="bg-slate-900/50 px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
+              <button
+                onClick={() => setEditMember(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleUpdateDetails(editMember)}
+                className="px-6 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-sky-900/20"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
