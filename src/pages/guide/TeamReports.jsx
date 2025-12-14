@@ -267,8 +267,8 @@ export default function TeamReports() {
               return (
                 <div key={team.teamId} className="group relative bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden hover:border-sky-500/50 hover:shadow-2xl hover:shadow-sky-900/10 transition-all duration-300 flex flex-col">
                   
-                  {/* Status Strip */}
-                  <div className={`h-1.5 w-full ${isCompleted ? 'bg-emerald-500' : isOngoing ? 'bg-amber-500' : 'bg-slate-600'}`}></div>
+                  {/* Status Strip (Updated color here) */}
+                  <div className={`h-1.5 w-full ${isCompleted ? 'bg-emerald-500' : isOngoing ? 'bg-sky-500' : 'bg-slate-600'}`}></div>
 
                   <div className="p-6 flex-1 flex flex-col">
                     {/* Header */}
@@ -283,9 +283,10 @@ export default function TeamReports() {
                         </div>
                       </div>
                       
+                      {/* Status Badge (Updated colors here) */}
                       <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
                         isCompleted ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                        isOngoing ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                        isOngoing ? "bg-sky-500/10 text-sky-400 border-sky-500/20" :
                         "bg-slate-700 text-slate-300 border-slate-600"
                       }`}>
                         {project.status || "PENDING"}
