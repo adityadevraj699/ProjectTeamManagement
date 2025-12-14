@@ -25,12 +25,14 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
+// 🔄 High-End Loader Component
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-[60] backdrop-blur">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium tracking-wide">
-      {message || "Loading..."}
-    </p>
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
 
@@ -80,37 +82,35 @@ export default function GuideDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-
   // 🔹 Section filters (MUST be inside component)
-const [sectionFilters, setSectionFilters] = useState({
-  course: "ALL",
-  branch: "ALL",
-  semester: "ALL",
-});
-
-// 🔹 Safe access (stats null ho sakta hai)
-const sectionDetailed = stats?.studentsBySectionDetailed || [];
-
-// 🔹 Smart merge + filter logic
-const studentsBySectionFiltered = useMemo(() => {
-  const map = new Map();
-
-  sectionDetailed.forEach((s) => {
-    if (
-      (sectionFilters.course !== "ALL" && s.courseName !== sectionFilters.course) ||
-      (sectionFilters.branch !== "ALL" && s.branchName !== sectionFilters.branch) ||
-      (sectionFilters.semester !== "ALL" && s.semesterName !== sectionFilters.semester)
-    ) return;
-
-    map.set(s.sectionName, {
-      name: s.sectionName,
-      value: (map.get(s.sectionName)?.value || 0) + 1,
-    });
+  const [sectionFilters, setSectionFilters] = useState({
+    course: "ALL",
+    branch: "ALL",
+    semester: "ALL",
   });
 
-  return Array.from(map.values());
-}, [sectionDetailed, sectionFilters]);
+  // 🔹 Safe access (stats null ho sakta hai)
+  const sectionDetailed = stats?.studentsBySectionDetailed || [];
 
+  // 🔹 Smart merge + filter logic
+  const studentsBySectionFiltered = useMemo(() => {
+    const map = new Map();
+
+    sectionDetailed.forEach((s) => {
+      if (
+        (sectionFilters.course !== "ALL" && s.courseName !== sectionFilters.course) ||
+        (sectionFilters.branch !== "ALL" && s.branchName !== sectionFilters.branch) ||
+        (sectionFilters.semester !== "ALL" && s.semesterName !== sectionFilters.semester)
+      ) return;
+
+      map.set(s.sectionName, {
+        name: s.sectionName,
+        value: (map.get(s.sectionName)?.value || 0) + 1,
+      });
+    });
+
+    return Array.from(map.values());
+  }, [sectionDetailed, sectionFilters]);
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -208,7 +208,8 @@ const studentsBySectionFiltered = useMemo(() => {
       : "Course, branch, semester & section distribution for your mentees.";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-gray-100">
+    <div className="min-h-screen bg-slate-950 text-gray-100 font-sans selection:bg-sky-500/30">
+      
       {/* Gradient header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-sky-500/20 via-emerald-400/10 to-fuchsia-500/10 blur-3xl opacity-70 pointer-events-none" />
@@ -603,93 +604,92 @@ const studentsBySectionFiltered = useMemo(() => {
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
-{/* Students by Section */}
-<ChartCard
-  title="Students by Section"
-  subtitle="Section-wise student split (Course / Branch / Semester filter)"
->
-  {/* 🔹 Section Filters */}
-  <div className="flex flex-wrap gap-2 mb-3">
-    {/* Course */}
-    <select
-      value={sectionFilters.course}
-      onChange={(e) =>
-        setSectionFilters((f) => ({ ...f, course: e.target.value }))
-      }
-      className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200"
-    >
-      <option value="ALL">All Courses</option>
-      {[...new Set(sectionDetailed.map(s => s.courseName))].map(course => (
-        <option key={course} value={course}>
-          {course}
-        </option>
-      ))}
-    </select>
+                  
+                  {/* Students by Section */}
+                  <ChartCard
+                    title="Students by Section"
+                    subtitle="Section-wise student split (Course / Branch / Semester filter)"
+                  >
+                    {/* 🔹 Section Filters */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {/* Course */}
+                      <select
+                        value={sectionFilters.course}
+                        onChange={(e) =>
+                          setSectionFilters((f) => ({ ...f, course: e.target.value }))
+                        }
+                        className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500"
+                      >
+                        <option value="ALL">All Courses</option>
+                        {[...new Set(sectionDetailed.map(s => s.courseName))].map(course => (
+                          <option key={course} value={course}>
+                            {course}
+                          </option>
+                        ))}
+                      </select>
 
-    {/* Branch */}
-    <select
-      value={sectionFilters.branch}
-      onChange={(e) =>
-        setSectionFilters((f) => ({ ...f, branch: e.target.value }))
-      }
-      className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200"
-    >
-      <option value="ALL">All Branches</option>
-      {[...new Set(sectionDetailed.map(s => s.branchName))].map(branch => (
-        <option key={branch} value={branch}>
-          {branch}
-        </option>
-      ))}
-    </select>
+                      {/* Branch */}
+                      <select
+                        value={sectionFilters.branch}
+                        onChange={(e) =>
+                          setSectionFilters((f) => ({ ...f, branch: e.target.value }))
+                        }
+                        className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500"
+                      >
+                        <option value="ALL">All Branches</option>
+                        {[...new Set(sectionDetailed.map(s => s.branchName))].map(branch => (
+                          <option key={branch} value={branch}>
+                            {branch}
+                          </option>
+                        ))}
+                      </select>
 
-    {/* Semester */}
-    <select
-      value={sectionFilters.semester}
-      onChange={(e) =>
-        setSectionFilters((f) => ({ ...f, semester: e.target.value }))
-      }
-      className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200"
-    >
-      <option value="ALL">All Semesters</option>
-      {[...new Set(sectionDetailed.map(s => s.semesterName))].map(sem => (
-        <option key={sem} value={sem}>
-          {sem}
-        </option>
-      ))}
-    </select>
-  </div>
+                      {/* Semester */}
+                      <select
+                        value={sectionFilters.semester}
+                        onChange={(e) =>
+                          setSectionFilters((f) => ({ ...f, semester: e.target.value }))
+                        }
+                        className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500"
+                      >
+                        <option value="ALL">All Semesters</option>
+                        {[...new Set(sectionDetailed.map(s => s.semesterName))].map(sem => (
+                          <option key={sem} value={sem}>
+                            {sem}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-  {/* 🔹 Chart / Empty State */}
-  {studentsBySection.length === 0 ? (
-    <div className="flex items-center justify-center h-[260px] text-sm text-slate-400">
-      No section data available
-    </div>
-  ) : (
-    <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={studentsBySection}>
-        <XAxis
-          dataKey="name"
-          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-        />
-        <YAxis
-          allowDecimals={false}
-          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-          {studentsBySection.map((entry, index) => (
-            <Cell
-              key={`sec-bar-${entry.name}`}   // stable key
-              fill={COLORS[index % COLORS.length]}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  )}
-</ChartCard>
-
-
+                    {/* 🔹 Chart / Empty State */}
+                    {studentsBySectionFiltered.length === 0 ? (
+                      <div className="flex items-center justify-center h-[260px] text-sm text-slate-400">
+                        No section data available
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={260}>
+                        <BarChart data={studentsBySectionFiltered}>
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                          />
+                          <YAxis
+                            allowDecimals={false}
+                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
+                          />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                            {studentsBySectionFiltered.map((entry, index) => (
+                              <Cell
+                                key={`sec-bar-${entry.name}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </ChartCard>
                 </div>
               )}
             </div>
@@ -709,7 +709,7 @@ const studentsBySectionFiltered = useMemo(() => {
           </div>
         </section>
 
-        {/* Team relation table – same as before */}
+        {/* Team relation table */}
         <section>
           <div className="bg-slate-900/80 rounded-2xl border border-sky-500/10 shadow-xl shadow-sky-500/20 p-4 flex flex-col">
             <div className="flex items-center justify-between mb-3">
@@ -728,7 +728,7 @@ const studentsBySectionFiltered = useMemo(() => {
 
             <div className="max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-transparent">
               <table className="w-full text-sm">
-                <thead className="text-[11px] text-gray-400 sticky top-0 bg-slate-900/90 backdrop-blur">
+                <thead className="text-[11px] text-gray-400 sticky top-0 bg-slate-900/90 backdrop-blur z-10">
                   <tr>
                     <th className="py-2 px-2 text-left font-medium">Team</th>
                     <th className="py-2 px-2 text-left font-medium">
