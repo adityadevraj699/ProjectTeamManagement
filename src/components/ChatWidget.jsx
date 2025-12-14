@@ -12,7 +12,7 @@ import {
   HiCheck,
   HiCheckCircle,
   HiTrash,
-  HiArrowUturnLeft, // ✅ CHANGED: HiReply -> HiArrowUturnLeft
+  HiArrowUturnLeft, 
   HiClock
 } from "react-icons/hi2";
 
@@ -44,9 +44,8 @@ const ChatSkeleton = () => {
 // ================= COMPONENT: MESSAGE BUBBLE =================
 const MessageBubble = ({ msg, isMine, onReply, onDelete }) => {
   const isDeleted = msg.isDeleted;
-  const isPending = msg.status === "sending"; // Check pending status
+  const isPending = msg.status === "sending"; 
   
-  // Time formatting with error handling
   let time = "";
   try {
     time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -69,7 +68,7 @@ const MessageBubble = ({ msg, isMine, onReply, onDelete }) => {
         )}
 
         {/* Sender Name (Only in Groups/Community & Not Me) */}
-        {!isMine && msg.type !== 'PRIVATE' && (
+        {!isMine && (
           <div className="text-[10px] font-bold text-orange-400 mb-0.5">
             {msg.senderName}
           </div>
@@ -92,12 +91,12 @@ const MessageBubble = ({ msg, isMine, onReply, onDelete }) => {
           {isMine && !isDeleted && (
             <span>
               {isPending ? (
-                <HiClock className="w-3 h-3 text-gray-300 animate-pulse" /> // 🕒 Pending
+                <HiClock className="w-3 h-3 text-gray-300 animate-pulse" /> 
               ) : (
                 msg.isRead || (msg.seenByNames && msg.seenByNames.length > 0) ? (
-                  <HiCheckCircle className="w-3 h-3 text-blue-300" title={`Seen by: ${msg.seenByNames?.join(', ') || 'User'}`} /> // ✅ Seen
+                  <HiCheckCircle className="w-3 h-3 text-blue-300" title={`Seen by: ${msg.seenByNames?.join(', ') || 'User'}`} /> 
                 ) : (
-                  <HiCheck className="w-3 h-3 text-gray-300" /> // ✓ Sent
+                  <HiCheck className="w-3 h-3 text-gray-300" /> 
                 )
               )}
             </span>
@@ -107,7 +106,6 @@ const MessageBubble = ({ msg, isMine, onReply, onDelete }) => {
         {/* Hover Actions (Reply/Delete) */}
         {!isDeleted && !isPending && (
           <div className={`absolute top-0 ${isMine ? "-left-16" : "-right-16"} hidden group-hover:flex bg-slate-900 rounded-md shadow-lg p-1 z-10`}>
-            {/* ✅ CHANGED: Used HiArrowUturnLeft for Reply */}
             <button onClick={() => onReply(msg)} className="p-1.5 hover:bg-slate-700 text-gray-300 rounded" title="Reply"><HiArrowUturnLeft/></button>
             {isMine && (
               <button onClick={() => onDelete(msg.id)} className="p-1.5 hover:bg-red-900/50 text-red-400 rounded" title="Delete"><HiTrash/></button>
@@ -125,22 +123,19 @@ const ChatWidget = () => {
 
   // --- STATE ---
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("GROUPS");
+  // Removed activeTab state since we only have Groups/Teams now
   const [view, setView] = useState("LIST");
   const [isLoading, setIsLoading] = useState(false);
   
   const [teamList, setTeamList] = useState([]);
-  const [userList, setUserList] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   
-  // Cache to store history per room
   const messageCache = useRef({}); 
 
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState(null);
   
-  // Tag Menu State
   const [showTagMenu, setShowTagMenu] = useState(false);
   const [tagQuery, setTagQuery] = useState("");
 
@@ -153,10 +148,6 @@ const ChatWidget = () => {
       // Teams fetch
       fetch(`${API_BASE}/team-chat/my-teams`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setTeamList(d || [])).catch(console.error);
-
-      // Users fetch
-      fetch(`${API_BASE}/chat/available-users`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => setUserList(d || [])).catch(() => setUserList([])); 
     }
   }, [user, token, open]);
 
@@ -169,7 +160,6 @@ const ChatWidget = () => {
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
       onConnect: () => {
-        // Subscribe to PERSONAL QUEUE
         client.subscribe(`/user/${user.id}/queue/messages`, (msg) => {
           handleIncomingMessage(JSON.parse(msg.body));
         });
@@ -200,9 +190,7 @@ const ChatWidget = () => {
     }
 
     // B. Fetch History from Server
-    const url = activeChat.type === 'PRIVATE' 
-      ? `${API_BASE}/chat/private/${activeChat.id}`
-      : activeChat.type === 'COMMUNITY'
+    const url = activeChat.type === 'COMMUNITY'
         ? `${API_BASE}/community/messages`
         : `${API_BASE}/team-chat/${activeChat.id}/messages`;
 
@@ -248,7 +236,6 @@ const ChatWidget = () => {
       // CASE 3: New Message
       else {
         if (newMsg.senderId === user.id) {
-          // Replace temp "sending" message
           const tempIndex = prev.findIndex(m => m.status === "sending" && m.content === newMsg.content);
           if (tempIndex !== -1) {
             updatedList[tempIndex] = newMsg; 
@@ -287,7 +274,6 @@ const ChatWidget = () => {
     const content = input;
     const replyId = replyTo?.id || null;
 
-    // 1️⃣ Create Temporary Message
     const tempMsg = {
       id: `temp-${Date.now()}`,
       content: content,
@@ -302,7 +288,6 @@ const ChatWidget = () => {
       replyToSender: replyTo ? replyTo.senderName : null
     };
 
-    // 2️⃣ Update UI Immediately
     setMessages(prev => {
         const newList = [...prev, tempMsg];
         setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 10);
@@ -313,19 +298,16 @@ const ChatWidget = () => {
     setReplyTo(null);
     setShowTagMenu(false);
 
-    // 3️⃣ Send to Server
     const payload = {
       content: content,
       senderId: user.id,
-      recipientId: activeChat.type === 'PRIVATE' ? activeChat.id : null,
       teamId: activeChat.type === 'TEAM' ? activeChat.id : null,
       replyToId: replyId,
       type: activeChat.type,
       tag: null 
     };
 
-    const dest = activeChat.type === 'PRIVATE' ? "/app/private.send" : 
-                 activeChat.type === 'TEAM' ? "/app/team.send" : "/app/community.send";
+    const dest = activeChat.type === 'TEAM' ? "/app/team.send" : "/app/community.send";
 
     if(stompClientRef.current?.connected) {
         stompClientRef.current.publish({ destination: dest, body: JSON.stringify(payload) });
@@ -359,17 +341,17 @@ const ChatWidget = () => {
     setShowTagMenu(false);
   };
 
-  // --- RENDER ---
   if (!user) return null;
 
   return (
     <>
-      <button onClick={() => setOpen(!open)} className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform">
+      {/* ✅ Z-Index set to 1000 to be above navbar (999) */}
+      <button onClick={() => setOpen(!open)} className="fixed bottom-6 right-6 z-[1000] w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform">
         {open ? <HiMiniXMark size={28} /> : <HiMiniChatBubbleLeftRight size={28} />}
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 w-[90vw] sm:w-[400px] h-[600px] max-h-[80vh] bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-40">
+        <div className="fixed bottom-24 right-6 w-[90vw] sm:w-[400px] h-[600px] max-h-[80vh] bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[1000]">
           
           {/* Header */}
           <div className="bg-slate-900 p-3 border-b border-slate-800 flex items-center gap-3">
@@ -383,45 +365,30 @@ const ChatWidget = () => {
                 {view === "LIST" ? "Messages" : activeChat?.name}
               </h3>
               <p className="text-[10px] text-emerald-400">
-                {view === "CHAT" && activeChat?.type === 'PRIVATE' ? "Online" : "Project Management Chat"}
+                Project Management Chat
               </p>
             </div>
           </div>
 
-          {/* List View */}
+          {/* List View - ONLY GROUPS/TEAMS */}
           {view === "LIST" && (
             <div className="flex flex-col h-full">
-              <div className="flex border-b border-slate-800">
-                <button onClick={() => setActiveTab("GROUPS")} className={`flex-1 py-3 text-xs font-bold ${activeTab === "GROUPS" ? "text-emerald-400 border-b-2 border-emerald-400" : "text-gray-500"}`}>Groups</button>
-                <button onClick={() => setActiveTab("DIRECT")} className={`flex-1 py-3 text-xs font-bold ${activeTab === "DIRECT" ? "text-emerald-400 border-b-2 border-emerald-400" : "text-gray-500"}`}>Direct Messages</button>
+              {/* Removed Tab Navigation since only Groups exist now */}
+              <div className="p-2 border-b border-slate-800">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-2">Your Teams</h4>
               </div>
 
               <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
-                {activeTab === "GROUPS" ? (
-                  <>
-                    <div onClick={() => { setActiveChat({ type: 'COMMUNITY', id: 'global', name: 'Community Global' }); setView('CHAT'); }} className="p-3 hover:bg-slate-900 rounded-lg cursor-pointer flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-900/50 rounded-full flex items-center justify-center text-blue-400"><HiMiniUsers size={20}/></div>
-                      <div><h4 className="text-sm text-gray-200 font-medium">Community Global</h4><p className="text-[10px] text-gray-500">All members</p></div>
+                  <div onClick={() => { setActiveChat({ type: 'COMMUNITY', id: 'global', name: 'Community Global' }); setView('CHAT'); }} className="p-3 hover:bg-slate-900 rounded-lg cursor-pointer flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-900/50 rounded-full flex items-center justify-center text-blue-400"><HiMiniUsers size={20}/></div>
+                    <div><h4 className="text-sm text-gray-200 font-medium">Community Global</h4><p className="text-[10px] text-gray-500">All members</p></div>
+                  </div>
+                  {teamList.map(t => (
+                    <div key={t.teamId} onClick={() => { setActiveChat({ type: 'TEAM', id: t.teamId, name: t.teamName }); setView('CHAT'); }} className="p-3 hover:bg-slate-900 rounded-lg cursor-pointer flex items-center gap-3">
+                      <div className="w-10 h-10 bg-indigo-900/50 rounded-full flex items-center justify-center text-indigo-400"><HiMiniUserGroup size={20}/></div>
+                      <div><h4 className="text-sm text-gray-200 font-medium">{t.teamName}</h4><p className="text-[10px] text-gray-500">Project Group</p></div>
                     </div>
-                    {teamList.map(t => (
-                      <div key={t.teamId} onClick={() => { setActiveChat({ type: 'TEAM', id: t.teamId, name: t.teamName }); setView('CHAT'); }} className="p-3 hover:bg-slate-900 rounded-lg cursor-pointer flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-900/50 rounded-full flex items-center justify-center text-indigo-400"><HiMiniUserGroup size={20}/></div>
-                        <div><h4 className="text-sm text-gray-200 font-medium">{t.teamName}</h4><p className="text-[10px] text-gray-500">Project Group</p></div>
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  userList.length === 0 ? <div className="text-center text-xs text-gray-500 mt-4">No contacts available.</div> :
-                  userList.map(u => (
-                    <div key={u.id} onClick={() => { setActiveChat({ type: 'PRIVATE', id: u.id, name: u.name }); setView('CHAT'); }} className="p-3 hover:bg-slate-900 rounded-lg cursor-pointer flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-900/50 rounded-full flex items-center justify-center text-emerald-400 font-bold">{u.name[0]}</div>
-                      <div>
-                        <h4 className="text-sm text-gray-200 font-medium">{u.name}</h4>
-                        <p className="text-[10px] text-gray-500">{u.role}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
+                  ))}
               </div>
             </div>
           )}
