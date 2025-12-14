@@ -131,7 +131,8 @@ const Navbar = () => {
       <motion.nav
         variants={navVariants}
         animate={hidden ? "hidden" : "visible"}
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${getNavStyle()}`}
+        // ✅ Z-Index increased to z-[999] to stay on top of EVERYTHING
+        className={`fixed top-0 w-full z-[999] transition-all duration-300 ${getNavStyle()}`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16"> {/* Fixed Height: 64px */}
@@ -263,7 +264,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu Overlay */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
@@ -271,7 +272,7 @@ const Navbar = () => {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="md:hidden bg-slate-900 border-b border-slate-800 overflow-hidden"
+              className="md:hidden bg-[#0f172a]/95 backdrop-blur-xl border-b border-slate-700 overflow-hidden"
             >
               <div className="px-4 py-6 space-y-3">
                 {!user ? (
@@ -279,56 +280,66 @@ const Navbar = () => {
                     <Link
                       to="/login"
                       onClick={handleMobileLinkClick}
-                      className="block w-full py-3 text-center bg-slate-800 text-white font-semibold rounded-xl"
+                      className="block w-full py-3 text-center bg-slate-800 text-white font-semibold rounded-xl border border-slate-700"
                     >
                       Sign In
                     </Link>
                     <Link
                       to="/register"
                       onClick={handleMobileLinkClick}
-                      className="block w-full py-3 text-center bg-cyan-600 text-white font-semibold rounded-xl"
+                      className="block w-full py-3 text-center bg-cyan-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20"
                     >
                       Get Started
                     </Link>
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-3 px-2 mb-6 bg-slate-800/50 p-4 rounded-xl">
-                        <img src={user.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"} alt="User" className="w-10 h-10 rounded-full" />
+                    <div className="flex items-center gap-3 px-2 mb-6 bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                        <img src={user.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"} alt="User" className="w-10 h-10 rounded-full border-2 border-white/10" />
                         <div>
                             <p className="text-white font-semibold">{user.name}</p>
-                            <p className="text-xs text-slate-400 uppercase">{user.role}</p>
+                            <p className="text-xs text-slate-400 uppercase tracking-wide">{user.role}</p>
                         </div>
                     </div>
 
-                    <Link to={dashboardPath} onClick={handleMobileLinkClick} className="block px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium">Dashboard</Link>
-                    <Link to="/profile" onClick={handleMobileLinkClick} className="block px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium">Profile</Link>
+                    <div className="space-y-1">
+                        <Link to={dashboardPath} onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition-colors">
+                           <FaTachometerAlt className="text-slate-500"/> Dashboard
+                        </Link>
+                        <Link to="/profile" onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition-colors">
+                           <FaUserCircle className="text-slate-500"/> Profile
+                        </Link>
+                    </div>
                     
-                    <div className="h-px bg-slate-800 my-2"></div>
+                    <div className="h-px bg-slate-800 my-2 mx-4"></div>
                     
-                    {roleLinks.map((link) => (
-                      <Link
-                        key={link.name}
-                        to={link.to}
-                        onClick={handleMobileLinkClick}
-                        className="block px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium"
-                      >
-                        {link.name}
-                      </Link>
-                    ))}
+                    <div className="space-y-1">
+                        {roleLinks.map((link) => (
+                          <Link
+                            key={link.name}
+                            to={link.to}
+                            onClick={handleMobileLinkClick}
+                            className="block px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition-colors"
+                          >
+                            {link.name}
+                          </Link>
+                        ))}
+                    </div>
 
-                    <div className="h-px bg-slate-800 my-2"></div>
+                    <div className="h-px bg-slate-800 my-2 mx-4"></div>
 
-                    <Link to="/change-password" onClick={handleMobileLinkClick} className="block px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium">Change Password</Link>
+                    <Link to="/change-password" onClick={handleMobileLinkClick} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition-colors">
+                        <FaKey className="text-slate-500"/> Change Password
+                    </Link>
                     
                     <button
                       onClick={() => {
                         handleLogout();
                         handleMobileLinkClick();
                       }}
-                      className="w-full text-left px-4 py-3 rounded-xl bg-red-500/10 text-red-400 font-semibold"
+                      className="w-full text-left px-4 py-3 rounded-xl bg-red-500/10 text-red-400 font-semibold flex items-center gap-3 mt-4"
                     >
-                      Logout
+                      <FaSignOutAlt/> Logout
                     </button>
                   </>
                 )}
@@ -337,8 +348,11 @@ const Navbar = () => {
           )}
         </AnimatePresence>
       </motion.nav>
-
-      {/* ✅ SPACER FIX: This pushes content down on NON-HOME pages so it isn't hidden behind the fixed navbar */}
+      
+      {/* SPACER: This empty div pushes page content down so it doesn't get hidden behind the fixed navbar.
+         It is conditionally rendered: NO spacer on Home (to allow banner to go under navbar),
+         YES spacer on all other pages.
+      */}
       {!isHomePage && <div className="h-16 w-full"></div>}
     </>
   );
@@ -367,9 +381,9 @@ const DropdownItem = ({ to, children, icon, onClick }) => (
     <Link
       to={to}
       onClick={onClick}
-      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors group"
     >
-      <span className="text-slate-500">{icon}</span>
+      <span className="text-slate-500 group-hover:text-cyan-400 transition-colors">{icon}</span>
       {children}
     </Link>
 );
