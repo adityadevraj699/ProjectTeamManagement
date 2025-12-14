@@ -21,12 +21,14 @@ const LoaderOverlay = ({ message }) => (
   </div>
 );
 
-// Custom Searchable Dropdown Component
+// ✅ Improved Searchable Dropdown Component
 const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const wrapperRef = useRef(null);
+  const inputRef = useRef(null);
 
+  // Close dropdown if clicked outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -37,15 +39,38 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Auto-focus input when opened & Reset search
+  useEffect(() => {
+    if (isOpen) {
+        setSearchTerm(""); // Reset search on open
+        if(inputRef.current) {
+            inputRef.current.focus();
+        }
+    }
+  }, [isOpen]);
+
+  const toggleDropdown = () => {
+    if (!isLoading) setIsOpen(!isOpen);
+  };
+
+  const handleSelect = (val) => {
+    onChange(val);
+    setIsOpen(false);
+    setSearchTerm("");
+  };
+
   const selectedOption = options.find((opt) => String(opt.value) === String(value));
+  
+  // Filter options based on search term
   const filteredOptions = options.filter((opt) =>
     opt.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="relative w-full md:w-1/2" ref={wrapperRef}>
+      {/* Trigger Area */}
       <div
-        onClick={() => !isLoading && setIsOpen(!isOpen)}
+        onClick={toggleDropdown}
         className={`bg-slate-900 border ${
           isOpen ? "border-sky-500 ring-1 ring-sky-500" : "border-slate-700"
         } rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all hover:border-slate-600`}
@@ -56,46 +81,52 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
         <HiChevronDown className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </div>
 
+      {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-64 flex flex-col overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-64 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-100">
+          
+          {/* Search Input Sticky Header */}
           <div className="p-2 border-b border-slate-700 bg-slate-800 sticky top-0 z-10">
             <div className="flex items-center bg-slate-900 rounded-lg px-3 border border-slate-700 focus-within:border-sky-500 transition-colors">
               <HiSearch className="text-slate-500 mr-2" />
               <input
+                ref={inputRef}
                 type="text"
-                placeholder="Search..."
+                placeholder="Search team..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                autoFocus
                 className="w-full bg-transparent py-2 text-sm text-white focus:outline-none placeholder-slate-500"
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking input
               />
               {searchTerm && (
                 <HiX
                   className="text-slate-500 cursor-pointer hover:text-white"
-                  onClick={() => setSearchTerm("")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSearchTerm("");
+                    inputRef.current?.focus();
+                  }}
                 />
               )}
             </div>
           </div>
+
+          {/* Options List */}
           <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((opt) => (
                 <div
                   key={opt.value}
-                  onClick={() => {
-                    onChange(opt.value);
-                    setIsOpen(false);
-                    setSearchTerm("");
-                  }}
+                  onClick={() => handleSelect(opt.value)}
                   className={`px-4 py-2.5 cursor-pointer hover:bg-slate-700/50 transition-colors text-sm ${
-                    String(value) === String(opt.value) ? "bg-sky-500/10 text-sky-400" : "text-slate-300"
+                    String(value) === String(opt.value) ? "bg-sky-500/10 text-sky-400 font-medium" : "text-slate-300"
                   }`}
                 >
                   {opt.label}
                 </div>
               ))
             ) : (
-              <div className="p-4 text-center text-slate-500 text-sm">No options found</div>
+              <div className="p-4 text-center text-slate-500 text-sm">No teams found</div>
             )}
           </div>
         </div>
@@ -359,7 +390,6 @@ export default function Student() {
     }
   };
 
-  // Prepare options for searchable select
   const teamOptions = teams.map(t => ({
     value: t.teamId,
     label: t.teamName
