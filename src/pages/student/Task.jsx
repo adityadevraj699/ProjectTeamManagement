@@ -1,30 +1,41 @@
-// src/components/Task.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../context/api";
 import Swal from "sweetalert2";
+import { HiSearch, HiFilter, HiRefresh, HiUpload, HiCheck, HiExternalLink } from "react-icons/hi";
+
+// 🔄 Reusable High-End Loader Overlay
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
+  </div>
+);
 
 const PRIORITY_STYLES = {
-  CRITICAL: "bg-red-600 text-white",
-  HIGH: "bg-orange-500 text-white",
-  MEDIUM: "bg-sky-500 text-white",
-  LOW: "bg-gray-400 text-black",
-  DEFAULT: "bg-gray-300 text-black"
+  CRITICAL: "bg-red-500/10 text-red-400 border border-red-500/20",
+  HIGH: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+  MEDIUM: "bg-sky-500/10 text-sky-400 border border-sky-500/20",
+  LOW: "bg-slate-500/10 text-slate-400 border border-slate-500/20",
+  DEFAULT: "bg-gray-500/10 text-gray-400 border border-gray-500/20"
 };
 
 const STATUS_STYLES = {
-  COMPLETED: "bg-green-600 text-white",
-  IN_PROGRESS: "bg-yellow-500 text-black",
-  PENDING: "bg-gray-400 text-black",
-  DEFAULT: "bg-gray-300 text-black"
+  COMPLETED: "bg-green-500/10 text-green-400 border border-green-500/20",
+  IN_PROGRESS: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+  PENDING: "bg-slate-500/10 text-slate-400 border border-slate-500/20",
+  DEFAULT: "bg-gray-500/10 text-gray-400 border border-gray-500/20"
 };
 
 const TYPE_STYLES = {
-  DEVELOPMENT: "bg-indigo-600 text-white",
-  TESTING: "bg-purple-600 text-white",
-  DOCUMENTATION: "bg-emerald-600 text-white",
-  DEPLOYMENT: "bg-teal-600 text-white",
-  OTHER: "bg-gray-500 text-white",
-  DEFAULT: "bg-gray-300 text-black"
+  DEVELOPMENT: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
+  TESTING: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+  DOCUMENTATION: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+  DEPLOYMENT: "bg-teal-500/10 text-teal-400 border border-teal-500/20",
+  OTHER: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
+  DEFAULT: "bg-gray-500/10 text-gray-400 border border-gray-500/20"
 };
 
 function classForPriority(p) { return PRIORITY_STYLES[p] || PRIORITY_STYLES.DEFAULT; }
@@ -41,9 +52,7 @@ export default function Task() {
   const [loading, setLoading] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
   const [files, setFiles] = useState({});
-  const [dark] = useState(() => {
-    try { return localStorage.getItem("pref_dark") === "1"; } catch { return true; }
-  });
+  const [searchTerm, setSearchTerm] = useState("");
 
   // FILTER STATE
   const [filterTeam, setFilterTeam] = useState("");
@@ -52,16 +61,7 @@ export default function Task() {
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  useEffect(() => {
-    if (dark) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-  }, [dark]);
-
   useEffect(() => { fetchTasks(); }, []);
-
-  function getToken() {
-    try { return localStorage.getItem("token"); } catch { return null; }
-  }
 
   async function fetchTasks() {
     setLoading(true);
@@ -69,10 +69,14 @@ export default function Task() {
       const res = await api.get("/tasks/my");
       setTasks(res.data || []);
     } catch (err) {
-      const r = err?.response;
-      const msg = r?.data?.message || r?.data || err?.message || "Could not fetch tasks";
       console.error("Fetch tasks error:", err);
-      Swal.fire("Error", msg.toString(), "error");
+      Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Could not fetch tasks',
+          background: '#1e293b',
+          color: '#fff'
+      });
     } finally {
       setLoading(false);
     }
@@ -81,12 +85,25 @@ export default function Task() {
   async function updateStatus(taskId, status) {
     try {
       await api.put(`/tasks/${taskId}/status`, { status });
-      Swal.fire("Saved", "Status updated", "success");
+      Swal.fire({
+          icon: 'success',
+          title: 'Updated',
+          text: 'Status updated successfully',
+          timer: 1500,
+          showConfirmButton: false,
+          background: '#1e293b',
+          color: '#fff'
+      });
       fetchTasks();
     } catch (err) {
-      const r = err?.response;
-      console.error("Update status failed:", { message: err?.message, status: r?.status, data: r?.data });
-      Swal.fire("Error", r?.data?.error || r?.data?.message || "Could not update status", "error");
+      console.error("Update status failed:", err);
+      Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Could not update status',
+          background: '#1e293b',
+          color: '#fff'
+      });
     }
   }
 
@@ -98,7 +115,13 @@ export default function Task() {
   async function submitFile(taskId, markCompleted = false) {
     const file = files[taskId];
     if (!file) {
-      Swal.fire("Select file", "Please choose a file to upload", "warning");
+      Swal.fire({
+          icon: 'warning',
+          title: 'Select File',
+          text: 'Please choose a file to upload',
+          background: '#1e293b',
+          color: '#fff'
+      });
       return;
     }
     const form = new FormData();
@@ -110,13 +133,26 @@ export default function Task() {
       await api.post(`/tasks/${taskId}/submit`, form, {
         headers: { "Content-Type": "multipart/form-data" }
       });
-      Swal.fire("Uploaded", "File uploaded successfully", "success");
+      Swal.fire({
+          icon: 'success',
+          title: 'Uploaded',
+          text: 'File uploaded successfully',
+          timer: 1500,
+          showConfirmButton: false,
+          background: '#1e293b',
+          color: '#fff'
+      });
       setFiles(prev => ({ ...prev, [taskId]: null }));
       fetchTasks();
     } catch (err) {
-      const r = err?.response;
-      console.error("Submit file failed:", { message: err?.message, status: r?.status, data: r?.data });
-      Swal.fire("Error", r?.data?.error || r?.data?.message || "Upload failed", "error");
+      console.error("Submit file failed:", err);
+      Swal.fire({
+          icon: 'error',
+          title: 'Upload Failed',
+          text: 'Could not upload file',
+          background: '#1e293b',
+          color: '#fff'
+      });
     } finally {
       setUploadingId(null);
     }
@@ -129,27 +165,19 @@ export default function Task() {
     return Array.from(s).sort();
   }, [tasks]);
 
-  const prioritiesList = useMemo(() => {
-    const s = new Set();
-    tasks.forEach(t => { if (t.priority) s.add(t.priority); });
-    return Array.from(s).sort();
-  }, [tasks]);
-
-  const typesList = useMemo(() => {
-    const s = new Set();
-    tasks.forEach(t => { if (t.type) s.add(t.type); });
-    return Array.from(s).sort();
-  }, [tasks]);
-
-  const statusesList = useMemo(() => {
-    const s = new Set();
-    tasks.forEach(t => { if (t.status) s.add(t.status); });
-    return Array.from(s).sort();
-  }, [tasks]);
-
-  // Apply filters (client-side)
+  // Apply filters & Search & Sorting
   const filteredTasks = useMemo(() => {
-    return tasks.filter(t => {
+    let result = tasks.filter(t => {
+      // Search Filter
+      if (searchTerm) {
+          const lowerTerm = searchTerm.toLowerCase();
+          const matchesSearch = 
+              t.taskDescription?.toLowerCase().includes(lowerTerm) ||
+              t.teamName?.toLowerCase().includes(lowerTerm) ||
+              t.assignedToName?.toLowerCase().includes(lowerTerm);
+          if (!matchesSearch) return false;
+      }
+
       if (filterTeam && (t.teamName || "") !== filterTeam) return false;
       if (filterPriority && (t.priority || "") !== filterPriority) return false;
       if (filterType && (t.type || "") !== filterType) return false;
@@ -162,24 +190,14 @@ export default function Task() {
       }
       return true;
     });
-  }, [tasks, filterTeam, filterPriority, filterType, filterStatus, filterDeadlineBefore]);
 
-  // ---------- NEW: sort filteredTasks newest-first ----------
-  const sortedTasks = useMemo(() => {
-    // copy then sort by assignedDate desc, fallback to id desc
-    return filteredTasks.slice().sort((a, b) => {
-      const aDate = a.assignedDate ? Date.parse(a.assignedDate) : 0;
-      const bDate = b.assignedDate ? Date.parse(b.assignedDate) : 0;
-      if (bDate !== aDate) return bDate - aDate;
-      // fallback to id (newer id on top)
-      const aId = a.id || 0;
-      const bId = b.id || 0;
-      return bId - aId;
-    });
-  }, [filteredTasks]);
-  // ---------------------------------------------------------
+    // Sort: Latest tasks on top (by ID descending as proxy for creation time)
+    return result.sort((a, b) => b.id - a.id);
+  }, [tasks, searchTerm, filterTeam, filterPriority, filterType, filterStatus, filterDeadlineBefore]);
+
 
   function clearFilters() {
+    setSearchTerm("");
     setFilterTeam("");
     setFilterDeadlineBefore("");
     setFilterPriority("");
@@ -187,302 +205,251 @@ export default function Task() {
     setFilterStatus("");
   }
 
-  if (loading) return (
-    <div className="min-h-[200px] flex items-center justify-center bg-[#071226] dark:bg-[#071226]">
-      <div className="text-lg font-medium text-slate-200">Loading tasks...</div>
-    </div>
-  );
-
-  if (!tasks.length) return (
-    <div className="p-6 bg-[#071226] min-h-[200px]">
-      <h2 className="text-2xl font-semibold text-sky-300">My Tasks</h2>
-      <div className="text-slate-400 mt-3">No tasks found</div>
-    </div>
-  );
+  if (loading) return <LoaderOverlay message="Loading tasks..." />;
 
   return (
-    <div className="p-4 bg-[#071226] min-h-screen">
+    <div className="p-6 md:p-10 bg-[#0f172a] min-h-screen text-slate-200 font-sans selection:bg-sky-500/30">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-4">
-          <h2 className="text-2xl font-semibold text-sky-300">My Tasks</h2>
+        
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-end gap-4">
+          <div>
+              <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                  <HiFilter className="text-sky-500" /> My Tasks
+              </h1>
+              <p className="text-slate-400 mt-2 text-sm">Track progress, manage deadlines, and submit your work.</p>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="relative w-full md:w-80">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <HiSearch className="text-slate-500 text-lg" />
+              </div>
+              <input
+                  type="text"
+                  placeholder="Search tasks..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm placeholder-slate-500 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+              />
+          </div>
         </div>
 
         {/* FILTER BAR */}
-        <div className="mb-4 bg-[#0b1220] p-3 rounded-lg ring-1 ring-white/5 flex flex-wrap gap-3 items-center">
-          {/* Team */}
-          <div className="flex flex-col text-xs text-slate-300">
-            <label className="mb-1">Team</label>
+        <div className="mb-8 bg-slate-800/40 border border-slate-700/60 backdrop-blur-md p-4 rounded-2xl flex flex-wrap gap-4 items-center shadow-lg">
+          <div className="flex flex-col">
+            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1">Team</label>
             <select
               value={filterTeam}
               onChange={(e) => setFilterTeam(e.target.value)}
-              className="px-2 py-1 rounded bg-[#071226] text-slate-200 border border-gray-700"
+              className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors"
             >
-              <option value="">All</option>
+              <option value="">All Teams</option>
               {teamsList.map(team => <option key={team} value={team}>{team}</option>)}
             </select>
           </div>
 
-          {/* Deadline (due before) */}
-          <div className="flex flex-col text-xs text-slate-300">
-            <label className="mb-1">Due before</label>
+          <div className="flex flex-col">
+            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1">Due Before</label>
             <input
               type="date"
               value={filterDeadlineBefore}
               onChange={(e) => setFilterDeadlineBefore(e.target.value)}
-              className="px-2 py-1 rounded bg-[#071226] text-slate-200 border border-gray-700"
+              className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors"
             />
           </div>
 
-          {/* Priority */}
-          <div className="flex flex-col text-xs text-slate-300">
-            <label className="mb-1">Priority</label>
+          <div className="flex flex-col">
+            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1">Priority</label>
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
-              className="px-2 py-1 rounded bg-[#071226] text-slate-200 border border-gray-700"
+              className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors"
             >
               <option value="">All</option>
-              {["CRITICAL","HIGH","MEDIUM","LOW"].map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-              {prioritiesList.filter(p => !["CRITICAL","HIGH","MEDIUM","LOW"].includes(p)).map(p => <option key={p} value={p}>{p}</option>)}
+              {["CRITICAL","HIGH","MEDIUM","LOW"].map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
 
-          {/* Type */}
-          <div className="flex flex-col text-xs text-slate-300">
-            <label className="mb-1">Type</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-2 py-1 rounded bg-[#071226] text-slate-200 border border-gray-700"
-            >
-              <option value="">All</option>
-              {["DEVELOPMENT","TESTING","DOCUMENTATION","DEPLOYMENT","OTHER"].map(tp => (
-                <option key={tp} value={tp}>{tp}</option>
-              ))}
-              {typesList.filter(tp => !["DEVELOPMENT","TESTING","DOCUMENTATION","DEPLOYMENT","OTHER"].includes(tp)).map(tp => <option key={tp} value={tp}>{tp}</option>)}
-            </select>
-          </div>
-
-          {/* Status */}
-          <div className="flex flex-col text-xs text-slate-300">
-            <label className="mb-1">Status</label>
+          <div className="flex flex-col">
+            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1">Status</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-2 py-1 rounded bg-[#071226] text-slate-200 border border-gray-700"
+              className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-sky-500 focus:outline-none transition-colors"
             >
               <option value="">All</option>
               {["PENDING","IN_PROGRESS","COMPLETED"].map(s => <option key={s} value={s}>{s}</option>)}
-              {statusesList.filter(s => !["PENDING","IN_PROGRESS","COMPLETED"].includes(s)).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
-          {/* Clear */}
-          <div className="ml-auto">
+          <div className="ml-auto mt-auto">
             <button
               onClick={clearFilters}
-              className="px-3 py-1 rounded bg-slate-700 text-sm text-slate-200"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-bold text-white transition-colors border border-slate-600"
             >
-              Clear
+              <HiRefresh className="text-lg"/> Reset Filters
             </button>
           </div>
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="hidden md:block bg-[#0b1220] rounded-lg shadow ring-1 ring-white/5 overflow-auto">
-          <table className="min-w-full">
-            <thead className="bg-[#071226]">
+        <div className="hidden md:block bg-slate-800/60 border border-slate-700/60 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider font-semibold">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">#</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Description</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Assigned</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Project</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Team</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Deadline</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Priority</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Type</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Attachment</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Actions</th>
+                <th className="px-6 py-4">Task Info</th>
+                <th className="px-6 py-4">Assigned To</th>
+                <th className="px-6 py-4">Project / Team</th>
+                <th className="px-6 py-4">Tags</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Submission</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
-              {sortedTasks.map((t, idx) => (
-                <tr key={t.id} className="hover:bg-[#0f1724]">
-                  <td className="px-4 py-3 text-sm text-slate-200">{idx + 1}</td>
+            <tbody className="divide-y divide-slate-700/50">
+              {filteredTasks.length === 0 ? (
+                  <tr><td colSpan={7} className="text-center py-8 text-slate-500">No tasks found.</td></tr>
+              ) : (
+                  filteredTasks.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-700/30 transition-all group">
+                      <td className="px-6 py-4 max-w-xs">
+                        <div className="font-bold text-white line-clamp-2">{t.taskDescription}</div>
+                        {t.comments && <div className="text-xs text-slate-400 mt-1 italic line-clamp-1">"{t.comments}"</div>}
+                        <div className="text-[10px] text-slate-500 mt-2 font-mono">Due: {formatDate(t.deadline)}</div>
+                      </td>
 
-                  <td className="px-4 py-3 max-w-xs text-sm text-slate-200 break-words">
-                    <div className="font-medium text-slate-100">{t.taskDescription}</div>
-                    <div className="text-xs text-slate-400 mt-1">{t.comments}</div>
-                    <div className="text-xs text-slate-500 mt-1">Assigned on: {t.assignedDate ? formatDate(t.assignedDate) : "-"}</div>
-                  </td>
+                      <td className="px-6 py-4 text-slate-300">
+                         {t.assignedToName ? (
+                             <div className="flex items-center gap-2">
+                                 <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">{t.assignedToName.charAt(0)}</div>
+                                 {t.assignedToName}
+                             </div>
+                         ) : (
+                             <span className="text-yellow-400 text-xs font-bold border border-yellow-400/20 bg-yellow-400/10 px-2 py-1 rounded">TEAM</span>
+                         )}
+                      </td>
 
-                  <td className="px-4 py-3 text-sm text-slate-200">{t.assignedToName || "Whole Team"}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-slate-200 font-medium">{t.projectTitle || "-"}</div>
+                        <div className="text-xs text-slate-500">{t.teamName || "-"}</div>
+                      </td>
 
-                  <td className="px-4 py-3 text-sm text-slate-200">{t.projectTitle || "-"}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1.5 items-start">
+                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${classForPriority(t.priority)}`}>
+                             {t.priority || "MEDIUM"}
+                           </span>
+                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${classForType(t.type)}`}>
+                             {t.type || "OTHER"}
+                           </span>
+                        </div>
+                      </td>
 
-                  <td className="px-4 py-3 text-sm text-slate-200">{t.teamName || "-"}</td>
-
-                  <td className="px-4 py-3 text-sm text-slate-200">{formatDate(t.deadline)}</td>
-
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${classForPriority(t.priority)}`}>
-                      {t.priority || "MEDIUM"}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${classForType(t.type)}`}>
-                      {t.type || "OTHER"}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${classForStatus(t.status)}`}>
-                      {t.status || "PENDING"}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3 text-sm">
-                    {t.attachmentUrl ? (
-                      <a href={t.attachmentUrl} target="_blank" rel="noreferrer" className="underline text-sky-300">Open</a>
-                    ) : (
-                      <div className="text-xs text-slate-500">No file</div>
-                    )}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm">
-                    <div className="flex flex-col md:flex-row gap-2">
-                      <select
-                        value={t.status || "PENDING"}
-                        onChange={(e) => updateStatus(t.id, e.target.value)}
-                        className="px-2 py-1 border rounded text-sm bg-[#071226] text-slate-200 border-gray-700"
-                      >
-                        <option value="PENDING">PENDING</option>
-                        <option value="IN_PROGRESS">IN_PROGRESS</option>
-                        <option value="COMPLETED">COMPLETED</option>
-                      </select>
-
-                      {!t.attachmentUrl && (
-                        <>
-                          <label className="px-2 py-1 border rounded cursor-pointer text-xs text-slate-200 bg-[#0b1220] border-gray-700">
-                            <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileChange(e, t.id)} />
-                            Choose
-                          </label>
-
-                          <button
-                            onClick={() => submitFile(t.id, false)}
-                            disabled={uploadingId === t.id}
-                            className="px-2 py-1 rounded border text-sm text-slate-200 border-gray-700"
-                          >
-                            {uploadingId === t.id ? "Uploading..." : "Upload"}
-                          </button>
-
-                          <button
-                            onClick={() => submitFile(t.id, true)}
-                            disabled={uploadingId === t.id}
-                            className="px-2 py-1 rounded bg-emerald-600 text-white text-sm"
-                          >
-                            {uploadingId === t.id ? "Uploading..." : "Submit & Complete"}
-                          </button>
-                        </>
-                      )}
-
-                      {t.attachmentUrl && (
-                        <button
-                          onClick={() => window.open(t.attachmentUrl, "_blank")}
-                          className="px-2 py-1 rounded border text-sm text-slate-200 border-gray-700"
+                      <td className="px-6 py-4">
+                        <select
+                            value={t.status || "PENDING"}
+                            onChange={(e) => updateStatus(t.id, e.target.value)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border bg-slate-900 outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer ${
+                                t.status === 'COMPLETED' ? 'text-green-400 border-green-500/30' :
+                                t.status === 'IN_PROGRESS' ? 'text-yellow-400 border-yellow-500/30' :
+                                'text-slate-400 border-slate-600'
+                            }`}
                         >
-                          Open
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                            <option value="PENDING">Pending</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="COMPLETED">Completed</option>
+                        </select>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        {t.attachmentUrl ? (
+                          <a href={t.attachmentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 hover:underline text-xs font-medium">
+                             <HiExternalLink/> View File
+                          </a>
+                        ) : (
+                          <span className="text-xs text-slate-500">Not submitted</span>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4 text-right">
+                         <div className="flex flex-col gap-2 items-end">
+                            {!t.attachmentUrl && (
+                                <div className="flex items-center gap-2">
+                                    <label className="cursor-pointer p-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors border border-slate-600" title="Select File">
+                                        <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileChange(e, t.id)} />
+                                        <HiUpload className="text-lg"/>
+                                    </label>
+                                    
+                                    {files[t.id] && (
+                                        <button
+                                            onClick={() => submitFile(t.id, true)}
+                                            disabled={uploadingId === t.id}
+                                            className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg transition-all flex items-center gap-1"
+                                        >
+                                            {uploadingId === t.id ? "..." : <><HiCheck/> Submit</>}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                         </div>
+                      </td>
+                    </tr>
+                  ))
+              )}
             </tbody>
           </table>
         </div>
 
         {/* MOBILE CARDS */}
         <div className="md:hidden space-y-4">
-          {sortedTasks.map((t, idx) => (
-            <div key={t.id} className="bg-[#0b1220] rounded-lg shadow p-4 ring-1 ring-white/5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-slate-100">{t.taskDescription}</h3>
-                    <div className="text-xs text-slate-400">{formatDate(t.deadline)}</div>
+          {filteredTasks.length === 0 ? <p className="text-center text-slate-500">No tasks found.</p> :
+            filteredTasks.map((t) => (
+            <div key={t.id} className="bg-slate-800/60 border border-slate-700 rounded-xl p-5 shadow-lg relative overflow-hidden">
+              {/* Priority Stripe */}
+              <div className={`absolute top-0 left-0 w-1.5 h-full ${
+                  t.priority === 'CRITICAL' ? 'bg-red-500' : 
+                  t.priority === 'HIGH' ? 'bg-orange-500' : 'bg-sky-500'
+              }`}></div>
+
+              <div className="pl-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-sm font-bold text-white leading-tight">{t.taskDescription}</h3>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${classForStatus(t.status)}`}>{t.status}</span>
                   </div>
 
-                  <div className="mt-2 text-xs text-slate-400">{t.comments}</div>
+                  <div className="text-xs text-slate-400 mb-3 font-mono">Due: {formatDate(t.deadline)}</div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${classForPriority(t.priority)}`}>
-                      {t.priority}
-                    </span>
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${classForType(t.type)}`}>
-                      {t.type}
-                    </span>
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${classForStatus(t.status)}`}>
-                      {t.status}
-                    </span>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${classForType(t.type)}`}>{t.type}</span>
                   </div>
 
-                  <div className="mt-3 text-sm text-slate-300">
-                    <div><strong>Assigned:</strong> {t.assignedToName || "Whole Team"}</div>
-                    <div><strong>Project:</strong> {t.projectTitle || "-"}</div>
-                    <div><strong>Team:</strong> {t.teamName || "-"}</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                     <div><span className="text-slate-500 block text-[10px] uppercase">Project</span>{t.projectTitle || "-"}</div>
+                     <div><span className="text-slate-500 block text-[10px] uppercase">Assigned To</span>{t.assignedToName || "Team"}</div>
                   </div>
-                </div>
-              </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <select
-                  value={t.status || "PENDING"}
-                  onChange={(e) => updateStatus(t.id, e.target.value)}
-                  className="px-2 py-1 border rounded text-sm bg-[#071226] text-slate-200 border-gray-700"
-                >
-                  <option value="PENDING">PENDING</option>
-                  <option value="IN_PROGRESS">IN_PROGRESS</option>
-                  <option value="COMPLETED">COMPLETED</option>
-                </select>
+                  <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-700/50">
+                      <select
+                        value={t.status || "PENDING"}
+                        onChange={(e) => updateStatus(t.id, e.target.value)}
+                        className="bg-slate-900 text-white text-xs border border-slate-600 rounded px-2 py-1.5 outline-none focus:border-sky-500"
+                      >
+                        <option value="PENDING">PENDING</option>
+                        <option value="IN_PROGRESS">IN PROGRESS</option>
+                        <option value="COMPLETED">COMPLETED</option>
+                      </select>
 
-                {!t.attachmentUrl && (
-                  <>
-                    <label className="px-2 py-1 border rounded cursor-pointer text-xs text-slate-200 bg-[#0b1220] border-gray-700">
-                      <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileChange(e, t.id)} />
-                      Choose
-                    </label>
-
-                    <button
-                      onClick={() => submitFile(t.id, false)}
-                      disabled={uploadingId === t.id}
-                      className="px-2 py-1 rounded border text-sm text-slate-200 border-gray-700"
-                    >
-                      {uploadingId === t.id ? "Uploading..." : "Upload"}
-                    </button>
-
-                    <button
-                      onClick={() => submitFile(t.id, true)}
-                      disabled={uploadingId === t.id}
-                      className="px-2 py-1 rounded bg-emerald-600 text-white text-sm"
-                    >
-                      {uploadingId === t.id ? "Uploading..." : "Submit & Complete"}
-                    </button>
-                  </>
-                )}
-
-                {t.attachmentUrl && (
-                  <button
-                    onClick={() => window.open(t.attachmentUrl, "_blank")}
-                    className="px-2 py-1 rounded border text-sm text-slate-200 border-gray-700"
-                  >
-                    Open
-                  </button>
-                )}
+                      {!t.attachmentUrl && (
+                          <div className="flex items-center gap-2">
+                             <label className="p-1.5 rounded bg-slate-700 text-white cursor-pointer"><input type="file" className="hidden" onChange={(e) => handleFileChange(e, t.id)} /><HiUpload/></label>
+                             <button onClick={() => submitFile(t.id, true)} className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold">Submit</button>
+                          </div>
+                      )}
+                      
+                      {t.attachmentUrl && (
+                          <button onClick={() => window.open(t.attachmentUrl, "_blank")} className="text-sky-400 text-xs font-bold hover:underline">View File</button>
+                      )}
+                  </div>
               </div>
             </div>
           ))}

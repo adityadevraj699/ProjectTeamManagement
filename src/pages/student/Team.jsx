@@ -1,8 +1,19 @@
-// src/components/Teams.jsx
 import React, { useEffect, useState } from "react";
 import api from "../../context/api";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { HiUserGroup, HiCode, HiCalendar, HiEye, HiInformationCircle } from "react-icons/hi";
+
+// 🔄 Reusable High-End Loader Overlay
+const LoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+    <div className="relative w-24 h-24">
+      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
+      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
+  </div>
+);
 
 export default function Teams() {
   const [teams, setTeams] = useState([]);
@@ -29,134 +40,119 @@ export default function Teams() {
     return () => (mounted = false);
   }, []);
 
-  if (loading)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#071226] to-[#07192b]">
-        <div className="text-slate-300">Loading teams...</div>
-      </div>
-    );
+  if (loading) return <LoaderOverlay message="Loading Teams..." />;
 
   if (!teams.length)
     return (
-      <div className="min-h-screen p-6 bg-gradient-to-b from-[#071226] to-[#07192b]">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-semibold text-sky-300">Your Teams</h2>
-          <p className="mt-4 text-slate-400">You are not a member of any team yet.</p>
+      <div className="min-h-screen p-6 bg-[#0f172a] flex flex-col items-center justify-center text-center">
+        <div className="bg-slate-800/50 p-8 rounded-3xl border border-dashed border-slate-700">
+             <HiUserGroup className="text-5xl text-slate-600 mb-4 mx-auto" />
+             <h2 className="text-2xl font-semibold text-white mb-2">No Teams Found</h2>
+             <p className="text-slate-400">You are not a member of any team yet.</p>
         </div>
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#071226] to-[#07192b] p-6">
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 p-6 md:p-10 font-sans selection:bg-sky-500/30">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-sky-300">My Teams</h1>
-          <div className="text-sm text-slate-400">Projects & team details</div>
+        
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                 <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                    <HiUserGroup className="text-sky-500" /> My Teams
+                 </h1>
+                 <p className="text-slate-400 mt-2 text-sm">Projects you are collaborating on.</p>
+            </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {teams.map((team) => (
             <div
               key={team.id}
-              className="group relative overflow-hidden rounded-2xl p-5 shadow-lg ring-1 ring-white/5
-                         bg-gradient-to-tr from-[#0B1220] via-[#0F1626] to-[#071228] hover:scale-[1.01] transition-transform"
+              className="group relative bg-slate-800/40 backdrop-blur-sm border border-slate-700/60 rounded-2xl overflow-hidden hover:bg-slate-800/60 hover:border-sky-500/30 hover:shadow-xl hover:shadow-sky-900/10 transition-all duration-300 flex flex-col"
             >
-              <div className="flex justify-between items-start">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-sky-300 truncate">{team.teamName}</h3>
+              {/* Top accent */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 to-indigo-500"></div>
 
-                  <div className="mt-2 text-sm text-slate-300 truncate">
-                    {team.projectTitle ? (
-                      <span className="inline-block text-sky-200/90">{team.projectTitle}</span>
-                    ) : (
-                      <span className="italic text-slate-500">No linked project</span>
-                    )}
-                  </div>
-
-                  <div className="text-xs text-slate-500 mt-2">
-                    {team.createdDate ? `Created: ${team.createdDate}` : ""}
-                  </div>
-                </div>
-
-                {/* Avatars */}
-                <div className="flex -space-x-2 ml-4">
-                  {(team.members || []).slice(0, 4).map((m) => (
-                    <div
-                      key={m.id}
-                      title={m.name}
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-medium
-                                 bg-gradient-to-r from-sky-500 to-indigo-600 text-white border-2 border-[#071226] shadow-sm"
-                    >
-                      {m.name
-                        ? m.name
-                            .split(" ")
-                            .map((x) => x[0])
-                            .slice(0, 2)
-                            .join("")
-                        : "U"}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Member list */}
-              <div className="mt-4">
-                <div className="text-slate-300 text-sm">Members: {(team.members || []).length}</div>
-                <div className="mt-2 space-y-1">
-                  {(team.members || []).map((m) => (
-                    <div key={m.id} className="flex items-center gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium
-                                        bg-slate-700/40 text-white border border-[#071226]">
-                          {m.name ? m.name.split(" ").map(x => x[0]).slice(0,2).join("") : "U"}
-                        </div>
-                        <span className="text-slate-200 text-sm">{m.name}</span>
-                      </div>
-                      <div className="ml-auto">
-                        {m.leader && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-400 text-black font-semibold">
-                            Leader
-                          </span>
+              <div className="p-6 flex-1 flex flex-col">
+                {/* Header */}
+                <div className="mb-4">
+                    <h3 className="text-xl font-bold text-white mb-1 group-hover:text-sky-400 transition-colors truncate">
+                        {team.teamName}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-2">
+                        {team.projectTitle ? (
+                            <span className="bg-slate-700/50 text-slate-300 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md border border-slate-600/50 flex items-center gap-1">
+                                <HiCode className="text-sky-400"/> {team.projectTitle}
+                            </span>
+                        ) : (
+                            <span className="text-slate-500 text-xs italic">No project linked</span>
                         )}
-                      </div>
                     </div>
-                  ))}
+                    <div className="text-[10px] text-slate-500 mt-2 flex items-center gap-1">
+                        <HiCalendar/> Created: {team.createdDate || "Unknown"}
+                    </div>
                 </div>
-              </div>
 
-              {/* Buttons */}
-              <div className="mt-5 flex gap-3">
-                <button
-                  onClick={() => navigate(`/student/teams/${team.id}`)}
-                  className="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-black font-medium shadow"
-                >
-                  View Details
-                </button>
-
-                <button
-                  onClick={() =>
-                    Swal.fire(
-                      "Info",
-                      "Feature: message or invite can be added here",
-                      "info"
-                    )
-                  }
-                  className="px-4 py-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-100"
-                >
-                  More
-                </button>
-              </div>
-
-              {/* subtle footer showing project & badge */}
-              <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 20l9-5-9-5-9 5 9 5z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 12l9-5-9-5-9 5 9 5z" opacity="0.2" />
-                  </svg>
-                  <span>{team.projectTitle ? "Linked project" : "No project"}</span>
+                {/* Members Avatars */}
+                <div className="mb-6">
+                    <div className="flex -space-x-3 overflow-hidden p-1">
+                        {(team.members || []).slice(0, 5).map((m) => (
+                            <div
+                                key={m.id}
+                                title={m.name}
+                                className="inline-block h-10 w-10 rounded-full ring-2 ring-[#0f172a] bg-slate-700 flex items-center justify-center text-xs font-bold text-white shadow-md relative z-0 hover:z-10 transition-all hover:scale-110 cursor-help"
+                            >
+                                {m.name ? m.name.charAt(0) : "U"}
+                            </div>
+                        ))}
+                        {(team.members || []).length > 5 && (
+                            <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#0f172a] bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400 shadow-md">
+                                +{(team.members.length - 5)}
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-2 pl-1">
+                        Total Members: <span className="text-slate-200 font-semibold">{team.members?.length || 0}</span>
+                    </p>
                 </div>
-                <div className="text-slate-300">{team.members ? `${team.members.length} members` : "0 members"}</div>
+
+                {/* Member List Preview (Optional, simplified) */}
+                 <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50 mb-6 flex-1">
+                    <div className="space-y-2">
+                        {(team.members || []).slice(0, 3).map(m => (
+                            <div key={m.id} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-[9px] text-white">
+                                        {m.name?.charAt(0)}
+                                    </div>
+                                    <span className="text-slate-300">{m.name}</span>
+                                </div>
+                                {m.leader && <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20">Leader</span>}
+                            </div>
+                        ))}
+                    </div>
+                 </div>
+
+                {/* Actions */}
+                <div className="mt-auto flex gap-3">
+                  <button
+                    onClick={() => navigate(`/student/teams/${team.id}`)}
+                    className="flex-1 py-2.5 bg-slate-700 hover:bg-sky-600 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2 group/btn border border-slate-600 hover:border-transparent"
+                  >
+                    <HiEye className="text-lg text-sky-400 group-hover/btn:text-white transition-colors"/> View Details
+                  </button>
+                  
+                  <button
+                     onClick={() => Swal.fire("Info", "Additional team actions coming soon.", "info")}
+                     className="px-3 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-slate-500 rounded-lg text-white transition-colors"
+                     title="More Info"
+                  >
+                    <HiInformationCircle className="text-lg text-slate-400"/>
+                  </button>
+                </div>
+
               </div>
             </div>
           ))}
