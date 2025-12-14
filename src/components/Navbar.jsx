@@ -8,7 +8,6 @@ const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   
   const { scrollY } = useScroll();
@@ -19,18 +18,8 @@ const Navbar = () => {
 
   const isHomePage = location.pathname === "/";
 
-  // Scroll Behavior Logic
+  // Scroll Behavior Logic (Only for transparency toggle)
   useMotionValueEvent(scrollY, "change", (latest) => {
-    const previous = scrollY.getPrevious();
-    
-    // Hide/Show Logic
-    if (latest > previous && latest > 150) {
-      setHidden(true);
-    } else {
-      setHidden(false);
-    }
-
-    // Scrolled State Logic (for transparency toggle on home)
     if (latest > 50) {
         setScrolled(true);
     } else {
@@ -109,24 +98,17 @@ const Navbar = () => {
     setMobileMenuOpen(false);
   };
 
-  const navVariants = {
-    visible: { y: 0, opacity: 1, transition: { duration: 0.35, ease: "easeInOut" } },
-    hidden: { y: -100, opacity: 0, transition: { duration: 0.35, ease: "easeInOut" } },
-  };
-
   // Dynamic Background Style
   const getNavStyle = () => {
     if (isHomePage && !scrolled) {
-        return "bg-transparent shadow-none border-transparent";
+        return "bg-transparent border-b border-transparent shadow-none";
     }
     // Solid background for other pages OR scrolled home page
     return "bg-gradient-to-r from-gray-900 to-gray-800 shadow-md border-b border-gray-700/50 backdrop-blur-md";
   };
 
   return (
-    <motion.nav
-      variants={navVariants}
-      animate={hidden ? "hidden" : "visible"}
+    <nav
       className={`fixed top-0 w-full z-50 transition-all duration-300 ${getNavStyle()}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -230,9 +212,9 @@ const Navbar = () => {
                           <p className="text-[10px] text-cyan-500 uppercase tracking-wider font-bold mt-1">{user.role}</p>
                       </div>
 
-                      <Link to={dashboardPath} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition"><FaTachometerAlt className="text-gray-500"/> Dashboard</Link>
-                      <Link to="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition"><FaUserCircle className="text-gray-500"/> Profile</Link>
-                      <Link to="/change-password" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition"><FaKey className="text-gray-500"/> Change Password</Link>
+                      <DropdownItem to={dashboardPath} icon={<FaTachometerAlt/>} onClick={() => setMenuOpen(false)}>Dashboard</DropdownItem>
+                      <DropdownItem to="/profile" icon={<FaUserCircle/>} onClick={() => setMenuOpen(false)}>Profile</DropdownItem>
+                      <DropdownItem to="/change-password" icon={<FaKey/>} onClick={() => setMenuOpen(false)}>Change Password</DropdownItem>
                       
                       <div className="my-1 border-t border-gray-700"></div>
                       
@@ -241,7 +223,7 @@ const Navbar = () => {
                           handleLogout();
                           setMenuOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-3"
+                        className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-3"
                       >
                         <FaSignOutAlt /> Logout
                       </button>
@@ -255,7 +237,7 @@ const Navbar = () => {
           {/* Mobile Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-xl text-gray-300 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
+            className="md:hidden text-xl text-sky-400 p-2 rounded hover:bg-white/10"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <FaTimes /> : <FaBars />}
@@ -271,7 +253,7 @@ const Navbar = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="md:hidden bg-gray-900 border-t border-gray-800 overflow-hidden shadow-xl absolute w-full"
+            className="md:hidden bg-gray-900 border-t border-gray-800 overflow-hidden shadow-xl"
           >
             <div className="px-4 py-4 space-y-2">
               {!user ? (
@@ -279,14 +261,14 @@ const Navbar = () => {
                   <Link
                     to="/login"
                     onClick={handleMobileLinkClick}
-                    className="block w-full py-2.5 text-center bg-gray-800 text-white font-semibold rounded-lg border border-gray-700 hover:bg-gray-700"
+                    className="block w-full py-2.5 text-center bg-sky-600 text-white font-semibold rounded-lg"
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/register"
                     onClick={handleMobileLinkClick}
-                    className="block w-full py-2.5 text-center bg-cyan-600 text-white font-semibold rounded-lg shadow-lg"
+                    className="block w-full py-2.5 text-center border border-sky-500 text-sky-400 rounded-lg"
                   >
                     Get Started
                   </Link>
@@ -336,8 +318,20 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </nav>
   );
 };
+
+// Helper: Dropdown Item
+const DropdownItem = ({ to, children, icon, onClick }) => (
+    <Link
+      to={to}
+      onClick={onClick}
+      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors group"
+    >
+      <span className="text-slate-500 group-hover:text-cyan-400 transition-colors">{icon}</span>
+      {children}
+    </Link>
+);
 
 export default Navbar;
