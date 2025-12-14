@@ -15,7 +15,7 @@ import {
 
 // 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
-  <div className="flex flex-col items-center justify-center h-full w-full">
+  <div className="flex flex-col items-center justify-center min-h-[400px]">
     <div className="relative w-20 h-20">
       <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
       <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
@@ -112,7 +112,6 @@ export default function MeetingModal({ show: showProp, meetingId: propMeetingId,
     }
   };
 
-  // ✅ Wrapper handles the "Full Screen / Large Modal" layout
   const Wrapper = ({ children }) => {
     if (isPageMode) {
       return (
@@ -127,7 +126,6 @@ export default function MeetingModal({ show: showProp, meetingId: propMeetingId,
         onClick={onOverlayClick}
         className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-0 md:p-4"
       >
-        {/* Full width/height on mobile, slightly padded on desktop */}
         <div className="w-full h-full md:w-[95vw] md:h-[95vh] bg-slate-900 md:rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
           {children}
         </div>
@@ -194,10 +192,14 @@ export default function MeetingModal({ show: showProp, meetingId: propMeetingId,
                               <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold uppercase"><HiLocationMarker/> Location</div>
                               <span className="text-slate-200 font-medium truncate">{details.mode} {details.location ? `(${details.location})` : ""}</span>
                           </div>
-                          <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-1">
-                              <div className="flex items-center gap-2 text-amber-400 text-sm font-bold uppercase"><HiUserGroup/> Team</div>
-                              <span className="text-slate-200 font-medium truncate">{details.team?.teamName || "N/A"}</span>
-                          </div>
+                          
+                          {/* ✅ Only show Team card if team name exists */}
+                          {details.team?.teamName && (
+                            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-1">
+                                <div className="flex items-center gap-2 text-amber-400 text-sm font-bold uppercase"><HiUserGroup/> Team</div>
+                                <span className="text-slate-200 font-medium truncate">{details.team.teamName}</span>
+                            </div>
+                          )}
                       </div>
 
                       {/* Download Button */}
