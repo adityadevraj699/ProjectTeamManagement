@@ -629,8 +629,8 @@ export default function Profile() {
     const nameLabel = user?.name || "your profile";
 
     return (
-      <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center px-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="w-full max-w-xl rounded-3xl bg-slate-900 border border-slate-700/80 shadow-2xl p-6 relative">
+      <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-700/80 shadow-2xl p-6 relative">
           {/* Close */}
           <button
             type="button"
@@ -641,8 +641,8 @@ export default function Profile() {
           </button>
 
           {/* Header */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
               {user?.name
                 ? user.name
                     .split(" ")
@@ -652,46 +652,45 @@ export default function Profile() {
                 : "U"}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">
-                Share {nameLabel}
+              <h2 className="text-base font-bold text-white">
+                Share Profile
               </h2>
-              <p className="text-xs text-slate-400">
-                Let others see your project contributions.
+              <p className="text-[10px] text-slate-400">
+                Share your work with others.
               </p>
             </div>
           </div>
 
           {/* QR FIRST (top, full width) */}
-          <div className="mb-6 flex flex-col items-center justify-center gap-4 border border-slate-800 rounded-2xl bg-slate-950 p-6">
-            <div className="inline-block bg-white p-4 rounded-xl shadow-lg">
+          <div className="mb-4 flex flex-col items-center justify-center gap-3 border border-slate-800 rounded-xl bg-slate-950 p-4">
+            <div className="inline-block bg-white p-2 rounded-lg shadow-lg">
               <QRCodeCanvas
                 value={publicUrl}
-                size={180}
+                size={140}
                 includeMargin={true}
               />
             </div>
-            <div className="text-center">
-                 <p className="text-xs text-slate-500 mb-3">Scan to view profile</p>
-                <div className="flex flex-wrap gap-3 justify-center">
+            <div className="text-center w-full">
+                <div className="flex flex-wrap gap-2 justify-center w-full">
                   <button
                     type="button"
                     onClick={handleDownloadQr}
-                    className="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-xs text-white inline-flex items-center gap-2 font-medium transition-colors border border-slate-700"
+                    className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] text-white inline-flex justify-center items-center gap-1 font-medium transition-colors border border-slate-700"
                   >
-                    <FaDownload /> Download QR
+                    <FaDownload /> QR
                   </button>
                   <button
                     type="button"
                     onClick={handleCopyPublicLink}
-                    className="px-4 py-2 rounded-full bg-sky-600 hover:bg-sky-500 text-xs text-white inline-flex items-center gap-2 font-medium transition-colors shadow-lg shadow-sky-900/20"
+                    className="flex-1 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-[10px] text-white inline-flex justify-center items-center gap-1 font-medium transition-colors shadow-lg shadow-sky-900/20"
                   >
                     {copyPublicDone ? (
                       <>
-                        <FaCheck className="text-emerald-300" /> Copied!
+                        <FaCheck /> Copied!
                       </>
                     ) : (
                       <>
-                        <FaCopy /> Copy Link
+                        <FaCopy /> Link
                       </>
                     )}
                   </button>
@@ -700,33 +699,33 @@ export default function Profile() {
           </div>
 
           {/* Native share button */}
-          <div className="mb-6">
+          <div className="mb-4">
             <button
               type="button"
               onClick={handleNativeShare}
-              className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm text-white font-bold flex items-center justify-center gap-2 transition-colors border border-slate-700"
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-white font-bold flex items-center justify-center gap-2 transition-colors border border-slate-700"
             >
               <FaShareAlt /> Share via...
             </button>
           </div>
 
           {/* Divider */}
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 mb-3">
             <div className="h-px bg-slate-800 flex-1"></div>
-            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Socials</span>
+            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Socials</span>
             <div className="h-px bg-slate-800 flex-1"></div>
           </div>
 
           {/* Social icons grid */}
-          <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-             <SocialButton icon={<FaWhatsapp/>} color="bg-emerald-500" label="WhatsApp" onClick={() => window.open(whatsappShare, "_blank")} />
-             <SocialButton icon={<FaLinkedin/>} color="bg-sky-700" label="LinkedIn" onClick={() => window.open(linkedinShare, "_blank")} />
-             <SocialButton icon={<FaTwitter/>} color="bg-slate-700" label="Twitter" onClick={() => window.open(twitterShare, "_blank")} />
-             <SocialButton icon={<FaFacebook/>} color="bg-blue-600" label="Facebook" onClick={() => window.open(facebookShare, "_blank")} />
-             <SocialButton icon={<FaInstagram/>} color="bg-pink-600" label="Instagram" onClick={() => window.open(instagramShare, "_blank")} />
-             <SocialButton icon={<FaTelegramPlane/>} color="bg-sky-500" label="Telegram" onClick={() => window.open(telegramShare, "_blank")} />
-             <SocialButton icon={<FaRedditAlien/>} color="bg-orange-600" label="Reddit" onClick={() => window.open(redditShare, "_blank")} />
-             <SocialButton icon={<FaPinterestP/>} color="bg-red-600" label="Pinterest" onClick={() => window.open(pinterestShare, "_blank")} />
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+             <SocialButton icon={<FaWhatsapp/>} color="bg-emerald-500" onClick={() => window.open(whatsappShare, "_blank")} />
+             <SocialButton icon={<FaLinkedin/>} color="bg-sky-700" onClick={() => window.open(linkedinShare, "_blank")} />
+             <SocialButton icon={<FaTwitter/>} color="bg-slate-700" onClick={() => window.open(twitterShare, "_blank")} />
+             <SocialButton icon={<FaFacebook/>} color="bg-blue-600" onClick={() => window.open(facebookShare, "_blank")} />
+             <SocialButton icon={<FaInstagram/>} color="bg-pink-600" onClick={() => window.open(instagramShare, "_blank")} />
+             <SocialButton icon={<FaTelegramPlane/>} color="bg-sky-500" onClick={() => window.open(telegramShare, "_blank")} />
+             <SocialButton icon={<FaRedditAlien/>} color="bg-orange-600" onClick={() => window.open(redditShare, "_blank")} />
+             <SocialButton icon={<FaPinterestP/>} color="bg-red-600" onClick={() => window.open(pinterestShare, "_blank")} />
           </div>
         </div>
       </div>
@@ -748,15 +747,14 @@ export default function Profile() {
 }
 
 // Small helper for social buttons
-const SocialButton = ({ icon, color, label, onClick }) => (
+const SocialButton = ({ icon, color, onClick }) => (
     <button
     type="button"
     onClick={onClick}
     className="group flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl hover:bg-slate-800 transition-colors"
     >
-    <span className={`w-10 h-10 rounded-full ${color} flex items-center justify-center text-white text-lg shadow-lg group-hover:scale-110 transition-transform`}>
+    <span className={`w-8 h-8 rounded-full ${color} flex items-center justify-center text-white text-sm shadow-lg group-hover:scale-110 transition-transform`}>
         {icon}
     </span>
-    <span className="text-[10px] text-slate-400 group-hover:text-white transition-colors">{label}</span>
     </button>
 );
