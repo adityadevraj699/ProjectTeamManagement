@@ -10,29 +10,57 @@ import {
   HiAcademicCap, 
   HiUserGroup, 
   HiCalendar, 
-  HiCheckCircle, 
   HiClock,
   HiEye,
   HiDocumentDownload,
-  HiLightningBolt,
   HiCode
 } from "react-icons/hi";
 
-// 🔄 Reusable Loader Overlay
-const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl">
-    <div className="relative w-24 h-24">
-      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
-      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+// 🔄 Reusable Spinner Icon
+const Spinner = () => (
+  <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+);
+
+// 💀 Skeleton Loader
+const ReportSkeleton = () => (
+  <div className="min-h-screen bg-[#0b1120] p-4 md:p-8 font-sans relative animate-pulse">
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Header Skeleton */}
+      <div className="h-40 w-full bg-slate-800 rounded-3xl mb-10"></div>
+
+      {/* Filter Bar Skeleton */}
+      <div className="h-16 w-full bg-slate-800/80 rounded-2xl mb-8"></div>
+
+      {/* Grid Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="h-80 bg-slate-800 rounded-2xl border border-slate-700/50 p-6 space-y-4">
+            <div className="flex justify-between">
+              <div className="h-6 w-32 bg-slate-700 rounded"></div>
+              <div className="h-6 w-16 bg-slate-700 rounded-full"></div>
+            </div>
+            <div className="h-24 w-full bg-slate-700/50 rounded-xl"></div>
+            <div className="flex gap-3 pt-4 mt-auto">
+              <div className="h-10 w-full bg-slate-700 rounded-lg"></div>
+              <div className="h-10 w-12 bg-slate-700 rounded-lg"></div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-    <p className="mt-4 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Processing Data..."}</p>
   </div>
 );
 
 export default function TeamReports() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
+  
+  // Track specific export action: 'PDF_ALL', 'EXCEL', or 'PDF_TEAM_123'
+  const [exportingId, setExportingId] = useState(null); 
+
   const [branches, setBranches] = useState([]);
   const [semesters, setSemesters] = useState([]);
   
@@ -102,14 +130,26 @@ export default function TeamReports() {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", defaultName);
+    
+    // Attempt to get filename from header
+    const disposition = res.headers["content-disposition"];
+    let filename = defaultName;
+    if (disposition && disposition.match(/filename="?([^"]+)"?/)) {
+      filename = disposition.match(/filename="?([^"]+)"?/)[1];
+    }
+
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     link.remove();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleDownload = async (type, teamId = null) => {
-    setDownloading(true);
+    // Generate unique ID for loading state
+    const currentActionId = teamId ? `PDF_TEAM_${teamId}` : type;
+    setExportingId(currentActionId);
+
     try {
       const q = buildQuery();
       let url, filename;
@@ -127,6 +167,18 @@ export default function TeamReports() {
 
       const res = await axios.get(url, { ...axiosConfig, responseType: "blob" });
       downloadBlob(res, filename);
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Download Started',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000,
+        background: '#1e293b',
+        color: '#fff'
+      });
+
     } catch (err) {
       Swal.fire({
         icon: 'error',
@@ -136,21 +188,20 @@ export default function TeamReports() {
         color: '#fff'
       });
     } finally {
-      setDownloading(false);
+      setExportingId(null);
     }
   };
 
-  if (loading) return <LoaderOverlay message="INITIALIZING DASHBOARD..." />;
+  // ✅ Show SKELETON while loading initial data
+  if (loading) return <ReportSkeleton />;
 
   return (
     <div className="min-h-screen bg-[#0b1120] text-slate-200 p-4 md:p-8 font-sans selection:bg-sky-500/30">
-      {downloading && <LoaderOverlay message="GENERATING REPORT..." />}
-
+      
       <div className="max-w-7xl mx-auto">
         
         {/* Header Section */}
         <div className="relative mb-10 p-8 rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700/50 shadow-2xl overflow-hidden">
-          {/* Background decoration */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
           
           <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -164,19 +215,32 @@ export default function TeamReports() {
             </div>
 
             <div className="flex flex-wrap gap-3">
+              {/* PDF Export Button */}
               <button 
                 onClick={() => handleDownload("PDF_ALL")} 
-                className="group flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-slate-500 rounded-xl font-bold text-white transition-all shadow-lg active:scale-95"
+                disabled={exportingId !== null}
+                className={`group flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 ${
+                    exportingId === "PDF_ALL" 
+                    ? "bg-slate-800/50 text-slate-400 cursor-not-allowed border border-slate-700" 
+                    : "bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-slate-500"
+                }`}
               >
-                <HiDocumentDownload className="text-xl text-rose-500 group-hover:scale-110 transition-transform" /> 
-                <span>PDF Report</span>
+                {exportingId === "PDF_ALL" ? <Spinner /> : <HiDocumentDownload className="text-xl text-rose-500 group-hover:scale-110 transition-transform" />}
+                <span>{exportingId === "PDF_ALL" ? "Generating..." : "PDF Report"}</span>
               </button>
+
+              {/* Excel Export Button */}
               <button 
                 onClick={() => handleDownload("EXCEL")} 
-                className="group flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-slate-500 rounded-xl font-bold text-white transition-all shadow-lg active:scale-95"
+                disabled={exportingId !== null}
+                className={`group flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 ${
+                    exportingId === "EXCEL" 
+                    ? "bg-slate-800/50 text-slate-400 cursor-not-allowed border border-slate-700" 
+                    : "bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-slate-500"
+                }`}
               >
-                <HiDownload className="text-xl text-emerald-500 group-hover:scale-110 transition-transform" /> 
-                <span>Excel Data</span>
+                {exportingId === "EXCEL" ? <Spinner /> : <HiDownload className="text-xl text-emerald-500 group-hover:scale-110 transition-transform" />}
+                <span>{exportingId === "EXCEL" ? "Generating..." : "Excel Data"}</span>
               </button>
             </div>
           </div>
@@ -186,7 +250,6 @@ export default function TeamReports() {
         <div className="sticky top-4 z-40 bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-2xl p-2 mb-8 shadow-xl">
           <div className="flex flex-col lg:flex-row gap-2">
             
-            {/* Mobile Toggle */}
             <button 
               className="lg:hidden w-full flex items-center justify-between px-4 py-3 bg-slate-800 rounded-xl text-slate-300 font-bold"
               onClick={() => setShowFilters(!showFilters)}
@@ -197,7 +260,6 @@ export default function TeamReports() {
 
             <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row gap-2 w-full p-2 lg:p-0`}>
               
-              {/* Branch Select */}
               <div className="relative flex-1 group">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-sky-500 transition-colors">
                   <HiOfficeBuilding className="text-lg" />
@@ -212,7 +274,6 @@ export default function TeamReports() {
                 </select>
               </div>
 
-              {/* Semester Select */}
               <div className="relative flex-1 group">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-sky-500 transition-colors">
                   <HiAcademicCap className="text-lg" />
@@ -227,13 +288,12 @@ export default function TeamReports() {
                 </select>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-2 lg:w-auto">
                 <button 
                   onClick={fetchTeams} 
                   className="flex-1 lg:flex-none px-6 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-sky-900/20 active:scale-95 flex items-center justify-center gap-2"
                 >
-                  <HiLightningBolt /> Apply
+                  <HiRefresh /> Apply
                 </button>
                 <button 
                   onClick={() => { setBranchFilter(""); setSemesterFilter(""); fetchTeams(); }} 
@@ -263,15 +323,14 @@ export default function TeamReports() {
               const members = team.members || [];
               const isCompleted = project.status === "COMPLETED";
               const isOngoing = project.status === "ONGOING";
+              const isDownloading = exportingId === `PDF_TEAM_${team.teamId}`;
 
               return (
                 <div key={team.teamId} className="group relative bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden hover:border-sky-500/50 hover:shadow-2xl hover:shadow-sky-900/10 transition-all duration-300 flex flex-col">
                   
-                  {/* Status Strip (Updated color here) */}
                   <div className={`h-1.5 w-full ${isCompleted ? 'bg-emerald-500' : isOngoing ? 'bg-sky-500' : 'bg-slate-600'}`}></div>
 
                   <div className="p-6 flex-1 flex flex-col">
-                    {/* Header */}
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-xl font-bold text-white group-hover:text-sky-400 transition-colors line-clamp-1" title={team.teamName}>
@@ -283,7 +342,6 @@ export default function TeamReports() {
                         </div>
                       </div>
                       
-                      {/* Status Badge (Updated colors here) */}
                       <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
                         isCompleted ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                         isOngoing ? "bg-sky-500/10 text-sky-400 border-sky-500/20" :
@@ -293,7 +351,6 @@ export default function TeamReports() {
                       </div>
                     </div>
 
-                    {/* Project Info */}
                     <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50 mb-6 flex-1">
                       <h4 className="text-sm font-bold text-slate-200 mb-1 flex items-center gap-2">
                         <HiCode className="text-sky-500"/> Project Title
@@ -314,7 +371,6 @@ export default function TeamReports() {
                       </div>
                     </div>
 
-                    {/* Footer Actions */}
                     <div className="flex gap-3 mt-auto">
                       <button 
                         onClick={() => navigate(`/guide/TeamDetail/${team.teamId}`)}
@@ -322,12 +378,18 @@ export default function TeamReports() {
                       >
                         <HiEye className="text-lg text-sky-400 group-hover/btn:text-white transition-colors"/> View Details
                       </button>
+                      
                       <button 
                         onClick={() => handleDownload("PDF_TEAM", team.teamId)}
-                        className="px-3 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-slate-500 rounded-lg text-white transition-colors group/btn"
+                        disabled={exportingId !== null}
+                        className={`px-3 py-2.5 rounded-lg border transition-colors group/btn flex items-center justify-center ${
+                            isDownloading 
+                            ? "bg-slate-800 border-slate-700 text-slate-500 cursor-wait"
+                            : "bg-slate-700 hover:bg-slate-600 border-slate-600 hover:border-slate-500 text-white"
+                        }`}
                         title="Download Team Report"
                       >
-                        <HiDocumentDownload className="text-lg text-rose-400 group-hover/btn:text-rose-300 transition-colors"/>
+                        {isDownloading ? <Spinner /> : <HiDocumentDownload className="text-lg text-rose-400 group-hover/btn:text-rose-300 transition-colors"/>}
                       </button>
                     </div>
                   </div>
