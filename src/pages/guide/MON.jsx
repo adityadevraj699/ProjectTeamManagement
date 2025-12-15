@@ -6,32 +6,88 @@ import {
   HiCalendar, 
   HiClock, 
   HiUserGroup, 
-  HiCheckCircle, 
-  HiXCircle,
-  HiClipboardList,
   HiAnnotation,
   HiArrowRight,
-  HiLocationMarker
+  HiLocationMarker,
+  HiClipboardList
 } from "react-icons/hi";
 
-// 🔄 Reusable High-End Loader Overlay
+// 🔄 Reusable Loader Overlay (For PDF/Submit Process)
 const LoaderOverlay = ({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
       <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
       <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
     </div>
-    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Processing..."}</p>
   </div>
 );
+
+// 💀 MOM Page Skeleton Loader
+const MOMSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-[#0b1120] p-6 md:p-10 font-sans relative animate-pulse">
+      <div className="max-w-5xl mx-auto space-y-8">
+        
+        {/* Header Skeleton */}
+        <div className="space-y-2">
+          <div className="h-8 w-64 bg-slate-800 rounded"></div>
+          <div className="h-4 w-96 bg-slate-800/50 rounded"></div>
+        </div>
+
+        {/* Meeting Info Card Skeleton */}
+        <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 h-40 space-y-4">
+          <div className="flex justify-between">
+            <div className="space-y-2">
+              <div className="h-6 w-48 bg-slate-700 rounded"></div>
+              <div className="h-4 w-32 bg-slate-700/50 rounded"></div>
+            </div>
+            <div className="h-6 w-20 bg-slate-700 rounded-full"></div>
+          </div>
+          <div className="grid grid-cols-4 gap-4 mt-4">
+            <div className="h-10 bg-slate-700 rounded"></div>
+            <div className="h-10 bg-slate-700 rounded"></div>
+            <div className="h-10 bg-slate-700 rounded"></div>
+            <div className="h-10 bg-slate-700 rounded"></div>
+          </div>
+        </div>
+
+        {/* Attendance Skeleton */}
+        <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 space-y-4">
+          <div className="h-6 w-40 bg-slate-700 rounded"></div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 w-full bg-slate-700/30 rounded-xl"></div>
+          ))}
+        </div>
+
+        {/* MOM Form Skeleton */}
+        <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 space-y-6">
+          <div className="h-6 w-40 bg-slate-700 rounded"></div>
+          <div className="h-24 w-full bg-slate-700/30 rounded-xl"></div>
+          <div className="h-24 w-full bg-slate-700/30 rounded-xl"></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-24 w-full bg-slate-700/30 rounded-xl"></div>
+            <div className="h-24 w-full bg-slate-700/30 rounded-xl"></div>
+          </div>
+        </div>
+
+        {/* Button Skeleton */}
+        <div className="flex justify-end">
+          <div className="h-12 w-48 bg-slate-700 rounded-xl"></div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 export default function MON() {
   const { meetingId } = useParams();
   const navigate = useNavigate();
 
   const [meeting, setMeeting] = useState(null);
-  const [pageLoading, setPageLoading] = useState(true); // ✅ Page Loader
-  const [actionLoading, setActionLoading] = useState(false); // ✅ Action Loader
+  const [pageLoading, setPageLoading] = useState(true); // ✅ Controls Skeleton
+  const [actionLoading, setActionLoading] = useState(false); // ✅ Controls Spinner Overlay
 
   // MOM form
   const [form, setForm] = useState({
@@ -108,13 +164,13 @@ export default function MON() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (actionLoading) return;
-    setActionLoading(true);
-
+    
     if (!form.summary || !form.actionItems || !form.nextSteps) {
       Swal.fire("Warning", "Please fill all required MOM fields!", "warning");
-      setActionLoading(false);
       return;
     }
+
+    setActionLoading(true); // START SPINNER
 
     try {
       const payload = {
@@ -152,12 +208,12 @@ export default function MON() {
         "error"
       );
     } finally {
-      setActionLoading(false);
+      setActionLoading(false); // STOP SPINNER
     }
   };
 
-  // ✅ Show page loader
-  if (pageLoading) return <LoaderOverlay message="Retrieving Meeting Context..." />;
+  // ✅ Show SKELETON while loading data
+  if (pageLoading) return <MOMSkeleton />;
 
   if (!meeting)
     return (
@@ -168,7 +224,9 @@ export default function MON() {
 
   return (
     <div className="min-h-screen bg-[#0b1120] text-slate-200 p-6 md:p-10 font-sans selection:bg-sky-500/30 relative">
-      {actionLoading && <LoaderOverlay message="Finalizing Meeting Data..." />}
+      
+      {/* Show Overlay Loader ONLY when submitting/generating PDF */}
+      {actionLoading && <LoaderOverlay message="Generating PDF & Saving..." />}
 
       <div className="max-w-5xl mx-auto">
         
@@ -408,7 +466,7 @@ export default function MON() {
                 actionLoading ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
-              {actionLoading ? "Processing..." : <>Finalize & Submit <HiArrowRight/></>}
+              {actionLoading ? "Finalizing..." : <>Finalize & Submit <HiArrowRight/></>}
             </button>
           </div>
 

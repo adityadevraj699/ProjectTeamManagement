@@ -13,25 +13,78 @@ import {
   HiOutlineUser
 } from "react-icons/hi";
 
-// 🔄 Reusable High-End Loader Overlay
+// 🔄 Reusable High-End Loader Overlay (Used for Actions)
 const LoaderOverlay = ({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
       <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
       <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
     </div>
-    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
+    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Processing..."}</p>
   </div>
 );
 
-// ✅ Improved Searchable Dropdown Component
+// 💀 Sophisticated Skeleton Loader for Student Page
+const StudentSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-[#0f172a] p-6 md:p-10 font-sans relative animate-pulse">
+      {/* Title Skeleton */}
+      <div className="max-w-7xl mx-auto mb-10 space-y-3">
+        <div className="h-8 w-64 bg-slate-800 rounded-lg"></div>
+        <div className="h-4 w-96 bg-slate-800/50 rounded"></div>
+      </div>
+
+      {/* Team Selector Skeleton */}
+      <div className="max-w-7xl mx-auto mb-8 bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="h-4 w-24 bg-slate-700 rounded"></div>
+          <div className="h-10 w-full md:w-1/2 bg-slate-700 rounded-xl"></div>
+        </div>
+      </div>
+
+      {/* Main Grid Skeleton */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-3 gap-8">
+        
+        {/* Add Member Form Skeleton */}
+        <div className="xl:col-span-1 bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 h-fit space-y-6">
+          <div className="flex items-center gap-3 border-b border-slate-700/50 pb-4">
+            <div className="h-10 w-10 bg-slate-700 rounded-lg"></div>
+            <div className="h-6 w-32 bg-slate-700 rounded"></div>
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-10 w-full bg-slate-700/50 rounded-xl"></div>
+            ))}
+            <div className="h-10 w-full bg-slate-700 rounded-xl mt-4"></div>
+          </div>
+        </div>
+
+        {/* Members List Table Skeleton */}
+        <div className="xl:col-span-2 bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 space-y-6">
+          <div className="flex items-center gap-3 border-b border-slate-700/50 pb-4">
+            <div className="h-10 w-10 bg-slate-700 rounded-lg"></div>
+            <div className="h-6 w-48 bg-slate-700 rounded"></div>
+          </div>
+          <div className="space-y-4">
+            <div className="h-8 w-full bg-slate-700/50 rounded"></div> {/* Table Header */}
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-16 w-full bg-slate-800/50 border border-slate-700/30 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+// Improved Searchable Dropdown Component
 const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Close dropdown if clicked outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -42,7 +95,6 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Auto-focus input when opened & Reset search
   useEffect(() => {
     if (isOpen) {
         setSearchTerm(""); 
@@ -63,15 +115,12 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
   };
 
   const selectedOption = options.find((opt) => String(opt.value) === String(value));
-  
-  // Filter options based on search term
   const filteredOptions = options.filter((opt) =>
     opt.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="relative w-full md:w-1/2 z-50" ref={wrapperRef}>
-      {/* Trigger Area */}
       <div
         onClick={toggleDropdown}
         className={`bg-slate-900 border ${
@@ -84,11 +133,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
         <HiChevronDown className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </div>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-60 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-100 w-full">
-          
-          {/* Search Input Sticky Header */}
           <div className="p-2 border-b border-slate-700 bg-slate-800 sticky top-0 z-10">
             <div className="flex items-center bg-slate-900 rounded-lg px-3 border border-slate-700 focus-within:border-sky-500 transition-colors">
               <HiSearch className="text-slate-500 mr-2 shrink-0" />
@@ -113,8 +159,6 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) 
               )}
             </div>
           </div>
-
-          {/* Options List */}
           <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((opt) => (
@@ -156,8 +200,8 @@ export default function Student() {
     leader: false,
   });
 
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // ✅ Controls Skeleton
+  const [actionLoading, setActionLoading] = useState(false); // ✅ Controls Overlay Spinner
   const [editMember, setEditMember] = useState(null);
 
   const token = localStorage.getItem("token");
@@ -238,7 +282,6 @@ export default function Student() {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/guide/teams/${teamId}/members`, axiosConfig);
       const data = res.data || [];
-      // Sort: Leader first, then alphabetically by name
       const sortedData = data.sort((a, b) => {
         if (a.leader === b.leader) {
           return a.user.name.localeCompare(b.user.name);
@@ -292,7 +335,7 @@ export default function Student() {
         }
       }
     } catch {
-      // Silent fail or minimal toast
+      // Silent fail
     }
   };
 
@@ -398,7 +441,8 @@ export default function Student() {
     label: t.teamName
   }));
 
-  if (loading) return <LoaderOverlay message="Loading Data..." />;
+  // ✅ Use Skeleton Loader instead of Overlay Loader for initial fetch
+  if (loading) return <StudentSkeleton />;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 p-6 md:p-10 font-sans selection:bg-sky-500/30">
@@ -409,7 +453,7 @@ export default function Student() {
         <p className="text-slate-400 text-sm">Manage student roles, details, and leadership within your teams.</p>
       </div>
 
-      {/* Select Team Section - Added z-index relative to ensure it stays on top */}
+      {/* Select Team Section */}
       <div className="max-w-7xl mx-auto mb-8 bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 backdrop-blur-sm relative z-30">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <label className="text-slate-300 font-medium whitespace-nowrap">Select Team:</label>
