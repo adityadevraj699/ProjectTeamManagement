@@ -1,4 +1,3 @@
-// Dashboard.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -27,45 +26,13 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-/**
- * Industry-ready Admin Dashboard component
- *
- * Requirements assumed:
- * - API: `${VITE_API_URL}/admin/dashboard` returns stats object with:
- *   - totalStudents, totalGuides, totalTeams, totalProjects, totalTasks, totalAdmins
- *   - studentsByCourse: { courseName: count, ... }
- *   - studentsByBranch: { branchName: count, ... }
- *   - studentsBySemester: { semesterName: count, ... }
- *   - studentsBySection: { sectionName: count, ... } (legacy)
- *   - studentsBySectionDetailed: [{ sectionName, branchName, courseName, semesterName, count }, ...] (preferred)
- *   - projectsByStatus, tasksByStatus, tasksByPriority (map form)
- *   - guideStats: [{ guideId, name, email, teamCount }]
- *
- * Notes:
- * - This file depends on Tailwind classes that you already use in your project.
- * - Ensure `localStorage.token` is available (or change auth handling).
- */
-
-/* ----------------------- Small utilities & constants ---------------------- */
+/* ----------------------- Utilities & Constants ---------------------- */
 
 const COLORS = [
-  "#38bdf8",
-  "#6366f1",
-  "#22c55e",
-  "#eab308",
-  "#f97316",
-  "#ec4899",
-  "#a855f7",
+  "#38bdf8", "#6366f1", "#22c55e", "#eab308", "#f97316", "#ec4899", "#a855f7",
 ];
 
-const SLIDE_COUNT = 2; // 0=overview, 1=students
-
-const LoaderOverlay = ({ message = "Loading..." }) => (
-  <div className="fixed inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-[100] backdrop-blur">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4" />
-    <p className="text-white text-lg font-medium tracking-wide">{message}</p>
-  </div>
-);
+const SLIDE_COUNT = 2; 
 
 const formatNumber = (num) => {
   if (num == null) return "0";
@@ -77,6 +44,76 @@ const mapToChartArray = (mapObj) =>
   mapObj && typeof mapObj === "object"
     ? Object.entries(mapObj).map(([name, value]) => ({ name, value }))
     : [];
+
+/* ----------------------- 💀 NEW SKELETON LOADER ---------------------- */
+
+const DashboardSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-slate-950 px-6 pt-6 pb-8 space-y-8 font-sans">
+      {/* Header Skeleton */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-800/80 pb-4">
+        <div className="space-y-3">
+          <div className="w-32 h-6 bg-slate-800/50 rounded-full animate-pulse" />
+          <div className="w-64 h-10 bg-slate-800 rounded-lg animate-pulse" />
+          <div className="w-96 h-4 bg-slate-800/50 rounded animate-pulse" />
+        </div>
+        <div className="w-32 h-10 bg-slate-800 rounded-xl animate-pulse" />
+      </div>
+
+      {/* Summary Cards Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-[88px] bg-slate-900/80 border border-slate-800 rounded-3xl p-4 flex items-center justify-between animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-slate-800" />
+              <div className="space-y-2">
+                <div className="w-16 h-3 bg-slate-800 rounded" />
+                <div className="w-12 h-2 bg-slate-800/50 rounded" />
+              </div>
+            </div>
+            <div className="w-10 h-6 bg-slate-800 rounded" />
+          </div>
+        ))}
+      </div>
+
+      {/* Slider/Chart Section Skeleton */}
+      <div className="space-y-4">
+        {/* Controls */}
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="w-48 h-6 bg-slate-800 rounded animate-pulse" />
+            <div className="w-32 h-3 bg-slate-800/50 rounded animate-pulse" />
+          </div>
+          <div className="flex gap-2">
+            <div className="w-24 h-8 bg-slate-800 rounded-full animate-pulse" />
+            <div className="w-8 h-8 bg-slate-800 rounded-full animate-pulse" />
+            <div className="w-8 h-8 bg-slate-800 rounded-full animate-pulse" />
+          </div>
+        </div>
+
+        {/* Charts Container */}
+        <div className="bg-slate-900/80 rounded-2xl border border-slate-800 p-4 h-[600px] animate-pulse">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+            <div className="bg-slate-800/30 rounded-xl border border-slate-700/30 h-full p-4 flex flex-col gap-4">
+               <div className="flex justify-between">
+                 <div className="w-32 h-5 bg-slate-700/50 rounded" />
+                 <div className="w-16 h-5 bg-slate-700/50 rounded" />
+               </div>
+               <div className="flex-1 bg-slate-700/10 rounded-lg mx-auto w-full" />
+            </div>
+            <div className="bg-slate-800/30 rounded-xl border border-slate-700/30 h-full p-4 flex flex-col gap-4">
+               <div className="flex justify-between">
+                 <div className="w-32 h-5 bg-slate-700/50 rounded" />
+                 <div className="w-16 h-5 bg-slate-700/50 rounded" />
+               </div>
+               <div className="flex-1 bg-slate-700/10 rounded-lg mx-auto w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /* ----------------------------- Tooltips ---------------------------------- */
 
@@ -96,13 +133,6 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-/*
-  UPDATED: SectionTooltip simplified per request.
-  On hover for section charts we will show ONLY:
-    - section name
-    - count
-  (no course/branch/semester context)
-*/
 const SectionTooltip = ({ active, payload }) => {
   if (!active || !payload || !payload.length) return null;
   const datum = payload[0].payload;
@@ -128,7 +158,6 @@ function SummaryCard({ label, value, icon, accent, chip, onClick }) {
           clickable ? "hover:shadow-sky-500/30 hover:-translate-y-1 cursor-pointer" : ""
         } transition`}
         tabIndex={clickable ? 0 : -1}
-        aria-label={label}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -145,11 +174,6 @@ function SummaryCard({ label, value, icon, accent, chip, onClick }) {
   );
 }
 
-/**
- * ChartCard
- * - isolates clicks on Expand button using stopPropagation
- * - allows clicking header or expand button to expand
- */
 function ChartCard({ title, subtitle, badge, children, onExpand }) {
   const handleExpand = (e) => {
     e?.stopPropagation?.();
@@ -175,7 +199,6 @@ function ChartCard({ title, subtitle, badge, children, onExpand }) {
             <button
               onClick={handleExpand}
               className="text-[11px] px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700 text-slate-200 hover:bg-slate-800 hover:border-sky-500 transition"
-              aria-label={`Expand ${title}`}
               title="Expand chart"
             >
               Expand
@@ -194,11 +217,11 @@ function ChartCard({ title, subtitle, badge, children, onExpand }) {
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [expandedChart, setExpandedChart] = useState(null); // { key, title, subtitle }
+  const [expandedChart, setExpandedChart] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
 
-  // Section filters (for detailed section chart)
+  // Section filters
   const [sectionFilters, setSectionFilters] = useState({ course: "ALL", branch: "ALL", semester: "ALL" });
 
   const token = localStorage.getItem("token");
@@ -226,7 +249,6 @@ export default function Dashboard() {
       return;
     }
     fetchDashboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   /* ------------------------- Auto-play slider ---------------------------- */
@@ -239,7 +261,6 @@ export default function Dashboard() {
 
   /* ---------------------------- Derived data ---------------------------- */
 
-  // Map objects to arrays (memoized)
   const studentsByCourse = useMemo(() => mapToChartArray(stats?.studentsByCourse), [stats]);
   const studentsByBranch = useMemo(() => mapToChartArray(stats?.studentsByBranch), [stats]);
   const studentsBySemester = useMemo(() => mapToChartArray(stats?.studentsBySemester), [stats]);
@@ -248,15 +269,12 @@ export default function Dashboard() {
   const tasksByPriority = useMemo(() => mapToChartArray(stats?.tasksByPriority), [stats]);
   const studentsBySectionLegacy = useMemo(() => mapToChartArray(stats?.studentsBySection), [stats]);
 
-  // detailed sections (preferred)
   const sectionDetailed = useMemo(() => stats?.studentsBySectionDetailed || [], [stats]);
 
-  // build filter lists for selects
   const coursesList = useMemo(() => Array.from(new Set(sectionDetailed.map((s) => s.courseName).filter(Boolean))).sort(), [sectionDetailed]);
   const branchesList = useMemo(() => Array.from(new Set(sectionDetailed.map((s) => s.branchName).filter(Boolean))).sort(), [sectionDetailed]);
   const semestersList = useMemo(() => Array.from(new Set(sectionDetailed.map((s) => s.semesterName).filter(Boolean))).sort(), [sectionDetailed]);
 
-  // aggregated & filtered section data used by students-by-section chart
   const filteredSectionData = useMemo(() => {
     if (!sectionDetailed.length) return studentsBySectionLegacy;
     const map = new Map();
@@ -269,37 +287,25 @@ export default function Dashboard() {
       const prev = map.get(key);
       if (prev) {
         prev.value += cnt;
-        prev.context = { branchName: s.branchName, courseName: s.courseName, semesterName: s.semesterName };
       } else {
-        map.set(key, { name: key, value: cnt, context: { branchName: s.branchName, courseName: s.courseName, semesterName: s.semesterName } });
+        map.set(key, { name: key, value: cnt });
       }
     });
-    // convert to array and sort desc
     return Array.from(map.values()).sort((a, b) => b.value - a.value);
   }, [sectionDetailed, sectionFilters, studentsBySectionLegacy]);
 
   /* ----------------------- Handlers & navigation ------------------------- */
 
-  const handleSummaryClick = useCallback(
-    (type) => {
+  const handleSummaryClick = useCallback((type) => {
       switch (type) {
-        case "students":
-          navigate("/admin/user-detail");
-          break;
-        case "guides":
-          navigate("/admin/add-teacher");
-          break;
+        case "students": navigate("/admin/user-detail"); break;
+        case "guides": navigate("/admin/add-teacher"); break;
         case "teams":
         case "projects":
-        case "tasks":
-          navigate("/admin/reports");
-          break;
-        default:
-          break;
+        case "tasks": navigate("/admin/reports"); break;
+        default: break;
       }
-    },
-    [navigate]
-  );
+    }, [navigate]);
 
   const onSectionFilterChange = useCallback((field, value) => {
     setSectionFilters((p) => ({ ...p, [field]: value }));
@@ -327,7 +333,6 @@ export default function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
         );
-
       case "tasksByStatus":
         return (
           <ResponsiveContainer width="100%" height={height}>
@@ -340,7 +345,6 @@ export default function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
         );
-
       case "tasksByPriority":
         return (
           <ResponsiveContainer width="100%" height={height}>
@@ -353,7 +357,6 @@ export default function Dashboard() {
             </LineChart>
           </ResponsiveContainer>
         );
-
       case "studentsByCourse":
         return (
           <ResponsiveContainer width="100%" height={height}>
@@ -368,7 +371,6 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         );
-
       case "studentsByBranch":
         return (
           <ResponsiveContainer width="100%" height={height}>
@@ -383,7 +385,6 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         );
-
       case "studentsBySemester":
         return (
           <ResponsiveContainer width="100%" height={height}>
@@ -398,9 +399,7 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         );
-
       case "studentsBySection":
-        // IMPORTANT: use filteredSectionData so modal respects filters
         return (
           <ResponsiveContainer width="100%" height={height}>
             <BarChart data={filteredSectionData}>
@@ -414,7 +413,6 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         );
-
       default:
         return null;
     }
@@ -422,8 +420,9 @@ export default function Dashboard() {
 
   /* ------------------------------- Render -------------------------------- */
 
+  // ✅ Use DashboardSkeleton instead of LoaderOverlay
   if (loading || !stats) {
-    return <LoaderOverlay message="Loading admin dashboard..." />;
+    return <DashboardSkeleton />;
   }
 
   const slideTitle = currentSlide === 0 ? "Project & Task Overview" : "Student Insights";
