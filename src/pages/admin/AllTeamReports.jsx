@@ -2,11 +2,27 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
-  HiRefresh, HiDownload, HiFilter, HiSearch, 
-  HiUserGroup, HiCode, HiCalendar, HiOfficeBuilding, HiUser 
+  HiRefresh, HiFilter, HiSearch, 
+  HiCode, HiCalendar, HiUser 
 } from "react-icons/hi";
+
+// --- Icons Component for cleaner JSX ---
+const Icons = {
+  Pdf: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l3 3 3-3"/><path d="M12 18v-6"/></svg>
+  ),
+  Excel: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9h4"/></svg>
+  ),
+  Download: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  ),
+  Spinner: () => (
+    <svg className="animate-spin h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+  )
+};
 
 // 💀 Skeleton Loader
 const ReportSkeleton = () => (
@@ -48,7 +64,10 @@ const StatusBadge = ({ status }) => {
 export default function AllTeamReports() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
+  
+  // TRACK WHICH BUTTON IS LOADING
+  // Values: 'pdf' | 'excel' | 'team_123' | null
+  const [exportingId, setExportingId] = useState(null); 
   
   // Filters
   const [branches, setBranches] = useState([]);
@@ -125,7 +144,6 @@ export default function AllTeamReports() {
     setSemesterFilter("");
     setGuideFilter("");
     setLoading(true);
-    // ugly hack to ensure state update before fetch, ideally use effect or direct params
     const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/teams`, axiosConfig);
     setTeams(res.data || []);
     setLoading(false);
@@ -154,7 +172,8 @@ export default function AllTeamReports() {
 
   const exportData = async (type) => {
     try {
-      setDownloading(true);
+      setExportingId(type); // START SPINNER (pdf or excel)
+      
       const q = buildQuery();
       const endpoint = type === 'pdf' ? 'pdf' : 'excel';
       const ext = type === 'pdf' ? 'pdf' : 'xlsx';
@@ -172,19 +191,20 @@ export default function AllTeamReports() {
     } catch (err) {
       Swal.fire({ icon: 'error', title: 'Export Failed', background: '#1e293b', color: '#fff' });
     } finally {
-      setDownloading(false);
+      setExportingId(null); // STOP SPINNER
     }
   };
 
   const handleDownloadTeamPdf = async (teamId) => {
     try {
-      setDownloading(true);
+      setExportingId(`team_${teamId}`); // START SPINNER for specific team button
+      
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/pdf/${teamId}`, { ...axiosConfig, responseType: "blob" });
       downloadBlob(res, `team_${teamId}.pdf`);
     } catch (err) {
       Swal.fire({ icon: 'error', title: 'Failed', background: '#1e293b', color: '#fff' });
     } finally {
-      setDownloading(false);
+      setExportingId(null); // STOP SPINNER
     }
   };
 
@@ -193,13 +213,6 @@ export default function AllTeamReports() {
       
       {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-sky-900/10 to-transparent pointer-events-none" />
-
-      {downloading && (
-        <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
-          <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-          <p className="text-white font-medium">Generating Report...</p>
-        </div>
-      )}
 
       <div className="max-w-7xl mx-auto relative z-10">
         
@@ -214,11 +227,25 @@ export default function AllTeamReports() {
              <button onClick={handleApplyFilters} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition-all shadow-sm" title="Refresh Data">
                <HiRefresh className="text-xl"/>
              </button>
-             <button onClick={() => exportData('pdf')} className="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-rose-500/20 transition-all">
-               <HiDownload className="text-lg"/> PDF Report
+
+             {/* GLOBAL PDF BUTTON */}
+             <button 
+                onClick={() => exportData('pdf')} 
+                disabled={exportingId !== null}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold shadow-lg transition-all ${exportingId === 'pdf' ? 'bg-rose-900/50 text-rose-300 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-500/20'}`}
+             >
+               {exportingId === 'pdf' ? <Icons.Spinner /> : <Icons.Pdf />}
+               {exportingId === 'pdf' ? "Generating..." : "PDF Report"}
              </button>
-             <button onClick={() => exportData('excel')} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all">
-               <HiDownload className="text-lg"/> Excel Export
+
+             {/* GLOBAL EXCEL BUTTON */}
+             <button 
+                onClick={() => exportData('excel')} 
+                disabled={exportingId !== null}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold shadow-lg transition-all ${exportingId === 'excel' ? 'bg-emerald-900/50 text-emerald-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'}`}
+             >
+               {exportingId === 'excel' ? <Icons.Spinner /> : <Icons.Excel />}
+               {exportingId === 'excel' ? "Generating..." : "Excel Export"}
              </button>
           </div>
         </div>
@@ -268,6 +295,7 @@ export default function AllTeamReports() {
             {teams.map(team => {
               const project = team.project || {};
               const members = team.members || [];
+              const isThisTeamLoading = exportingId === `team_${team.teamId}`;
               
               return (
                 <motion.div 
@@ -295,8 +323,15 @@ export default function AllTeamReports() {
                       <button onClick={() => navigate(`/admin/TeamDetail/${team.teamId}`)} className="px-4 py-2 bg-slate-700 hover:bg-sky-600 hover:text-white text-slate-300 text-xs font-bold rounded-lg transition-colors">
                         View Details
                       </button>
-                      <button onClick={() => handleDownloadTeamPdf(team.teamId)} className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white rounded-lg transition-colors" title="Export PDF">
-                        <HiDownload className="text-lg"/>
+                      
+                      {/* TEAM PDF DOWNLOAD BUTTON WITH SPINNER */}
+                      <button 
+                        onClick={() => handleDownloadTeamPdf(team.teamId)} 
+                        disabled={exportingId !== null}
+                        className={`px-3 py-2 rounded-lg transition-all ${isThisTeamLoading ? 'bg-slate-800 text-slate-500 cursor-wait' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white'}`}
+                        title="Export PDF"
+                      >
+                        {isThisTeamLoading ? <Icons.Spinner /> : <Icons.Download />}
                       </button>
                     </div>
                   </div>
