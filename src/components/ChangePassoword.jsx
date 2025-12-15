@@ -1,10 +1,14 @@
-// src/pages/ChangePassword.jsx
 import React, { useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { motion } from "framer-motion";
+import { 
+  HiLockClosed, HiShieldCheck, HiEye, HiEyeOff, 
+  HiKey, HiCheckCircle, HiXCircle, HiLightningBolt 
+} from "react-icons/hi";
 
+// 🔄 API Setup
 const baseURL = import.meta.env.VITE_API_URL || "/api";
 const api = axios.create({ baseURL, timeout: 15000 });
 
@@ -13,6 +17,11 @@ api.interceptors.request.use(cfg => {
   if (token) cfg.headers = { ...cfg.headers, Authorization: `Bearer ${token}` };
   return cfg;
 });
+
+// 🔄 Button Loader
+const ButtonLoader = () => (
+  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+);
 
 export default function ChangePassword() {
   const [oldPassword, setOldPassword] = useState("");
@@ -26,96 +35,64 @@ export default function ChangePassword() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // -------- Password Policy Check --------
-  const isValidPassword = (pwd) => {
-    if (!pwd) return false;
-    if (pwd.length < 8 || pwd.length > 16) return false;
-    if (!/[A-Z]/.test(pwd)) return false;
-    if (!/[0-9]/.test(pwd)) return false;
-    if (!/[!@#$%^&*()_+\-={}\[\]:;"'<>,.?\/]/.test(pwd)) return false;
-    return true;
+  // -------- Validation Logic --------
+  const checks = {
+    length: newPassword.length >= 8 && newPassword.length <= 16,
+    upper: /[A-Z]/.test(newPassword),
+    number: /[0-9]/.test(newPassword),
+    special: /[!@#$%^&*()_+\-={}\[\]:;"'<>,.?\/]/.test(newPassword),
   };
+
+  const isStrong = Object.values(checks).every(Boolean);
 
   const validateClient = () => {
     if (!oldPassword) return "Old password is required";
     if (!newPassword) return "New password is required";
-    if (!isValidPassword(newPassword))
-      return "New password must be 8-16 chars with uppercase, number & special character";
-    if (newPassword === oldPassword) return "New password must be different";
-    if (newPassword !== confirmPassword) return "Passwords do not match";
+    if (!isStrong) return "Please meet all password requirements below.";
+    if (newPassword === oldPassword) return "New password must be different from the old one.";
+    if (newPassword !== confirmPassword) return "Passwords do not match.";
     return null;
   };
 
-  // -------- Generate Strong Password --------
-  const genPassword = (length = 12) => {
-    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const lower = "abcdefghijklmnopqrstuvwxyz";
-    const num = "0123456789";
-    const special = "!@#$%^&*()_+-={}[]:;\"'<>,.?/";
-    const all = upper + lower + num + special;
-
+  // -------- Generator --------
+  const genPassword = (length = 14) => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}";
     let pwd = "";
-    pwd += upper[Math.floor(Math.random() * upper.length)];
-    pwd += num[Math.floor(Math.random() * num.length)];
-    pwd += special[Math.floor(Math.random() * special.length)];
-
+    // Ensure at least one of each required type
+    pwd += "A"; // Upper
+    pwd += "1"; // Number
+    pwd += "@"; // Special
     for (let i = 3; i < length; i++) {
-      pwd += all[Math.floor(Math.random() * all.length)];
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-
-    pwd = pwd.split("").sort(() => 0.5 - Math.random()).join("");
-    setSuggestion(pwd);
-    return pwd;
+    return pwd.split('').sort(() => 0.5 - Math.random()).join('');
   };
 
-  // -------- SweetAlert Trigger On New Password Focus (show once per page load) --------
-  const handleNewFocus = async () => {
-    // If already shown during this page load, don't show again
-    if (window.__pwSuggestionShown) return;
-
-    // mark shown so it won't popup again until page reload
-    window.__pwSuggestionShown = true;
-
-    // generate suggestion
-    const pwd = suggestion || genPassword(12);
-
+  const handleSuggestion = async () => {
+    const pwd = genPassword();
     const { value } = await Swal.fire({
       title: "Strong Password Suggestion",
       html: `
-        <p style="color:#9CA3AF; margin-bottom:6px">We can suggest a strong password for you:</p>
-        <div style="padding:10px; background:#0b1220; border-radius:6px; color:#E5E7EB; word-break:break-word;">
-          <strong style="color:#93C5FD; font-size:14px">${pwd}</strong>
+        <div class="text-left bg-slate-800 p-4 rounded-lg border border-slate-700">
+          <p class="text-slate-400 text-sm mb-2">Recommended secure password:</p>
+          <div class="bg-slate-900 p-3 rounded border border-emerald-500/30 text-emerald-400 font-mono text-lg tracking-wider select-all text-center">
+            ${pwd}
+          </div>
         </div>
-        <p style="color:#9CA3AF; margin-top:8px; font-size:13px">
-          Use "Use Suggested Password" to auto-fill it, or "Create My Own" to type your own password.
-        </p>
       `,
       showCancelButton: true,
-      confirmButtonText: "Use Suggested Password",
-      cancelButtonText: "Create My Own",
-      background: "#0f172a",
+      confirmButtonText: "Use Password",
+      confirmButtonColor: "#10b981",
+      cancelButtonText: "Cancel",
+      cancelButtonColor: "#64748b",
+      background: "#1e293b",
       color: "#fff",
-      showCloseButton: true,
     });
 
-    // If user clicked confirm -> use suggested
     if (value) {
-      setSuggestion(pwd);
       setNewPassword(pwd);
       setConfirmPassword(pwd);
-
-      Swal.fire({
-        title: "Password Applied",
-        text: "Suggested password has been filled in. You can still edit it.",
-        icon: "success",
-        background: "#0f172a",
-        color: "#fff",
-        timer: 900,
-        showConfirmButton: false,
-      });
-    } else {
-      // user chose "Create My Own" — we already set the shown flag, so modal won't reappear this load
-      // suggestion remains available via generator if they want it later
+      // Ensure checklist updates visually immediately
     }
   };
 
@@ -123,10 +100,7 @@ export default function ChangePassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const err = validateClient();
-    if (err) {
-      Swal.fire("Validation Error", err, "warning");
-      return;
-    }
+    if (err) return Swal.fire({ icon: 'warning', title: 'Validation', text: err, background: '#1e293b', color: '#fff' });
 
     setLoading(true);
     try {
@@ -137,136 +111,167 @@ export default function ChangePassword() {
       });
 
       Swal.fire({
-        title: "Success",
-        text: res.data.message || "Password changed successfully",
         icon: "success",
-        background: "#0f172a",
+        title: "Password Updated",
+        text: "Please login again with your new credentials.",
+        background: "#1e293b",
         color: "#fff",
+        confirmButtonColor: "#10b981"
       });
 
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setSuggestion("");
     } catch (error) {
       Swal.fire({
-        title: "Error",
-        text: error?.response?.data?.message || "Failed to change password",
         icon: "error",
-        background: "#0f172a",
+        title: "Update Failed",
+        text: error?.response?.data?.message || "Something went wrong.",
+        background: "#1e293b",
         color: "#fff",
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // ----------------------------------------------
-  // UI — Compact, Centered, Login-like
-  // ----------------------------------------------
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-900 via-gray-800 to-black px-4">
-      <div className="w-full max-w-sm bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-white/10 shadow-2xl text-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] p-4 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-500/20 rounded-full blur-[100px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-500/20 rounded-full blur-[100px]" />
+
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-lg bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl p-8 relative z-10"
+      >
+        
         {/* Header */}
-        <div className="text-center mb-5">
-          <img
-            src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-            className="w-14 h-14 mx-auto rounded-full ring-2 ring-sky-400"
-            alt="logo"
-          />
-          <h2 className="text-xl font-bold mt-3 text-sky-400">Change Password</h2>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 mb-4 shadow-lg shadow-emerald-500/10">
+            <HiShieldCheck className="text-3xl" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Change Password</h2>
+          <p className="text-slate-400 text-sm mt-1">Secure your account with a strong password</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
           {/* OLD PASSWORD */}
-          <div>
-            <label className="text-gray-300 text-sm">Old Password</label>
-            <div className="relative">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Current Password</label>
+            <div className="relative group">
+              <HiKey className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
               <input
                 type={showOld ? "text" : "password"}
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
-                required
-                placeholder="Enter old password"
-                className="w-full mt-1 p-3 pr-10 bg-slate-900/70 border border-white/10 rounded-lg focus:ring-2 focus:ring-sky-500"
+                placeholder="Enter current password"
+                className="w-full bg-slate-800/50 text-white pl-10 pr-12 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-slate-600 text-sm"
               />
               <button
-                onClick={() => setShowOld(!showOld)}
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300"
-                aria-label="toggle old password visibility"
+                onClick={() => setShowOld(!showOld)}
+                className="absolute right-3 top-3 text-slate-400 hover:text-white transition-colors"
               >
-                {showOld ? <FaEyeSlash /> : <FaEye />}
+                {showOld ? <HiEyeOff className="text-lg" /> : <HiEye className="text-lg" />}
               </button>
             </div>
           </div>
 
           {/* NEW PASSWORD */}
-          <div>
-            <label className="text-gray-300 text-sm">New Password</label>
-            <div className="relative">
+          <div className="space-y-1">
+            <div className="flex justify-between items-center ml-1">
+               <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">New Password</label>
+               <button type="button" onClick={handleSuggestion} className="text-[10px] flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-bold uppercase transition-colors">
+                 <HiLightningBolt /> Suggest Strong
+               </button>
+            </div>
+            
+            <div className="relative group">
+              <HiLockClosed className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
               <input
                 type={showNew ? "text" : "password"}
-                onFocus={handleNewFocus}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                required
-                placeholder="Choose new password"
-                className="w-full mt-1 p-3 pr-10 bg-slate-900/70 border border-white/10 rounded-lg focus:ring-2 focus:ring-sky-500"
+                placeholder="Create new password"
+                className="w-full bg-slate-800/50 text-white pl-10 pr-12 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-slate-600 text-sm"
               />
               <button
-                onClick={() => setShowNew(!showNew)}
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300"
-                aria-label="toggle new password visibility"
+                onClick={() => setShowNew(!showNew)}
+                className="absolute right-3 top-3 text-slate-400 hover:text-white transition-colors"
               >
-                {showNew ? <FaEyeSlash /> : <FaEye />}
+                {showNew ? <HiEyeOff className="text-lg" /> : <HiEye className="text-lg" />}
               </button>
             </div>
-            {!isValidPassword(newPassword) && newPassword.length > 0 && (
-              <p className="text-red-400 text-xs mt-1">8-16 chars, uppercase, number & special char required.</p>
-            )}
+
+            {/* Strength Checker Visuals */}
+            <div className="grid grid-cols-2 gap-2 mt-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+              <Requirement label="8-16 Chars" met={checks.length} />
+              <Requirement label="Uppercase (A-Z)" met={checks.upper} />
+              <Requirement label="Number (0-9)" met={checks.number} />
+              <Requirement label="Special Char (!@#)" met={checks.special} />
+            </div>
           </div>
 
           {/* CONFIRM PASSWORD */}
-          <div>
-            <label className="text-gray-300 text-sm">Confirm Password</label>
-            <div className="relative">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Confirm Password</label>
+            <div className="relative group">
+              <HiLockClosed className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
               <input
                 type={showConfirm ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                placeholder="Confirm password"
-                className="w-full mt-1 p-3 pr-10 bg-slate-900/70 border border-white/10 rounded-lg focus:ring-2 focus:ring-sky-500"
+                placeholder="Repeat new password"
+                className={`w-full bg-slate-800/50 text-white pl-10 pr-12 py-3 rounded-xl border outline-none transition-all placeholder-slate-600 text-sm
+                  ${confirmPassword && newPassword !== confirmPassword 
+                    ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" 
+                    : "border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"}`}
               />
               <button
-                onClick={() => setShowConfirm(!showConfirm)}
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300"
-                aria-label="toggle confirm password visibility"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-3 text-slate-400 hover:text-white transition-colors"
               >
-                {showConfirm ? <FaEyeSlash /> : <FaEye />}
+                {showConfirm ? <HiEyeOff className="text-lg" /> : <HiEye className="text-lg" />}
               </button>
             </div>
             {confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-red-400 text-xs mt-1">Passwords do not match.</p>
+              <p className="text-xs text-red-400 ml-1 font-medium animate-pulse">Passwords do not match</p>
             )}
           </div>
 
-          {/* SUBMIT BUTTON */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-sky-500 hover:bg-sky-600 rounded-lg font-semibold shadow-lg transition disabled:opacity-50"
-          >
-            {loading ? "Saving..." : "Change Password"}
-          </button>
-        </form>
+          {/* Actions */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? <>Updating... <ButtonLoader /></> : "Update Password"}
+            </button>
+            
+            <div className="mt-4 text-center">
+              <Link to="/profile" className="text-sm text-slate-400 hover:text-white transition-colors">
+                Cancel and go back
+              </Link>
+            </div>
+          </div>
 
-        <p className="text-center text-gray-400 text-xs mt-4">
-          <Link to="/profile" className="text-sky-400">Back to Profile</Link>
-        </p>
-      </div>
+        </form>
+      </motion.div>
     </div>
   );
 }
+
+// Helper Component for Checklist
+const Requirement = ({ label, met }) => (
+  <div className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors duration-300 ${met ? "text-emerald-400" : "text-slate-500"}`}>
+    {met ? <HiCheckCircle className="text-sm" /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-600" />}
+    {label}
+  </div>
+);
