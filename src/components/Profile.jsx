@@ -6,22 +6,20 @@ import { AuthContext } from "../context/AuthContext";
 import {
   FaCopy,
   FaCheck,
-  FaQrcode,
+  FaShareAlt,
+  FaDownload,
   FaWhatsapp,
-  FaEnvelope,
   FaLinkedin,
   FaTwitter,
-  FaInstagram,
-  FaDownload,
-  FaShareAlt,
   FaFacebook,
+  FaInstagram,
   FaTelegramPlane,
   FaRedditAlien,
   FaPinterestP,
 } from "react-icons/fa";
 import { QRCodeCanvas } from "qrcode.react";
 
-// 🔄 Reusable High-End Loader Overlay
+// 🔄 Reusable Full-Screen Loader Overlay (Used for initial hard loading)
 const LoaderOverlay = ({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
@@ -31,6 +29,48 @@ const LoaderOverlay = ({ message }) => (
     <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
+
+// 💀 Profile View Skeleton (Used when loading=false but user data is still being processed)
+const ProfileViewSkeleton = () => (
+    <div className="w-full animate-pulse p-4">
+        {/* Main profile info skeleton */}
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div className="w-28 h-28 rounded-full bg-slate-800 flex-shrink-0"></div>
+
+            <div className="flex-1 space-y-4">
+                <div className="h-8 w-64 bg-slate-800 rounded"></div>
+                <div className="h-4 w-48 bg-slate-800 rounded"></div>
+                <div className="h-5 w-24 bg-slate-800 rounded-full mt-3"></div>
+
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-sm border-t border-slate-800 pt-6">
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i}>
+                            <div className="h-3 w-20 bg-slate-800 rounded mb-1"></div>
+                            <div className="h-4 w-32 bg-slate-700 rounded"></div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+
+        {/* Action buttons skeleton */}
+        <div className="mt-8 pt-6 border-t border-slate-800 flex flex-wrap items-center justify-end gap-3">
+            <div className="h-10 w-32 rounded-xl bg-slate-800"></div>
+            <div className="h-10 w-32 rounded-xl bg-sky-600/50"></div>
+            <div className="h-10 w-24 rounded-xl bg-emerald-600/50"></div>
+        </div>
+
+        {/* Professional summary skeleton */}
+        <div className="mt-6 bg-slate-800/50 border border-slate-700/50 p-5 rounded-2xl">
+            <div className="h-3 w-24 bg-sky-800 rounded mb-3"></div>
+            <div className="space-y-2">
+                <div className="h-3 w-full bg-slate-700 rounded"></div>
+                <div className="h-3 w-5/6 bg-slate-700 rounded"></div>
+            </div>
+        </div>
+    </div>
+);
+
 
 const baseURL = import.meta.env.VITE_API_URL || "/api";
 const api = axios.create({ baseURL, timeout: 15000 });
@@ -90,7 +130,7 @@ export default function Profile() {
 
   // share modal
   const [shareOpen, setShareOpen] = useState(false);
-  
+
   // 🟢 REF FOR QR CODE (FIXED)
   const qrCanvasRef = useRef(null);
 
@@ -148,17 +188,17 @@ export default function Profile() {
       } catch (err) {
         console.error("[Profile] fetchAll error:", err);
         const msg = err?.response?.data?.message || err?.message;
-        
+
         if (err?.response?.status === 401 || err?.response?.status === 403) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           navigate("/login");
         } else {
-             Swal.fire(
-              "Warning",
-              `Could not fetch profile or lists: ${msg}`,
-              "warning"
-            );
+          Swal.fire(
+            "Warning",
+            `Could not fetch profile or lists: ${msg}`,
+            "warning"
+          );
         }
       } finally {
         if (mounted) setLoading(false);
@@ -292,7 +332,7 @@ export default function Profile() {
   const handleDownloadQr = () => {
     // Canvas ko ref ke through dhundenge
     const canvas = qrCanvasRef.current?.querySelector("canvas");
-    
+
     if (!canvas) {
       Swal.fire("Error", "QR Code generation failed. Please try again.", "error");
       return;
@@ -301,17 +341,17 @@ export default function Profile() {
     try {
       // Image URL convert karein
       const dataUrl = canvas.toDataURL("image/png");
-      
+
       // Download link create karein
       const link = document.createElement("a");
       link.href = dataUrl;
       // File name set karein
       link.download = `Student-Profile-${user?.name || "User"}.png`;
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       Swal.fire({
         icon: 'success',
         title: 'Downloaded!',
@@ -555,7 +595,7 @@ export default function Profile() {
         {user?.role === "STUDENT" && (
           <div className="bg-slate-800/30 p-5 rounded-2xl border border-slate-700/50 space-y-4">
             <h3 className="text-sm font-bold text-slate-400 border-b border-slate-700/50 pb-2 mb-4">Academic Details</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">
@@ -627,7 +667,7 @@ export default function Profile() {
     // 🟢 2. FIX URL CONSTRUCTION
     const currentOrigin = window.location.origin; // e.g., https://eduprojewct.site
     const userEmail = user?.email || "";
-    
+
     // Encode email properly for URL
     const publicUrl = `${currentOrigin}/profile/${encodeURIComponent(userEmail)}`;
 
@@ -645,13 +685,11 @@ export default function Profile() {
     const linkedinShare = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
     const twitterShare = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${shareText}`;
     const facebookShare = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-    const instagramShare = `https://www.instagram.com/`;
-    const snapchatShare = `https://www.snapchat.com/`;
+    // Instagram and Snapchat usually require their mobile app/API for direct sharing, but we include buttons for general user intent.
+    const instagramShare = `https://www.instagram.com/`; 
     const telegramShare = `https://t.me/share/url?url=${encodedUrl}&text=${shareText}`;
     const redditShare = `https://www.reddit.com/submit?url=${encodedUrl}&title=${shareText}`;
     const pinterestShare = `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${shareText}`;
-
-    const nameLabel = user?.name || "your profile";
 
     return (
       <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 animate-in fade-in zoom-in-95 duration-200">
@@ -688,7 +726,7 @@ export default function Profile() {
 
           {/* QR FIRST (top, full width) */}
           <div className="mb-4 flex flex-col items-center justify-center gap-3 border border-slate-800 rounded-xl bg-slate-950 p-4">
-            
+
             {/* 🟢 3. IMPORTANT: Ref is here on the wrapper div */}
             <div ref={qrCanvasRef} className="inline-block bg-white p-2 rounded-lg shadow-lg">
               <QRCodeCanvas
@@ -699,30 +737,30 @@ export default function Profile() {
               />
             </div>
             <div className="text-center w-full">
-                <div className="flex flex-wrap gap-2 justify-center w-full">
-                  <button
-                    type="button"
-                    onClick={handleDownloadQr}
-                    className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] text-white inline-flex justify-center items-center gap-1 font-medium transition-colors border border-slate-700"
-                  >
-                    <FaDownload /> QR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCopyPublicLink}
-                    className="flex-1 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-[10px] text-white inline-flex justify-center items-center gap-1 font-medium transition-colors shadow-lg shadow-sky-900/20"
-                  >
-                    {copyPublicDone ? (
-                      <>
-                        <FaCheck /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <FaCopy /> Link
-                      </>
-                    )}
-                  </button>
-                </div>
+              <div className="flex flex-wrap gap-2 justify-center w-full">
+                <button
+                  type="button"
+                  onClick={handleDownloadQr}
+                  className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] text-white inline-flex justify-center items-center gap-1 font-medium transition-colors border border-slate-700"
+                >
+                  <FaDownload /> QR
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyPublicLink}
+                  className="flex-1 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-[10px] text-white inline-flex justify-center items-center gap-1 font-medium transition-colors shadow-lg shadow-sky-900/20"
+                >
+                  {copyPublicDone ? (
+                    <>
+                      <FaCheck /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <FaCopy /> Link
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -746,14 +784,14 @@ export default function Profile() {
 
           {/* Social icons grid */}
           <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-             <SocialButton icon={<FaWhatsapp/>} color="bg-emerald-500" onClick={() => window.open(whatsappShare, "_blank")} />
-             <SocialButton icon={<FaLinkedin/>} color="bg-sky-700" onClick={() => window.open(linkedinShare, "_blank")} />
-             <SocialButton icon={<FaTwitter/>} color="bg-slate-700" onClick={() => window.open(twitterShare, "_blank")} />
-             <SocialButton icon={<FaFacebook/>} color="bg-blue-600" onClick={() => window.open(facebookShare, "_blank")} />
-             <SocialButton icon={<FaInstagram/>} color="bg-pink-600" onClick={() => window.open(instagramShare, "_blank")} />
-             <SocialButton icon={<FaTelegramPlane/>} color="bg-sky-500" onClick={() => window.open(telegramShare, "_blank")} />
-             <SocialButton icon={<FaRedditAlien/>} color="bg-orange-600" onClick={() => window.open(redditShare, "_blank")} />
-             <SocialButton icon={<FaPinterestP/>} color="bg-red-600" onClick={() => window.open(pinterestShare, "_blank")} />
+              <SocialButton icon={<FaWhatsapp/>} color="bg-emerald-500" onClick={() => window.open(whatsappShare, "_blank")} />
+              <SocialButton icon={<FaLinkedin/>} color="bg-sky-700" onClick={() => window.open(linkedinShare, "_blank")} />
+              <SocialButton icon={<FaTwitter/>} color="bg-slate-700" onClick={() => window.open(twitterShare, "_blank")} />
+              <SocialButton icon={<FaFacebook/>} color="bg-blue-600" onClick={() => window.open(facebookShare, "_blank")} />
+              <SocialButton icon={<FaInstagram/>} color="bg-pink-600" onClick={() => window.open(instagramShare, "_blank")} />
+              <SocialButton icon={<FaTelegramPlane/>} color="bg-sky-500" onClick={() => window.open(telegramShare, "_blank")} />
+              <SocialButton icon={<FaRedditAlien/>} color="bg-orange-600" onClick={() => window.open(redditShare, "_blank")} />
+              <SocialButton icon={<FaPinterestP/>} color="bg-red-600" onClick={() => window.open(pinterestShare, "_blank")} />
           </div>
         </div>
       </div>
@@ -766,7 +804,9 @@ export default function Profile() {
         {/* Background glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
 
-        {isEdit ? <ProfileEdit /> : <ProfileView />}
+        {/* Conditional Rendering */}
+        {loading && !isEdit && <ProfileViewSkeleton />} {/* Show skeleton when loading */}
+        {!loading && (isEdit ? <ProfileEdit /> : <ProfileView />)}
 
         {shareOpen && user?.role === "STUDENT" && <ShareModal />}
       </div>
