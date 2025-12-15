@@ -11,10 +11,12 @@ const Icons = {
   Excel: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9h4"/></svg>),
   Upload: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>),
   Search: () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>),
-  Spinner: () => (<svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>)
+  Spinner: () => (<svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>),
+  Edit: () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>),
+  View: () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>)
 };
 
-/* --- Loader --- */
+/* --- Loader (Full Screen Initial Load) --- */
 const Loader = ({ text = "Loading..." }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
     <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700 flex flex-col items-center">
@@ -23,6 +25,23 @@ const Loader = ({ text = "Loading..." }) => (
     </div>
   </div>
 );
+
+/* --- Table Skeleton (Data Fetching Load) --- */
+const TableSkeleton = () => (
+    <tbody className="divide-y divide-slate-800 animate-pulse">
+        {[...Array(8)].map((_, i) => (
+            <tr key={i} className="bg-slate-900/40">
+                <td className="p-4"><div className="h-4 bg-slate-700 rounded w-4/5 mb-1"></div><div className="h-3 bg-slate-800 rounded w-3/5"></div></td>
+                <td className="p-4"><div className="h-4 bg-slate-700 rounded w-1/2"></div></td>
+                <td className="p-4"><div className="h-4 bg-slate-700 rounded w-2/3 mb-1"></div><div className="h-3 bg-slate-800 rounded w-1/3"></div></td>
+                <td className="p-4"><div className="h-5 bg-slate-700 rounded w-full"></div></td>
+                <td className="p-4"><div className="h-4 bg-slate-700 rounded w-3/4"></div></td>
+                <td className="p-4 text-right"><div className="flex justify-end gap-2"><div className="h-7 w-12 bg-slate-700/50 rounded"></div><div className="h-7 w-12 bg-slate-700/50 rounded"></div></div></td>
+            </tr>
+        ))}
+    </tbody>
+);
+
 
 /* --- EditModal --- */
 function EditModal({ open, onClose, student, branches, semesters, sections, onSaved }) {
@@ -62,7 +81,7 @@ function EditModal({ open, onClose, student, branches, semesters, sections, onSa
       onClose();
     } catch (err) {
       console.error(err);
-      Swal.fire({ icon: "error", title: "Error", text: err.response?.data || "Save failed" });
+      Swal.fire({ icon: "error", title: "Error", text: err.response?.data?.message || "Save failed" });
     }
   };
 
@@ -159,7 +178,7 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
     try {
       setUploading(true);
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/admin/students/import`, formData, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-form" }
       });
       Swal.fire({ icon: "success", title: "Import Successful", text: `Created: ${res.data.created}, Updated: ${res.data.updated}` });
       onUploaded && onUploaded(res.data);
@@ -210,8 +229,8 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
 }
 
 /* =========================================================================
-   MAIN COMPONENT (Updated with Automatic Search & Debounce)
-   ========================================================================= */
+  MAIN COMPONENT
+  ========================================================================= */
 export default function AdminUserDetail() {
   const navigate = useNavigate();
 
@@ -222,8 +241,8 @@ export default function AdminUserDetail() {
   const [semesters, setSemesters] = useState([]);
   
   // UI States
-  const [loading, setLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [loading, setLoading] = useState(true); // Initial hard load
+  const [fetching, setFetching] = useState(false); // Filter/search fetch
   const [exporting, setExporting] = useState(null); 
 
   // Filter States
@@ -248,7 +267,7 @@ export default function AdminUserDetail() {
 
   useEffect(() => {
     fetchMaster();
-    fetchData(); 
+    fetchData(true); // Initial fetch, ignore debounce for now
     // eslint-disable-next-line
   }, []);
 
@@ -266,7 +285,7 @@ export default function AdminUserDetail() {
     fetchData();
     fetchSummary();
     // eslint-disable-next-line
-  }, [branchId, sectionId, semesterId, debouncedQ]); // <-- Triggers automatically
+  }, [branchId, sectionId, semesterId, debouncedQ]); 
 
   const fetchMaster = async () => {
     try {
@@ -294,7 +313,7 @@ export default function AdminUserDetail() {
       console.error(err);
     } finally {
       setFetching(false);
-      setLoading(false);
+      setLoading(false); // Initial load is done now
     }
   };
 
@@ -372,23 +391,23 @@ export default function AdminUserDetail() {
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg flex items-center justify-between">
-           <div>
-             <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Students</p>
-             <p className="text-2xl font-bold text-white mt-1">{summary.totalStudents}</p>
-           </div>
-           <div className="p-3 bg-indigo-500/10 rounded-lg text-indigo-400">
-             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-           </div>
+            <div>
+              <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Students</p>
+              <p className="text-2xl font-bold text-white mt-1">{summary.totalStudents}</p>
+            </div>
+            <div className="p-3 bg-indigo-500/10 rounded-lg text-indigo-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg flex items-center justify-between">
-           <div>
-             <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Currently Showing</p>
-             <p className="text-2xl font-bold text-white mt-1">{summary.filteredStudents}</p>
-           </div>
-           <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400">
-             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-           </div>
+            <div>
+              <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Currently Showing</p>
+              <p className="text-2xl font-bold text-white mt-1">{summary.filteredStudents}</p>
+            </div>
+            <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            </div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl shadow-lg flex flex-col justify-center gap-2">
@@ -406,7 +425,7 @@ export default function AdminUserDetail() {
         </div>
       </div>
 
-      {/* 2. Filters & Search (REMOVED APPLY BUTTON) */}
+      {/* 2. Filters & Search */}
       <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg mb-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             <div className="md:col-span-2">
@@ -445,6 +464,7 @@ export default function AdminUserDetail() {
 
       {/* 3. Data Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+        {/* Loading Indicator for filter/search updates */}
         {fetching && <div className="p-4 text-center text-indigo-400 bg-indigo-500/10 text-sm font-medium animate-pulse">Updating list...</div>}
         
         <div className="overflow-x-auto">
@@ -459,34 +479,39 @@ export default function AdminUserDetail() {
                         <th className="p-4 font-semibold text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
-                    {students.length > 0 ? students.map((s) => (
-                        <tr key={s.id} className="hover:bg-slate-800/40 transition-colors group">
-                            <td className="p-4">
-                                <div className="font-medium text-white">{s.name}</div>
-                                <div className="text-xs text-slate-500">{s.email}</div>
-                            </td>
-                            <td className="p-4 text-sm text-slate-300 font-mono">{s.rollNumber || "N/A"}</td>
-                            <td className="p-4 text-sm text-slate-300">
-                                {s.branch?.branchName || "-"}
-                                <div className="text-[10px] text-slate-500">{s.branch?.course?.courseName}</div>
-                            </td>
-                            <td className="p-4 text-sm text-slate-300">
-                                <span className="inline-block bg-slate-800 px-2 py-0.5 rounded text-xs border border-slate-700 mr-1">{s.semester?.semesterName || "-"}</span>
-                                <span className="inline-block bg-slate-800 px-2 py-0.5 rounded text-xs border border-slate-700">{s.section?.sectionName || "-"}</span>
-                            </td>
-                            <td className="p-4 text-sm text-slate-400">{s.contactNo || "-"}</td>
-                            <td className="p-4 text-right">
-                                <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => setEditingStudent(s) || setEditOpen(true)} className="px-3 py-1.5 text-xs font-medium bg-emerald-600/10 text-emerald-400 border border-emerald-600/20 hover:bg-emerald-600 hover:text-white rounded transition-all">Edit</button>
-                                    <button onClick={() => navigate(`/profile/${encodeURIComponent(s.email)}`)} className="px-3 py-1.5 text-xs font-medium bg-indigo-600/10 text-indigo-400 border border-indigo-600/20 hover:bg-indigo-600 hover:text-white rounded transition-all">View</button>
-                                </div>
-                            </td>
-                        </tr>
-                    )) : (
-                        <tr><td colSpan="6" className="p-8 text-center text-slate-500 italic">No student records found matching filters.</td></tr>
-                    )}
-                </tbody>
+                {/* Conditional rendering of Table content vs. Skeleton */}
+                {fetching ? (
+                    <TableSkeleton />
+                ) : (
+                    <tbody className="divide-y divide-slate-800">
+                        {students.length > 0 ? students.map((s) => (
+                            <tr key={s.id} className="hover:bg-slate-800/40 transition-colors group">
+                                <td className="p-4">
+                                    <div className="font-medium text-white">{s.name}</div>
+                                    <div className="text-xs text-slate-500">{s.email}</div>
+                                </td>
+                                <td className="p-4 text-sm text-slate-300 font-mono">{s.rollNumber || "N/A"}</td>
+                                <td className="p-4 text-sm text-slate-300">
+                                    {s.branch?.branchName || "-"}
+                                    <div className="text-[10px] text-slate-500">{s.branch?.course?.courseName}</div>
+                                </td>
+                                <td className="p-4 text-sm text-slate-300">
+                                    <span className="inline-block bg-slate-800 px-2 py-0.5 rounded text-xs border border-slate-700 mr-1">{s.semester?.semesterName || "-"}</span>
+                                    <span className="inline-block bg-slate-800 px-2 py-0.5 rounded text-xs border border-slate-700">{s.section?.sectionName || "-"}</span>
+                                </td>
+                                <td className="p-4 text-sm text-slate-400">{s.contactNo || "-"}</td>
+                                <td className="p-4 text-right">
+                                    <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => setEditingStudent(s) || setEditOpen(true)} className="px-3 py-1.5 text-xs font-medium bg-emerald-600/10 text-emerald-400 border border-emerald-600/20 hover:bg-emerald-600 hover:text-white rounded transition-all flex items-center gap-1"><Icons.Edit />Edit</button>
+                                        <button onClick={() => navigate(`/profile/${encodeURIComponent(s.email)}`)} className="px-3 py-1.5 text-xs font-medium bg-indigo-600/10 text-indigo-400 border border-indigo-600/20 hover:bg-indigo-600 hover:text-white rounded transition-all flex items-center gap-1"><Icons.View />View</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        )) : (
+                            <tr><td colSpan="6" className="p-8 text-center text-slate-500 italic">No student records found matching filters.</td></tr>
+                        )}
+                    </tbody>
+                )}
             </table>
         </div>
       </div>
