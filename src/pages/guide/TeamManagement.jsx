@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   HiUserAdd, 
   HiTrash, 
-  HiOfficeBuilding, 
-  HiAcademicCap, 
-  HiUserGroup,
   HiCode,
   HiCalendar,
   HiCheckCircle,
-  HiPlus
+  HiPlus,
+  HiOfficeBuilding, 
+  HiAcademicCap, 
+  HiUserGroup,
+  HiOfficeBuilding as HiBranch,
+  HiAcademicCap as HiSemester,
+  HiUserGroup as HiSection
 } from "react-icons/hi";
 
-// 🔄 Reusable High-End Loader Overlay
+// 🔄 Reusable High-End Loader Overlay (For Submitting)
 const LoaderOverlay = ({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
@@ -24,6 +27,61 @@ const LoaderOverlay = ({ message }) => (
     <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
+
+// 💀 Team Management Page Skeleton Loader
+const TeamManagementSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-[#0b1120] p-4 md:p-8 font-sans relative animate-pulse">
+      <div className="max-w-5xl mx-auto space-y-8">
+        
+        {/* Header Skeleton */}
+        <div className="space-y-3 pt-4">
+          <div className="h-8 w-64 bg-slate-800 rounded-lg"></div>
+          <div className="h-4 w-96 bg-slate-800/50 rounded"></div>
+        </div>
+
+        {/* Project Details Skeleton */}
+        <div className="bg-slate-800/60 border border-slate-700/60 p-8 rounded-3xl space-y-6">
+          <div className="h-6 w-40 bg-slate-700/80 rounded"></div>
+          <div className="h-10 w-full bg-slate-700/50 rounded-xl"></div>
+          <div className="h-20 w-full bg-slate-700/50 rounded-xl"></div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="h-10 bg-slate-700/50 rounded-xl"></div>
+            <div className="h-10 bg-slate-700/50 rounded-xl"></div>
+            <div className="h-10 w-full bg-slate-700/50 rounded-xl"></div>
+            <div className="h-10 w-full bg-slate-700/50 rounded-xl"></div>
+          </div>
+        </div>
+
+        {/* Team Members Skeleton */}
+        <div className="bg-slate-800/60 border border-slate-700/60 p-8 rounded-3xl space-y-6">
+          <div className="h-6 w-48 bg-slate-700/80 rounded"></div>
+          <div className="h-10 w-32 bg-slate-700/50 rounded-xl mb-4"></div>
+          
+          {/* Member Row Skeleton */}
+          {[1, 2].map((i) => (
+            <div key={i} className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 space-y-4">
+              <div className="h-4 w-24 bg-slate-700/50 rounded"></div>
+              <div className="grid grid-cols-4 gap-4">
+                <div className="h-10 bg-slate-700/30 rounded-lg"></div>
+                <div className="h-10 bg-slate-700/30 rounded-lg"></div>
+                <div className="h-10 bg-slate-700/30 rounded-lg"></div>
+                <div className="h-10 bg-slate-700/30 rounded-lg"></div>
+              </div>
+              <div className="h-10 w-full bg-slate-700/30 rounded-lg"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Submit Button Skeleton */}
+        <div className="flex justify-end">
+          <div className="h-12 w-56 bg-emerald-600/50 rounded-xl"></div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 // ✅ Component for a single team member input row
 const TeamMemberInput = ({
@@ -83,15 +141,20 @@ const TeamMemberInput = ({
         });
       }
     } catch (err) {
-       // Silent fail or toast
+        // Silent fail or toast
     }
   };
 
   return (
-    <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 mb-4 transition-all hover:border-slate-600">
+    <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 mb-4 transition-all hover:border-sky-500/50"
+    >
       <div className="flex justify-between items-center mb-3">
         <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wide flex items-center gap-2">
-           <HiUserGroup className="text-sky-500"/> Member {index + 1}
+            <HiUserGroup className="text-sky-500"/> Member {index + 1}
         </h4>
         {canRemove && (
           <button
@@ -196,7 +259,7 @@ const TeamMemberInput = ({
           Assign as Team Leader
         </span>
       </label>
-    </div>
+    </motion.div>
   );
 };
 
@@ -350,6 +413,7 @@ export default function TeamManagement() {
         timer: 2000,
         showConfirmButton: false
       });
+      // Reset form (Optional: reset to default state)
       setProject({
         title: "",
         description: "",
@@ -383,7 +447,7 @@ export default function TeamManagement() {
     }
   };
 
-  if (loading) return <LoaderOverlay message="Initializing..." />;
+  if (loading) return <LoaderOverlay message="Initializing..." />; // Should use Skeleton here
 
   return (
     <div className="min-h-screen bg-[#0b1120] text-slate-200 p-4 md:p-8 font-sans selection:bg-sky-500/30">
@@ -397,7 +461,7 @@ export default function TeamManagement() {
           className="mb-8"
         >
           <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-             <HiUserGroup className="text-sky-500" /> Create Project & Team
+              <HiUserGroup className="text-sky-500" /> Create Project & Team
           </h1>
           <p className="text-slate-400 mt-2 text-sm">Define project scope and assemble your team roster.</p>
         </motion.div>
@@ -426,58 +490,58 @@ export default function TeamManagement() {
               <div>
                  <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">Description</label>
                  <textarea
-                  placeholder="Project description..."
-                  value={project.description}
-                  onChange={(e) => handleProjectChange("description", e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600 min-h-[100px]"
-                />
+                   placeholder="Project description..."
+                   value={project.description}
+                   onChange={(e) => handleProjectChange("description", e.target.value)}
+                   className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600 min-h-[100px]"
+                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                    <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">Technologies</label>
                    <input
-                    type="text"
-                    placeholder="e.g. React, Node.js..."
-                    value={project.technologies}
-                    onChange={(e) => handleProjectChange("technologies", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600"
-                  />
+                     type="text"
+                     placeholder="e.g. React, Node.js..."
+                     value={project.technologies}
+                     onChange={(e) => handleProjectChange("technologies", e.target.value)}
+                     className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600"
+                   />
                 </div>
                 <div>
                    <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide">Team Name</label>
                    <input
-                    type="text"
-                    placeholder="Enter team name"
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600"
-                    required
-                  />
+                     type="text"
+                     placeholder="Enter team name"
+                     value={teamName}
+                     onChange={(e) => setTeamName(e.target.value)}
+                     className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all placeholder-slate-600"
+                     required
+                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide flex items-center gap-2"><HiCalendar/> Start Date</label>
-                    <input
-                      type="date"
-                      value={project.startDate}
-                      onChange={(e) => handleProjectChange("startDate", e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all uppercase text-sm"
-                      min={new Date().toISOString().split("T")[0]}
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide flex items-center gap-2"><HiCalendar/> End Date</label>
-                    <input
-                      type="date"
-                      value={project.endDate}
-                      onChange={(e) => handleProjectChange("endDate", e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all uppercase text-sm"
-                      min={project.startDate || new Date().toISOString().split("T")[0]}
-                    />
-                 </div>
+                  <div>
+                     <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide flex items-center gap-2"><HiCalendar/> Start Date</label>
+                     <input
+                       type="date"
+                       value={project.startDate}
+                       onChange={(e) => handleProjectChange("startDate", e.target.value)}
+                       className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all uppercase text-sm"
+                       min={new Date().toISOString().split("T")[0]}
+                     />
+                  </div>
+                  <div>
+                     <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wide flex items-center gap-2"><HiCalendar/> End Date</label>
+                     <input
+                       type="date"
+                       value={project.endDate}
+                       onChange={(e) => handleProjectChange("endDate", e.target.value)}
+                       className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all uppercase text-sm"
+                       min={project.startDate || new Date().toISOString().split("T")[0]}
+                     />
+                  </div>
               </div>
             </div>
           </div>
@@ -519,9 +583,11 @@ export default function TeamManagement() {
           <div className="flex justify-end pt-4">
             <button
               type="submit"
-              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 active:scale-95 transition-all flex items-center gap-2"
+              disabled={submitting}
+              className={`px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2 ${submitting ? "opacity-50 cursor-not-allowed" : "active:scale-95"}`}
             >
-              <HiCheckCircle className="text-xl"/> Create Project & Team
+              {submitting ? <Spinner /> : <HiCheckCircle className="text-xl"/>}
+              {submitting ? "Creating..." : "Create Project & Team"}
             </button>
           </div>
 

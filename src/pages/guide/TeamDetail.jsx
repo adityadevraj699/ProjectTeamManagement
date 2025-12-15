@@ -8,12 +8,10 @@ import {
   HiCode, 
   HiCalendar, 
   HiClock,
-  HiCheckCircle,
-  HiExclamationCircle,
   HiBriefcase
 } from "react-icons/hi";
 
-// 🔄 Reusable High-End Loader Overlay
+// 🔄 Reusable High-End Loader Overlay (Used for Status Updates)
 const LoaderOverlay = ({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
@@ -24,13 +22,78 @@ const LoaderOverlay = ({ message }) => (
   </div>
 );
 
+// 💀 Team Detail Skeleton Loader
+const TeamDetailSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-[#0f172a] p-6 md:p-10 font-sans relative animate-pulse">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Back Button Skeleton */}
+        <div className="h-8 w-32 bg-slate-800 rounded-full mb-10"></div>
+
+        {/* --- Team & Project Section Skeleton --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+          
+          {/* Team Info Card Skeleton */}
+          <div className="bg-slate-800/60 border border-slate-700/60 p-8 rounded-3xl h-64 space-y-4">
+            <div className="h-8 w-48 bg-slate-700 rounded"></div>
+            <div className="h-4 w-32 bg-slate-700/50 rounded-full"></div>
+            <div className="h-1 bg-slate-700/50 w-full mt-8"></div>
+            <div className="flex justify-between pt-4">
+              <div className="h-4 w-20 bg-slate-700/50 rounded"></div>
+              <div className="h-6 w-24 bg-slate-700 rounded-lg"></div>
+            </div>
+          </div>
+
+          {/* Project Info Card Skeleton */}
+          <div className="bg-slate-800/60 border border-slate-700/60 p-8 rounded-3xl h-64 space-y-4">
+            <div className="h-6 w-32 bg-slate-700 rounded"></div>
+            <div className="h-8 w-64 bg-slate-700 rounded"></div>
+            <div className="h-4 w-40 bg-slate-700/50 rounded"></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-10 bg-slate-700/50 rounded"></div>
+              <div className="h-10 bg-slate-700/50 rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- Members Table Skeleton --- */}
+        <div className="bg-slate-800/60 border border-slate-700/60 rounded-3xl overflow-hidden">
+          <div className="p-6 border-b border-slate-700/50 flex justify-between items-center">
+            <div className="h-6 w-40 bg-slate-700 rounded"></div>
+            <div className="h-4 w-16 bg-slate-700 rounded"></div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            {/* Table Header */}
+            <div className="h-12 bg-slate-900/50 w-full"></div>
+            
+            {/* Table Rows */}
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-16 w-full border-b border-slate-700/50 flex items-center px-6">
+                <div className="w-1/4 h-8 bg-slate-700/50 rounded-lg"></div>
+                <div className="w-1/4 h-4 bg-slate-700/50 rounded-lg ml-6"></div>
+                <div className="w-1/4 h-8 bg-slate-700/50 rounded-lg ml-6"></div>
+                <div className="w-1/4 flex justify-end">
+                  <div className="h-8 w-24 bg-slate-700 rounded-lg"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 export default function TeamDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [team, setTeam] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false); // ✅ New loader for status update
+  const [loading, setLoading] = useState(true); // ✅ Controls Skeleton
+  const [updating, setUpdating] = useState(false); // ✅ Controls Overlay
   const [newStatus, setNewStatus] = useState("PENDING");
 
   const token = localStorage.getItem("token");
@@ -101,7 +164,7 @@ export default function TeamDetail() {
   };
 
   // ✅ Page-level loader
-  if (loading) return <LoaderOverlay message="Retrieving Team Data..." />;
+  if (loading) return <TeamDetailSkeleton />;
 
   // ✅ If no team found
   if (!team) {

@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { HiSearch, HiUserGroup, HiCalendar, HiPencil, HiTrash, HiEye, HiPlus } from "react-icons/hi";
 
-// 🔄 Reusable High-End Loader Overlay
+// 🔄 Reusable High-End Loader Overlay (Only for Delete Action)
 const LoaderOverlay = ({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
@@ -15,12 +15,55 @@ const LoaderOverlay = ({ message }) => (
   </div>
 );
 
+// 💀 Team Page Skeleton Loader
+const TeamSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-[#0f172a] p-6 md:p-10 font-sans relative animate-pulse">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row justify-between gap-6 mb-10">
+          <div className="space-y-3">
+            <div className="h-8 w-64 bg-slate-800 rounded-lg"></div>
+            <div className="h-4 w-96 bg-slate-800/50 rounded"></div>
+          </div>
+          <div className="h-10 w-32 bg-slate-800 rounded-xl"></div>
+        </div>
+
+        {/* Search Bar Skeleton */}
+        <div className="h-12 max-w-md w-full bg-slate-800/50 rounded-2xl mb-8"></div>
+
+        {/* Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 h-64 flex flex-col space-y-4">
+              <div className="flex justify-between items-start">
+                <div className="space-y-2">
+                  <div className="h-4 w-16 bg-slate-700/50 rounded"></div>
+                  <div className="h-6 w-40 bg-slate-700 rounded"></div>
+                </div>
+                <div className="h-4 w-16 bg-slate-700/50 rounded-full"></div>
+              </div>
+              <div className="h-12 w-full bg-slate-700/30 rounded-xl"></div>
+              <div className="flex justify-between pt-4 mt-auto border-t border-slate-700/30">
+                <div className="h-8 w-20 bg-slate-700 rounded-lg"></div>
+                <div className="h-8 w-20 bg-slate-700 rounded-lg"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 export default function Team() {
   const [teams, setTeams] = useState([]);
   const [filteredTeams, setFilteredTeams] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
+  const [loading, setLoading] = useState(true); // ✅ Controls Skeleton
+  const [deleting, setDeleting] = useState(false); // ✅ Controls Overlay Spinner
   const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
@@ -60,14 +103,14 @@ export default function Team() {
       console.error("Fetch error:", err);
       const message = err.response?.data?.message || "Failed to load teams";
       
-      if (err.response?.status !== 401) { // 401 is handled by useEffect
+      if (err.response?.status !== 401) { 
          Swal.fire({
-            title: "Error",
-            text: message,
-            icon: "error",
-            confirmButtonColor: "#ef4444",
-            background: "#1e293b",
-            color: "#fff",
+           title: "Error",
+           text: message,
+           icon: "error",
+           confirmButtonColor: "#ef4444",
+           background: "#1e293b",
+           color: "#fff",
          });
       }
     } finally {
@@ -140,10 +183,13 @@ export default function Team() {
     }
   };
 
-  if (loading) return <LoaderOverlay message="Loading Teams..." />;
+  // ✅ Show SKELETON while loading initial data
+  if (loading) return <TeamSkeleton />;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 p-6 md:p-10 font-sans selection:bg-sky-500/30">
+      
+      {/* Show Overlay Loader ONLY when Deleting */}
       {deleting && <LoaderOverlay message="Deleting Team..." />}
 
       {/* Header Area */}
@@ -242,7 +288,7 @@ export default function Team() {
                     onClick={() => navigate(`/guide/TeamDetail/${team.teamId}`)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-700/50 text-slate-300 text-sm font-medium hover:bg-sky-600 hover:text-white transition-all group/btn"
                   >
-                    View
+                    <HiEye className="text-lg text-sky-400 group-hover/btn:text-white transition-colors"/> View
                   </button>
                   
                   <div className="flex gap-2">
