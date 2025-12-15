@@ -21,14 +21,13 @@ import {
   FaUsers,
   FaCalendarCheck,
   FaCalendarTimes,
-  FaClock,
   FaFileAlt
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-// 🔄 Reusable High-End Loader Overlay
+// 🔄 Reusable High-End Loader Overlay (Original Loader, now used only for its visual style/overlay)
 const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+  <div className className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
       <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
       <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
@@ -37,14 +36,61 @@ const LoaderOverlay = ({ message }) => (
   </div>
 );
 
+// 💀 Student Dashboard Skeleton Loader
+const StudentDashboardSkeleton = () => (
+  <div className="min-h-screen bg-slate-950 px-6 pt-6 pb-8 space-y-6 font-sans animate-pulse">
+    {/* Header Skeleton */}
+    <header className="flex flex-col md:flex-row justify-between items-start pb-4 border-b border-slate-800/80">
+      <div className="space-y-3">
+        <div className="h-4 w-32 bg-emerald-500/10 rounded-full" />
+        <div className="h-8 w-80 bg-slate-800 rounded-lg" />
+        <div className="h-4 w-96 bg-slate-800/50 rounded" />
+      </div>
+      <div className="w-32 h-10 bg-slate-800 rounded-xl mt-4 md:mt-0" />
+    </header>
+
+    {/* Summary Cards Skeleton */}
+    <section>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-20 bg-slate-900/80 border border-slate-800/50 rounded-3xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-2xl bg-slate-800" />
+              <div className="space-y-1.5">
+                <div className="w-16 h-3 bg-slate-800 rounded" />
+                <div className="w-12 h-2 bg-slate-800/50 rounded" />
+              </div>
+            </div>
+            <div className="w-10 h-6 bg-slate-800 rounded" />
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {/* Charts Row 1 Skeleton (3 Charts) */}
+    <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="h-80 bg-slate-900/80 rounded-2xl border border-slate-800 p-4 space-y-4">
+          <div className="h-5 w-40 bg-slate-800 rounded" />
+          <div className="flex-1 h-64 bg-slate-800/50 rounded-xl" />
+        </div>
+      ))}
+    </section>
+
+    {/* Charts Row 2 Skeleton (3 Charts) */}
+    <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+       {[...Array(3)].map((_, i) => (
+        <div key={i} className="h-80 bg-slate-900/80 rounded-2xl border border-slate-800 p-4 space-y-4">
+          <div className="h-5 w-40 bg-slate-800 rounded" />
+          <div className="flex-1 h-64 bg-slate-800/50 rounded-xl" />
+        </div>
+      ))}
+    </section>
+  </div>
+);
+
 const COLORS = [
-  "#38bdf8",
-  "#6366f1",
-  "#22c55e",
-  "#eab308",
-  "#f97316",
-  "#ec4899",
-  "#a855f7"
+  "#38bdf8", "#6366f1", "#22c55e", "#eab308", "#f97316", "#ec4899", "#a855f7"
 ];
 
 const mapToChartArray = (obj) =>
@@ -52,7 +98,7 @@ const mapToChartArray = (obj) =>
     ? Object.entries(obj).map(([name, value]) => ({ name, value }))
     : [];
 
-// 🔹 Custom tooltip – bold, white text
+// 🔹 Custom tooltip
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
   const item = payload[0];
@@ -123,15 +169,16 @@ export default function StudentDashboard() {
         navigate("/student/meetings");
         break;
       case "mom":
-        navigate("/student/meetings"); // MOM bhi meetings page se access hoga
+        navigate("/student/meetings");
         break;
       default:
         break;
     }
   };
 
+  // 🛑 Use Skeleton Loader here
   if (loading || !stats) {
-    return <LoaderOverlay message="Loading student dashboard..." />;
+    return <StudentDashboardSkeleton />;
   }
 
   const tasksByStatus = mapToChartArray(stats.tasksByStatus);
