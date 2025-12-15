@@ -19,29 +19,25 @@ import {
 } from "react-icons/fa";
 import { QRCodeCanvas } from "qrcode.react";
 
-// 🔄 Reusable Full-Screen Loader Overlay (Used for initial hard loading)
-const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
-    <div className="relative w-24 h-24">
-      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
-      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
-    </div>
-    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
-  </div>
-);
-
-// 💀 Profile View Skeleton (Used when loading=false but user data is still being processed)
+// 💀 Profile View Skeleton (Used for both initial and subsequent non-edit loading)
 const ProfileViewSkeleton = () => (
-    <div className="w-full animate-pulse p-4">
+    // Outer div for the main profile card container
+    <div className="max-w-4xl w-full p-8 bg-slate-900 border border-slate-800 text-gray-100 rounded-3xl shadow-2xl relative overflow-hidden animate-pulse">
+        
         {/* Main profile info skeleton */}
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            {/* Avatar Skeleton */}
             <div className="w-28 h-28 rounded-full bg-slate-800 flex-shrink-0"></div>
 
             <div className="flex-1 space-y-4">
+                {/* Name Skeleton */}
                 <div className="h-8 w-64 bg-slate-800 rounded"></div>
+                {/* Email Skeleton */}
                 <div className="h-4 w-48 bg-slate-800 rounded"></div>
+                {/* Role Tag Skeleton */}
                 <div className="h-5 w-24 bg-slate-800 rounded-full mt-3"></div>
 
+                {/* Info Grid Skeleton */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-sm border-t border-slate-800 pt-6">
                     {[...Array(6)].map((_, i) => (
                         <div key={i}>
@@ -103,6 +99,8 @@ api.interceptors.response.use(
     return Promise.reject(err);
   }
 );
+
+// 🚫 Removed LoaderOverlay definition
 
 export default function Profile() {
   const { user: ctxUser, token: ctxToken, login: ctxLogin } =
@@ -399,9 +397,7 @@ export default function Profile() {
       );
     });
 
-  if (loading) {
-    return <LoaderOverlay message="Loading Profile..." />;
-  }
+  // 🚫 Removed: if (loading) { return <LoaderOverlay... /> }
 
   // ------------- VIEW MODE -------------
 
@@ -800,16 +796,21 @@ export default function Profile() {
 
   return (
     <div className="w-full min-h-[100vh] bg-[#0b1120] flex items-start justify-center p-6 font-sans">
-      <div className="max-w-4xl w-full p-8 bg-slate-900 border border-slate-800 text-gray-100 rounded-3xl shadow-2xl relative overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+      
+      {/* 🟢 NEW: Render ProfileViewSkeleton outside the inner container when loading */}
+      {loading ? (
+        <ProfileViewSkeleton />
+      ) : (
+        <div className="max-w-4xl w-full p-8 bg-slate-900 border border-slate-800 text-gray-100 rounded-3xl shadow-2xl relative overflow-hidden">
+          {/* Background glow */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
 
-        {/* Conditional Rendering */}
-        {loading && !isEdit && <ProfileViewSkeleton />} {/* Show skeleton when loading */}
-        {!loading && (isEdit ? <ProfileEdit /> : <ProfileView />)}
+          {/* Conditional Rendering of View/Edit */}
+          {isEdit ? <ProfileEdit /> : <ProfileView />}
 
-        {shareOpen && user?.role === "STUDENT" && <ShareModal />}
-      </div>
+          {shareOpen && user?.role === "STUDENT" && <ShareModal />}
+        </div>
+      )}
     </div>
   );
 }
