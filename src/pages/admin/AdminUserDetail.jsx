@@ -5,26 +5,16 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
-/* --- Icons (Inline SVGs for better look without external libs) --- */
+/* --- Icons --- */
 const Icons = {
-  Pdf: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l3 3 3-3"/><path d="M12 18v-6"/></svg>
-  ),
-  Excel: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9h4"/></svg>
-  ),
-  Upload: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-  ),
-  Search: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-  ),
-  Spinner: () => (
-    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-  )
+  Pdf: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l3 3 3-3"/><path d="M12 18v-6"/></svg>),
+  Excel: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9h4"/></svg>),
+  Upload: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>),
+  Search: () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>),
+  Spinner: () => (<svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>)
 };
 
-/* -------------------- Loader Component -------------------- */
+/* --- Loader --- */
 const Loader = ({ text = "Loading..." }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
     <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700 flex flex-col items-center">
@@ -34,10 +24,9 @@ const Loader = ({ text = "Loading..." }) => (
   </div>
 );
 
-/* -------------------- EditModal (Unchanged Logic, better UI) -------------------- */
+/* --- EditModal --- */
 function EditModal({ open, onClose, student, branches, semesters, sections, onSaved }) {
   const [form, setForm] = useState({});
-  
   useEffect(() => {
     if (!student) return setForm({});
     setForm({
@@ -85,20 +74,13 @@ function EditModal({ open, onClose, student, branches, semesters, sections, onSa
           <h3 className="text-xl font-bold text-white">Edit Student Details</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">✕</button>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Input Field Helper */}
             {['name', 'email', 'contactNo', 'rollNumber'].map((field) => (
                 <div key={field}>
                     <label className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-1 block">{field.replace(/([A-Z])/g, ' $1')}</label>
-                    <input className="w-full p-2.5 bg-slate-800 border border-slate-600 focus:border-indigo-500 text-white rounded outline-none transition-all" 
-                        value={form[field]} 
-                        onChange={e => setForm({...form, [field]: e.target.value})} 
-                    />
+                    <input className="w-full p-2.5 bg-slate-800 border border-slate-600 focus:border-indigo-500 text-white rounded outline-none transition-all" value={form[field]} onChange={e => setForm({...form, [field]: e.target.value})} />
                 </div>
             ))}
-
-            {/* Select Field Helper */}
             {[
                 { label: 'Branch', key: 'branchId', opts: branches, dKey: 'branchName' },
                 { label: 'Semester', key: 'semesterId', opts: semesters, dKey: 'semesterName' },
@@ -106,17 +88,13 @@ function EditModal({ open, onClose, student, branches, semesters, sections, onSa
             ].map((item) => (
                 <div key={item.key} className={item.key === 'sectionId' ? "md:col-span-2" : ""}>
                     <label className="text-xs font-semibold uppercase text-gray-400 tracking-wider mb-1 block">{item.label}</label>
-                    <select className="w-full p-2.5 bg-slate-800 border border-slate-600 focus:border-indigo-500 text-white rounded outline-none transition-all"
-                        value={form[item.key]} 
-                        onChange={e => setForm({...form, [item.key]: e.target.value})}
-                    >
+                    <select className="w-full p-2.5 bg-slate-800 border border-slate-600 focus:border-indigo-500 text-white rounded outline-none transition-all" value={form[item.key]} onChange={e => setForm({...form, [item.key]: e.target.value})}>
                         <option value="">— Select {item.label} —</option>
                         {item.opts.map(o => <option key={o.id} value={o.id}>{o[item.dKey]}</option>)}
                     </select>
                 </div>
             ))}
         </div>
-
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-700">
           <button onClick={onClose} className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors">Cancel</button>
           <button onClick={save} className="px-6 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 rounded text-white font-medium shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105">Save Changes</button>
@@ -126,21 +104,20 @@ function EditModal({ open, onClose, student, branches, semesters, sections, onSa
   );
 }
 
-/* -------------------- UploadModal (Cleaned UI) -------------------- */
+/* --- UploadModal --- */
 function UploadModal({ open, onClose, branches, semesters, sections, onUploaded }) {
   const [branchId, setBranchId] = useState("");
   const [semesterId, setSemesterId] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const [previewRows, setPreviewRows] = useState([]); 
   const [previewHeaders, setPreviewHeaders] = useState([]); 
 
   useEffect(() => {
     if (!open) {
       setBranchId(""); setSemesterId(""); setSectionId(""); setFile(null);
-      setUploading(false); setDragOver(false); setPreviewRows([]); setPreviewHeaders([]);
+      setUploading(false); setPreviewRows([]); setPreviewHeaders([]);
     }
   }, [open]);
 
@@ -157,14 +134,11 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
       setPreviewRows(Array.isArray(rows) ? rows.slice(0, 10) : []);
       setPreviewHeaders(rows.length > 0 ? Object.keys(rows[0]) : []);
-    } catch (err) {
-      console.error(err);
-      Swal.fire({ icon: "error", title: "Parse error", text: "Invalid Excel file" });
-    }
+    } catch (err) { Swal.fire({ icon: "error", title: "Parse error", text: "Invalid Excel file" }); }
   };
 
   const onDrop = async (e) => {
-    e.preventDefault(); e.stopPropagation(); setDragOver(false);
+    e.preventDefault(); e.stopPropagation();
     const f = e.dataTransfer?.files?.[0];
     if (f) { setFile(f); await parseExcel(f); }
   };
@@ -176,7 +150,6 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
 
   const submit = async () => {
     if (!file) return Swal.fire({ icon: "warning", title: "No file", text: "Please select a file first." });
-    
     const formData = new FormData();
     formData.append("file", file);
     if (branchId) formData.append("branchId", branchId);
@@ -194,46 +167,32 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
     } catch (err) {
         const msg = err.response?.data?.error || err.message;
         Swal.fire({ icon: "error", title: "Import failed", text: String(msg) });
-    } finally {
-      setUploading(false);
-    }
+    } finally { setUploading(false); }
   };
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-slate-900 rounded-xl p-6 z-10 shadow-2xl border border-slate-700 w-[90vw] max-w-[1100px] h-[85vh] flex flex-col">
-        
         <div className="flex items-center justify-between pb-4 border-b border-slate-700">
-          <div>
-            <h3 className="text-xl font-bold text-white">Import Students (Excel)</h3>
-            <p className="text-sm text-gray-400">Assign class details and upload your .xlsx file</p>
-          </div>
+          <div><h3 className="text-xl font-bold text-white">Import Students</h3><p className="text-sm text-gray-400">Upload .xlsx file</p></div>
           <button onClick={onClose} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-gray-300">Close</button>
         </div>
-
         <div className="flex-1 overflow-hidden mt-6 flex flex-col md:flex-row gap-6">
-          {/* Left Panel */}
           <div className="w-full md:w-1/2 flex flex-col gap-4 overflow-y-auto">
             <div className="grid grid-cols-3 gap-2">
                 <select value={branchId} onChange={e=>setBranchId(e.target.value)} className="bg-slate-800 border border-slate-600 text-white rounded p-2 text-sm"><option value="">Branch...</option>{branches.map(b=><option key={b.id} value={b.id}>{b.branchName}</option>)}</select>
                 <select value={semesterId} onChange={e=>setSemesterId(e.target.value)} className="bg-slate-800 border border-slate-600 text-white rounded p-2 text-sm"><option value="">Semester...</option>{semesters.map(s=><option key={s.id} value={s.id}>{s.semesterName}</option>)}</select>
                 <select value={sectionId} onChange={e=>setSectionId(e.target.value)} className="bg-slate-800 border border-slate-600 text-white rounded p-2 text-sm"><option value="">Section...</option>{sections.map(s=><option key={s.id} value={s.id}>{s.sectionName}</option>)}</select>
             </div>
-
-            <div onDrop={onDrop} onDragOver={e=>{e.preventDefault(); setDragOver(true)}} onDragLeave={e=>{e.preventDefault(); setDragOver(false)}}
-                className={`flex-1 min-h-[200px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-6 transition-colors ${dragOver ? "border-indigo-400 bg-slate-800/80" : "border-slate-600 bg-slate-800/30"}`}>
+            <div onDrop={onDrop} onDragOver={e=>{e.preventDefault()}} className="flex-1 min-h-[200px] border-2 border-dashed border-slate-600 bg-slate-800/30 rounded-lg flex flex-col items-center justify-center p-6">
                  <Icons.Upload />
                  <p className="mt-4 text-sm text-gray-300 font-medium">{file ? file.name : "Drag & drop Excel file"}</p>
-                 <label className="mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded cursor-pointer text-white text-sm font-medium transition-colors">
-                    Browse File <input type="file" accept=".xlsx,.xls" onChange={onFileChange} className="hidden" />
-                 </label>
+                 <label className="mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded cursor-pointer text-white text-sm font-medium transition-colors">Browse File <input type="file" accept=".xlsx,.xls" onChange={onFileChange} className="hidden" /></label>
             </div>
           </div>
-
-          {/* Right Panel (Preview) */}
           <div className="w-full md:w-1/2 bg-slate-800 rounded-lg p-4 border border-slate-700 flex flex-col">
-            <h4 className="text-sm font-bold text-gray-200 mb-3">Data Preview</h4>
+            <h4 className="text-sm font-bold text-gray-200 mb-3">Preview</h4>
             <div className="flex-1 overflow-auto bg-slate-900 rounded p-2 border border-slate-700">
                 {previewRows.length > 0 ? (
                     <table className="w-full text-xs text-left">
@@ -242,11 +201,7 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
                     </table>
                 ) : <div className="text-gray-500 text-center mt-10 text-sm">Upload a file to see preview</div>}
             </div>
-            <div className="mt-4 flex justify-end">
-                <button onClick={submit} disabled={uploading || !file} className={`px-6 py-2 rounded text-white font-medium shadow-lg ${uploading ? 'bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-500'}`}>
-                    {uploading ? "Importing..." : "Start Import"}
-                </button>
-            </div>
+            <div className="mt-4 flex justify-end"><button onClick={submit} disabled={uploading || !file} className={`px-6 py-2 rounded text-white font-medium shadow-lg ${uploading ? 'bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-500'}`}>{uploading ? "Importing..." : "Start Import"}</button></div>
           </div>
         </div>
       </div>
@@ -254,7 +209,9 @@ function UploadModal({ open, onClose, branches, semesters, sections, onUploaded 
   );
 }
 
-/* -------------------- Main Component (Redesigned) -------------------- */
+/* =========================================================================
+   MAIN COMPONENT (Updated with Automatic Search & Debounce)
+   ========================================================================= */
 export default function AdminUserDetail() {
   const navigate = useNavigate();
 
@@ -267,13 +224,16 @@ export default function AdminUserDetail() {
   // UI States
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
-  const [exporting, setExporting] = useState(null); // 'pdf' | 'excel' | null
+  const [exporting, setExporting] = useState(null); 
 
   // Filter States
   const [branchId, setBranchId] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [semesterId, setSemesterId] = useState("");
   const [q, setQ] = useState("");
+  
+  // 1. ADD DEBOUNCE STATE for search
+  const [debouncedQ, setDebouncedQ] = useState("");
 
   // Modals
   const [editOpen, setEditOpen] = useState(false);
@@ -288,15 +248,25 @@ export default function AdminUserDetail() {
 
   useEffect(() => {
     fetchMaster();
-    fetchData();
+    fetchData(); 
     // eslint-disable-next-line
   }, []);
 
+  // 2. DEBOUNCE LOGIC: Update debouncedQ 500ms after user stops typing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 500); 
+
+    return () => clearTimeout(handler);
+  }, [q]);
+
+  // 3. AUTO TRIGGER: Fetch data when Dropdowns OR Debounced Search changes
   useEffect(() => {
     fetchData();
     fetchSummary();
     // eslint-disable-next-line
-  }, [branchId, sectionId, semesterId]);
+  }, [branchId, sectionId, semesterId, debouncedQ]); // <-- Triggers automatically
 
   const fetchMaster = async () => {
     try {
@@ -314,15 +284,14 @@ export default function AdminUserDetail() {
   const fetchData = async () => {
     setFetching(true);
     try {
-      const params = { branchId, sectionId, semesterId, q };
-      // clean empty params
+      // 4. Use debouncedQ here
+      const params = { branchId, sectionId, semesterId, q: debouncedQ };
       Object.keys(params).forEach(key => !params[key] && delete params[key]);
 
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/students`, { params, headers });
       setStudents(res.data || []);
     } catch (err) {
       console.error(err);
-      Swal.fire({ icon: "error", title: "Fetch failed", toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
     } finally {
       setFetching(false);
       setLoading(false);
@@ -331,7 +300,7 @@ export default function AdminUserDetail() {
 
   const fetchSummary = async () => {
     try {
-      const params = { branchId, sectionId, semesterId, q };
+      const params = { branchId, sectionId, semesterId, q: debouncedQ };
       Object.keys(params).forEach(key => !params[key] && delete params[key]);
       
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/students/summary`, { params, headers });
@@ -339,7 +308,6 @@ export default function AdminUserDetail() {
     } catch (err) { console.error(err); }
   };
 
-  // --- IMPROVED EXPORT LOGIC ---
   const confirmExport = async (type) => {
     const result = await Swal.fire({
       title: `Export to ${type.toUpperCase()}`,
@@ -347,26 +315,25 @@ export default function AdminUserDetail() {
       icon: "info",
       showCancelButton: true,
       confirmButtonText: "Yes, Download",
-      confirmButtonColor: type === 'pdf' ? '#e11d48' : '#d97706', // Red for PDF, Amber for Excel
+      confirmButtonColor: type === 'pdf' ? '#e11d48' : '#d97706',
       background: '#1e293b',
       color: '#fff'
     });
 
     if (!result.isConfirmed) return;
-
-    setExporting(type); // START LOADING STATE
+    setExporting(type);
 
     try {
-      const params = { branchId, sectionId, semesterId, q };
+      // Use debouncedQ for export too
+      const params = { branchId, sectionId, semesterId, q: debouncedQ };
       Object.keys(params).forEach(key => !params[key] && delete params[key]);
 
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/students/${type}`, {
         params,
-        responseType: "blob", // Important
+        responseType: "blob",
         headers
       });
 
-      // Extract filename or default
       let filename = `students_export.${type === "pdf" ? "pdf" : "xlsx"}`;
       const disposition = res.headers["content-disposition"];
       if (disposition) {
@@ -374,7 +341,6 @@ export default function AdminUserDetail() {
         if (m && m[1]) filename = decodeURIComponent(m[1]);
       }
 
-      // Create download link
       const blob = new Blob([res.data], { type: res.data.type });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -384,14 +350,12 @@ export default function AdminUserDetail() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-
       Swal.fire({ icon: "success", title: "Download Started", toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
-
     } catch (err) {
       console.error(err);
       Swal.fire({ icon: "error", title: "Export Failed", text: "Something went wrong on the server." });
     } finally {
-      setExporting(null); // STOP LOADING STATE
+      setExporting(null);
     }
   };
 
@@ -402,13 +366,11 @@ export default function AdminUserDetail() {
       
       {/* 1. Header & Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        {/* Title */}
         <div className="md:col-span-1">
           <h1 className="text-2xl font-bold text-white tracking-tight">Student Management</h1>
           <p className="text-slate-400 text-sm mt-1">Admin Dashboard / Students</p>
         </div>
 
-        {/* Stat Card: Total */}
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg flex items-center justify-between">
            <div>
              <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Students</p>
@@ -419,7 +381,6 @@ export default function AdminUserDetail() {
            </div>
         </div>
 
-        {/* Stat Card: Filtered */}
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg flex items-center justify-between">
            <div>
              <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Currently Showing</p>
@@ -430,37 +391,22 @@ export default function AdminUserDetail() {
            </div>
         </div>
 
-        {/* Action Buttons (Fixed Feedback) */}
         <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl shadow-lg flex flex-col justify-center gap-2">
             <div className="flex gap-2">
-                {/* PDF Button */}
-                <button 
-                    onClick={() => confirmExport("pdf")} 
-                    disabled={exporting !== null}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${exporting === 'pdf' ? 'bg-rose-900/50 text-rose-200 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/20'}`}
-                >
-                    {exporting === 'pdf' ? <Icons.Spinner /> : <Icons.Pdf />}
-                    {exporting === 'pdf' ? "Generating..." : "PDF"}
+                <button onClick={() => confirmExport("pdf")} disabled={exporting !== null} className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${exporting === 'pdf' ? 'bg-rose-900/50 text-rose-200 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/20'}`}>
+                    {exporting === 'pdf' ? <Icons.Spinner /> : <Icons.Pdf />} {exporting === 'pdf' ? "Generating..." : "PDF"}
                 </button>
-
-                {/* Excel Button */}
-                <button 
-                    onClick={() => confirmExport("excel")} 
-                    disabled={exporting !== null}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${exporting === 'excel' ? 'bg-amber-900/50 text-amber-200 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/20'}`}
-                >
-                    {exporting === 'excel' ? <Icons.Spinner /> : <Icons.Excel />}
-                    {exporting === 'excel' ? "Generating..." : "Excel"}
+                <button onClick={() => confirmExport("excel")} disabled={exporting !== null} className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${exporting === 'excel' ? 'bg-amber-900/50 text-amber-200 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/20'}`}>
+                    {exporting === 'excel' ? <Icons.Spinner /> : <Icons.Excel />} {exporting === 'excel' ? "Generating..." : "Excel"}
                 </button>
             </div>
-            {/* Import Button */}
             <button onClick={() => setUploadOpen(true)} className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium shadow-lg shadow-indigo-900/20 transition-all">
                 <Icons.Upload /> Upload Excel
             </button>
         </div>
       </div>
 
-      {/* 2. Filters & Search */}
+      {/* 2. Filters & Search (REMOVED APPLY BUTTON) */}
       <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg mb-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             <div className="md:col-span-2">
@@ -491,9 +437,8 @@ export default function AdminUserDetail() {
                     <input type="text" value={q} onChange={e=>setQ(e.target.value)} className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg pl-10 p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Search by name, email, or roll no..." />
                 </div>
             </div>
-            <div className="md:col-span-2 flex gap-2">
-                <button onClick={() => { fetchData(); fetchSummary(); }} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg text-sm px-4 py-2.5 transition-colors">Apply</button>
-                <button onClick={() => { setBranchId(""); setSemesterId(""); setSectionId(""); setQ(""); }} className="bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg text-sm px-4 py-2.5 transition-colors">Reset</button>
+            <div className="md:col-span-2">
+                <button onClick={() => { setBranchId(""); setSemesterId(""); setSectionId(""); setQ(""); }} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg text-sm px-4 py-2.5 transition-colors">Reset Filters</button>
             </div>
         </div>
       </div>
@@ -546,7 +491,6 @@ export default function AdminUserDetail() {
         </div>
       </div>
 
-      {/* Modals */}
       <EditModal open={editOpen} onClose={() => setEditOpen(false)} student={editingStudent} branches={branches} semesters={semesters} sections={sections} onSaved={(updated) => { 
           setStudents(prev => prev.map(s => s.id === updated.id ? updated : s)); 
           fetchSummary(); 
