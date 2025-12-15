@@ -2,21 +2,59 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  HiRefresh, HiDownload, HiFilter, HiSearch, 
+  HiUserGroup, HiCode, HiCalendar, HiOfficeBuilding, HiUser 
+} from "react-icons/hi";
 
-const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
-    <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p className="text-white text-lg font-medium">{message || "Loading..."}</p>
+// 💀 Skeleton Loader
+const ReportSkeleton = () => (
+  <div className="space-y-6">
+    {[...Array(3)].map((_, i) => (
+      <div key={i} className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 animate-pulse">
+        <div className="flex justify-between items-start mb-4">
+          <div className="space-y-2 w-1/3">
+            <div className="h-6 bg-slate-700 rounded w-3/4"></div>
+            <div className="h-4 bg-slate-700 rounded w-1/2"></div>
+          </div>
+          <div className="h-8 w-24 bg-slate-700 rounded-lg"></div>
+        </div>
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="h-10 bg-slate-700 rounded-lg"></div>
+          <div className="h-10 bg-slate-700 rounded-lg"></div>
+          <div className="h-10 bg-slate-700 rounded-lg"></div>
+          <div className="h-10 bg-slate-700 rounded-lg"></div>
+        </div>
+        <div className="h-32 bg-slate-700 rounded-xl"></div>
+      </div>
+    ))}
   </div>
 );
+
+// 🏷️ Status Badge
+const StatusBadge = ({ status }) => {
+  let color = "bg-slate-700 text-slate-300 border-slate-600";
+  if (status === "COMPLETED") color = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+  if (status === "ONGOING") color = "bg-sky-500/10 text-sky-400 border-sky-500/20";
+  
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${color}`}>
+      {status || "N/A"}
+    </span>
+  );
+};
 
 export default function AllTeamReports() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  
+  // Filters
   const [branches, setBranches] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [guides, setGuides] = useState([]);
+  
   const [branchFilter, setBranchFilter] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("");
   const [guideFilter, setGuideFilter] = useState("");
@@ -25,16 +63,20 @@ export default function AllTeamReports() {
   const token = localStorage.getItem("token");
   const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
 
+  // --- API FUNCTIONS ---
+
   useEffect(() => {
     if (!token) {
-      Swal.fire("Unauthorized", "Please login first", "warning").then(() => {
-        navigate("/login");
-      });
+      navigate("/login");
       return;
     }
-    fetchAuxData();
-    fetchTeams();
-    // eslint-disable-next-line
+    const init = async () => {
+      setLoading(true);
+      await fetchAuxData();
+      await fetchTeams();
+      setLoading(false);
+    };
+    init();
   }, [token]);
 
   const fetchAuxData = async () => {
@@ -47,9 +89,7 @@ export default function AllTeamReports() {
       setBranches(Array.isArray(bRes.data) ? bRes.data : []);
       setSemesters(Array.isArray(sRes.data) ? sRes.data : []);
       setGuides(Array.isArray(gRes.data) ? gRes.data : []);
-    } catch (err) {
-      console.warn("Could not fetch auxiliary data", err);
-    }
+    } catch (err) { console.warn("Aux fetch error", err); }
   };
 
   const buildQuery = (extra = {}) => {
@@ -60,47 +100,51 @@ export default function AllTeamReports() {
     if (b) params.append("branchId", b);
     if (s) params.append("semesterId", s);
     if (g) params.append("guideId", g);
-    const q = params.toString();
-    return q ? `?${q}` : "";
+    return params.toString() ? `?${params.toString()}` : "";
   };
 
   const fetchTeams = async () => {
     try {
-      setLoading(true);
       const q = buildQuery();
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/teams${q}`, axiosConfig);
       setTeams(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to load teams", "error");
-      setTeams([]);
-    } finally {
-      setLoading(false);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load teams', background: '#1e293b', color: '#fff' });
     }
   };
 
-  const handleApplyFilters = () => {
-    fetchTeams();
+  const handleApplyFilters = async () => {
+    setLoading(true);
+    await fetchTeams();
+    setLoading(false);
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = async () => {
     setBranchFilter("");
     setSemesterFilter("");
     setGuideFilter("");
-    fetchTeams();
+    setLoading(true);
+    // ugly hack to ensure state update before fetch, ideally use effect or direct params
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/teams`, axiosConfig);
+    setTeams(res.data || []);
+    setLoading(false);
   };
 
+  // --- EXPORT FUNCTIONS ---
+
   const downloadBlob = (res, defaultName) => {
-    const blob = new Blob([res.data], { type: res.headers["content-type"] || "application/octet-stream" });
+    const blob = new Blob([res.data], { type: res.headers["content-type"] });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const disposition = res.headers["content-disposition"] || res.headers["Content-Disposition"];
+    
+    const disposition = res.headers["content-disposition"];
     let filename = defaultName;
-    if (disposition) {
-      const match = disposition.match(/filename\*?=?(?:UTF-8''|")?(.*?)"?$/);
-      if (match && match[1]) filename = decodeURIComponent(match[1]);
+    if (disposition && disposition.match(/filename="?([^"]+)"?/)) {
+      filename = disposition.match(/filename="?([^"]+)"?/)[1];
     }
+    
     link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
@@ -108,15 +152,25 @@ export default function AllTeamReports() {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleDownloadPdfAll = async () => {
+  const exportData = async (type) => {
     try {
       setDownloading(true);
       const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/pdf${q}`, { ...axiosConfig, responseType: "blob" });
-      downloadBlob(res, "admin_guide_report.pdf");
+      const endpoint = type === 'pdf' ? 'pdf' : 'excel';
+      const ext = type === 'pdf' ? 'pdf' : 'xlsx';
+      
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/${endpoint}${q}`, { 
+        ...axiosConfig, responseType: "blob" 
+      });
+      
+      downloadBlob(res, `admin_report.${ext}`);
+      Swal.fire({ 
+        icon: 'success', title: 'Exported', 
+        toast: true, position: 'top-end', showConfirmButton: false, timer: 2000,
+        background: '#1e293b', color: '#fff'
+      });
     } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download PDF", "error");
+      Swal.fire({ icon: 'error', title: 'Export Failed', background: '#1e293b', color: '#fff' });
     } finally {
       setDownloading(false);
     }
@@ -125,206 +179,184 @@ export default function AllTeamReports() {
   const handleDownloadTeamPdf = async (teamId) => {
     try {
       setDownloading(true);
-      const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/pdf/${teamId}${q}`, { ...axiosConfig, responseType: "blob" });
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/pdf/${teamId}`, { ...axiosConfig, responseType: "blob" });
       downloadBlob(res, `team_${teamId}.pdf`);
     } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download team PDF", "error");
+      Swal.fire({ icon: 'error', title: 'Failed', background: '#1e293b', color: '#fff' });
     } finally {
       setDownloading(false);
     }
   };
-
-  const handleDownloadExcel = async () => {
-    try {
-      setDownloading(true);
-      const q = buildQuery();
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard/excel${q}`, { ...axiosConfig, responseType: "blob" });
-      downloadBlob(res, "admin_guide_report.xlsx");
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to download Excel", "error");
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  if (loading) return <LoaderOverlay message="Loading admin data..." />;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-100 p-6 relative">
-      {downloading && <LoaderOverlay message="Preparing export..." />}
+    <div className="min-h-screen bg-[#0f172a] text-slate-300 p-6 md:p-10 font-sans relative">
+      
+      {/* Background Decor */}
+      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-sky-900/10 to-transparent pointer-events-none" />
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-sky-400">Admin Dashboard</h1>
-
-        <div className="flex items-center gap-3">
-          <button onClick={fetchTeams} className="px-4 py-2 rounded bg-slate-700 hover:bg-slate-600 transition">Refresh</button>
-          <button onClick={handleDownloadPdfAll} className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-700 transition text-white">
-            Export PDF (All / Filtered)
-          </button>
-          <button onClick={handleDownloadExcel} className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 transition text-white">
-            Export Excel (All / Filtered)
-          </button>
+      {downloading && (
+        <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+          <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p className="text-white font-medium">Generating Report...</p>
         </div>
-      </div>
+      )}
 
-      {/* Filters */}
-      <div className="bg-slate-800 p-4 rounded-md border border-white/5 mb-6">
-        <div className="flex flex-wrap gap-4 items-end">
+      <div className="max-w-7xl mx-auto relative z-10">
+        
+        {/* --- HEADER --- */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
           <div>
-            <label className="text-xs text-gray-400">Guide</label>
-            <select value={guideFilter} onChange={(e) => setGuideFilter(e.target.value)} className="block mt-1 bg-slate-700 text-white px-3 py-2 rounded">
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Admin Dashboard</h1>
+            <p className="text-slate-400 mt-1 text-sm">Monitor all project teams, guides, and academic progress.</p>
+          </div>
+          
+          <div className="flex gap-3">
+             <button onClick={handleApplyFilters} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition-all shadow-sm" title="Refresh Data">
+               <HiRefresh className="text-xl"/>
+             </button>
+             <button onClick={() => exportData('pdf')} className="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-rose-500/20 transition-all">
+               <HiDownload className="text-lg"/> PDF Report
+             </button>
+             <button onClick={() => exportData('excel')} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all">
+               <HiDownload className="text-lg"/> Excel Export
+             </button>
+          </div>
+        </div>
+
+        {/* --- FILTER BAR --- */}
+        <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-2xl p-4 mb-8 flex flex-col md:flex-row gap-4 items-center shadow-lg">
+           <div className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-wider mr-2">
+             <HiFilter className="text-lg text-sky-400"/> Filters:
+           </div>
+           
+           <select value={guideFilter} onChange={e => setGuideFilter(e.target.value)} className="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2.5 outline-none focus:border-sky-500 w-full md:w-auto min-w-[160px]">
               <option value="">All Guides</option>
-              {guides.map(g => (<option key={g.id} value={g.id}>{g.name || g.email}</option>))}
-            </select>
-          </div>
+              {guides.map(g => <option key={g.id} value={g.id}>{g.name || g.email}</option>)}
+           </select>
 
-          <div>
-            <label className="text-xs text-gray-400">Branch</label>
-            <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="block mt-1 bg-slate-700 text-white px-3 py-2 rounded">
+           <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} className="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2.5 outline-none focus:border-sky-500 w-full md:w-auto min-w-[160px]">
               <option value="">All Branches</option>
-              {branches.map(b => (<option key={b.id} value={b.id}>{b.branchName}</option>))}
-            </select>
-          </div>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.branchName}</option>)}
+           </select>
 
-          <div>
-            <label className="text-xs text-gray-400">Semester</label>
-            <select value={semesterFilter} onChange={(e) => setSemesterFilter(e.target.value)} className="block mt-1 bg-slate-700 text-white px-3 py-2 rounded">
+           <select value={semesterFilter} onChange={e => setSemesterFilter(e.target.value)} className="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2.5 outline-none focus:border-sky-500 w-full md:w-auto min-w-[160px]">
               <option value="">All Semesters</option>
-              {semesters.map(s => (<option key={s.id} value={s.id}>{s.semesterName}</option>))}
-            </select>
-          </div>
+              {semesters.map(s => <option key={s.id} value={s.id}>{s.semesterName}</option>)}
+           </select>
 
-          <div className="flex gap-2">
-            <button onClick={handleApplyFilters} className="px-4 py-2 bg-sky-600 rounded">Apply</button>
-            <button onClick={handleClearFilters} className="px-4 py-2 bg-gray-600 rounded">Clear</button>
-          </div>
+           <div className="flex gap-2 ml-auto">
+             <button onClick={handleApplyFilters} className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg transition-colors">Apply</button>
+             <button onClick={handleClearFilters} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded-lg transition-colors">Reset</button>
+           </div>
         </div>
-      </div>
 
-      {/* Table & details (same look as guide page but includes guide name in table) */}
-      <div className="overflow-x-auto bg-slate-800 p-4 rounded-2xl border border-white/10">
-        <table className="min-w-full text-left">
-          <thead>
-            <tr className="text-xs text-gray-400">
-              <th className="py-3 px-4">Team Name</th>
-              <th className="py-3 px-4">Guide</th>
-              <th className="py-3 px-4">Project Title</th>
-              <th className="py-3 px-4">Members</th>
-              <th className="py-3 px-4">Start</th>
-              <th className="py-3 px-4">End</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4">Created</th>
-              <th className="py-3 px-4">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {teams.length === 0 ? (
-              <tr>
-                <td className="py-6 px-4 text-center text-gray-400" colSpan={9}>No teams found for the selected filters.</td>
-              </tr>
-            ) : (
-              teams.map(team => {
-                const project = team.project || {};
-                const members = team.members || [];
-                return (
-                  <tr key={team.teamId} className="border-t border-slate-700">
-                    <td className="py-3 px-4 font-medium">{team.teamName || "-"}</td>
-                    <td className="py-3 px-4 text-sm text-gray-300">{project.guide?.name || project.guide?.email || "-"}</td>
-                    <td className="py-3 px-4 text-sm text-gray-300">{project.projectTitle || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{members.length}</td>
-                    <td className="py-3 px-4 text-sm">{project.startDate || "-"}</td>
-                    <td className="py-3 px-4 text-sm">{project.endDate || "-"}</td>
-                    <td className="py-3 px-4 text-sm">
-                      <span className={ `px-2 py-1 rounded text-xs font-semibold ` + (project.status === "COMPLETED" ? "bg-green-800 text-green-300" : project.status === "ONGOING" ? "bg-yellow-900 text-yellow-300" : "bg-slate-700 text-gray-300") }>
-                        {project.status || "N/A"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">{team.createdDate || "-"}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <button onClick={() => navigate(`/admin/TeamDetail/${team.teamId}`)} className="px-3 py-1 bg-sky-600 rounded text-white text-sm hover:bg-sky-700 transition">View</button>
-                        <button onClick={() => handleDownloadTeamPdf(team.teamId)} className="px-3 py-1 bg-gray-600 rounded text-white text-sm hover:bg-gray-700 transition">Export</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-
-        {/* Expanded details per team — includes guide info */}
-        <div className="mt-6 space-y-4">
-          {teams.length === 0 ? (
-            <div className="text-center text-gray-400">Use the filters above to find teams. Buttons remain available to export the current selection.</div>
-          ) : (
-            teams.map(team => {
+        {/* --- CONTENT --- */}
+        {loading ? (
+          <ReportSkeleton />
+        ) : teams.length === 0 ? (
+          <div className="text-center py-20 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-800/20">
+             <div className="inline-flex p-4 rounded-full bg-slate-800 mb-4 text-slate-500 text-4xl">
+               <HiSearch />
+             </div>
+             <h3 className="text-white font-bold text-lg">No teams found</h3>
+             <p className="text-slate-400 mt-1">Try adjusting the filters above.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-4">Showing {teams.length} Teams</p>
+            
+            {teams.map(team => {
+              const project = team.project || {};
               const members = team.members || [];
+              
               return (
-                <div key={`detail-${team.teamId}`} className="bg-slate-900 p-4 rounded-md border border-slate-700">
-                  <div className="flex justify-between items-start">
+                <motion.div 
+                  key={team.teamId}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-lg hover:border-sky-500/30 transition-all"
+                >
+                  {/* Card Header */}
+                  <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
                     <div>
-                      <h3 className="text-lg font-semibold text-sky-400">{team.teamName}</h3>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Project:</strong> {team.project?.projectTitle || "N/A"}</p>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Guide:</strong> {team.project?.guide?.name || team.project?.guide?.email || "N/A"}</p>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Tech:</strong> {team.project?.technologiesUsed || "N/A"}</p>
-                      <p className="text-sm text-gray-300 mt-1"><strong>Description:</strong> {team.project?.description || "N/A"}</p>
+                      <div className="flex items-center gap-3 mb-1">
+                        <h2 className="text-xl font-bold text-white">{team.teamName}</h2>
+                        <StatusBadge status={project.status} />
+                      </div>
+                      <div className="text-sm text-slate-400 flex flex-wrap gap-4 mt-1">
+                        <span className="flex items-center gap-1"><HiCode className="text-purple-400"/> {project.projectTitle || "Untitled Project"}</span>
+                        <span className="flex items-center gap-1"><HiUser className="text-emerald-400"/> Guide: {project.guide?.name || "Unassigned"}</span>
+                        <span className="flex items-center gap-1"><HiCalendar className="text-sky-400"/> {team.createdDate}</span>
+                      </div>
                     </div>
 
-                    <div className="text-right text-sm">
-                      <p><strong>Members:</strong> {members.length}</p>
-                      <p className="mt-1"><strong>Status:</strong> {team.project?.status || "N/A"}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => navigate(`/admin/TeamDetail/${team.teamId}`)} className="px-4 py-2 bg-slate-700 hover:bg-sky-600 hover:text-white text-slate-300 text-xs font-bold rounded-lg transition-colors">
+                        View Details
+                      </button>
+                      <button onClick={() => handleDownloadTeamPdf(team.teamId)} className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white rounded-lg transition-colors" title="Export PDF">
+                        <HiDownload className="text-lg"/>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Members table */}
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="text-xs text-gray-400">
+                  {/* Project Meta Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/30">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">Technology</p>
+                      <p className="text-sm text-slate-300 truncate">{project.technologiesUsed || "N/A"}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/30">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">Start Date</p>
+                      <p className="text-sm text-slate-300">{project.startDate || "-"}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/30">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">End Date</p>
+                      <p className="text-sm text-slate-300">{project.endDate || "-"}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/30">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">Project ID</p>
+                      <p className="text-sm font-mono text-slate-300">{team.project?.projectId || "N/A"}</p>
+                    </div>
+                  </div>
+
+                  {/* Members Table */}
+                  <div className="bg-slate-900/30 rounded-xl overflow-hidden border border-slate-700/30">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-800/50 text-xs text-slate-400 uppercase font-bold border-b border-slate-700/30">
                         <tr>
-                          <th className="px-3 py-2">Name</th>
-                          <th className="px-3 py-2">Email</th>
-                          <th className="px-3 py-2">Contact</th>
-                          <th className="px-3 py-2">Roll</th>
-                          <th className="px-3 py-2">Role</th>
-                          <th className="px-3 py-2">Branch</th>
-                          <th className="px-3 py-2">Course</th>
-                          <th className="px-3 py-2">Section</th>
-                          <th className="px-3 py-2">Semester</th>
-                          <th className="px-3 py-2">Leader</th>
+                          <th className="px-4 py-3">Member Name</th>
+                          <th className="px-4 py-3">Email</th>
+                          <th className="px-4 py-3">Contact</th>
+                          <th className="px-4 py-3">Role</th>
+                          <th className="px-4 py-3 text-right">Academic</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {members.length === 0 ? (
-                          <tr>
-                            <td className="px-3 py-4 text-center text-gray-400" colSpan={10}>No members match the current filters.</td>
-                          </tr>
-                        ) : members.map((m, idx) => (
-                          <tr key={idx} className={m.leader ? "bg-[#0d1a33] ring-1 ring-green-500/20" : ""}>
-                            <td className="px-3 py-2">{m.name || "-"}</td>
-                            <td className="px-3 py-2 text-sky-400">{m.email || "-"}</td>
-                            <td className="px-3 py-2">{m.contactNo || "-"}</td>
-                            <td className="px-3 py-2">{m.rollNumber || "-"}</td>
-                            <td className="px-3 py-2">{m.role || "-"}</td>
-                            <td className="px-3 py-2">{m.branchName || "-"}</td>
-                            <td className="px-3 py-2">{m.courseName || "-"}</td>
-                            <td className="px-3 py-2">{m.sectionName || "-"}</td>
-                            <td className="px-3 py-2">{m.semesterName || "-"}</td>
-                            <td className="px-3 py-2">{m.leader ? <span className="text-green-400 font-semibold">✔</span> : "-"}</td>
+                      <tbody className="divide-y divide-slate-700/30">
+                        {members.map((m, i) => (
+                          <tr key={i} className="hover:bg-slate-800/30 transition-colors">
+                            <td className="px-4 py-2 font-medium text-slate-200">
+                              {m.name} {m.leader && <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded ml-2">Leader</span>}
+                            </td>
+                            <td className="px-4 py-2 text-slate-400">{m.email}</td>
+                            <td className="px-4 py-2 text-slate-400">{m.contactNo || "-"}</td>
+                            <td className="px-4 py-2 text-slate-400">{m.role || "Student"}</td>
+                            <td className="px-4 py-2 text-right text-xs text-slate-500">
+                              {m.branchName} • {m.semesterName} • {m.sectionName}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
+
+                </motion.div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
+
       </div>
     </div>
   );
