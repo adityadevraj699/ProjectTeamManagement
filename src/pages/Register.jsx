@@ -1,66 +1,111 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { motion } from "framer-motion";
+import { 
+  HiUser, HiMail, HiLockClosed, HiPhone, 
+  HiAcademicCap, HiIdentification, HiArrowRight, HiOfficeBuilding 
+} from "react-icons/hi";
+
+// 🔄 Elegant Loader Component
+const LoaderOverlay = () => (
+  <div className="flex flex-col items-center justify-center py-10 space-y-4">
+    <div className="w-12 h-12 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
+    <p className="text-slate-400 text-sm animate-pulse">Loading academic data...</p>
+  </div>
+);
 
 export default function Register() {
   const navigate = useNavigate();
 
-  // form state
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [contactNo, setContactNo] = useState("");
-  const [rollNumber, setRollNumber] = useState("");
+  // Form State
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    contactNo: "",
+    rollNumber: "",
+  });
 
-  // dropdowns
-  const [branches, setBranches] = useState([]);
-  const [semesters, setSemesters] = useState([]);
-  const [sections, setSections] = useState([]);
+  // Dropdown Data
+  const [dropdowns, setDropdowns] = useState({
+    branches: [],
+    semesters: [],
+    sections: []
+  });
 
-  const [selectedBranch, setSelectedBranch] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState("");
-  const [selectedSection, setSelectedSection] = useState("");
+  // Selections
+  const [selections, setSelections] = useState({
+    branch: "",
+    semester: "",
+    section: ""
+  });
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // If user is logged in -> redirect or show message
+  // 1️⃣ Auth & Role Based Redirect Check
   useEffect(() => {
     const token = localStorage.getItem("token");
+    // Ensure you store 'role' in localStorage during Login
+    const role = localStorage.getItem("role"); 
+
     if (token) {
+      let redirectPath = "/";
+
+      // 🔀 Role Based Navigation Logic
+      if (role === "STUDENT") {
+        redirectPath = "/student/dashboard";
+      } else if (role === "GUIDE") {
+        redirectPath = "/guide/dashboard";
+      } else if (role === "ADMIN") {
+        redirectPath = "/admin/dashboard";
+      } else {
+        // Fallback if role is missing or unknown
+        redirectPath = "/login"; 
+      }
+
       Swal.fire({
-        icon: "info",
-        title: "Already logged in",
-        text: "You are already logged in. Redirecting to dashboard...",
+        icon: 'info',
+        title: 'Already Logged In',
+        text: `Redirecting to ${role ? role.toLowerCase() : 'your'} dashboard...`,
         timer: 1500,
         showConfirmButton: false,
+        background: '#1e293b',
+        color: '#fff'
       }).then(() => {
-        navigate("/dashboard");
+        navigate(redirectPath);
       });
     }
   }, [navigate]);
 
-  // fetch branches/semesters/sections
+  // 2️⃣ Fetch Dropdown Data
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const axiosConfig = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-
     const fetchData = async () => {
       try {
-        const [bRes, sRes, secRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/branches`, axiosConfig),
-          axios.get(`${import.meta.env.VITE_API_URL}/semesters`, axiosConfig),
-          axios.get(`${import.meta.env.VITE_API_URL}/sections`, axiosConfig),
-        ]);
+        const endpoints = [
+          axios.get(`${import.meta.env.VITE_API_URL}/branches`),
+          axios.get(`${import.meta.env.VITE_API_URL}/semesters`),
+          axios.get(`${import.meta.env.VITE_API_URL}/sections`)
+        ];
 
-        setBranches(bRes.data || []);
-        setSemesters(sRes.data || []);
-        setSections(secRes.data || []);
+        const [bRes, sRes, secRes] = await Promise.all(endpoints);
+
+        setDropdowns({
+          branches: bRes.data || [],
+          semesters: sRes.data || [],
+          sections: secRes.data || []
+        });
       } catch (err) {
-        console.error(err);
-        Swal.fire("Error", "Failed to load branches/semesters/sections", "error");
+        console.error("Data Fetch Error:", err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Connection Error',
+          text: 'Could not load academic options. Please check your internet or server.',
+          background: '#1e293b',
+          color: '#fff'
+        });
       } finally {
         setLoading(false);
       }
@@ -69,222 +114,260 @@ export default function Register() {
     fetchData();
   }, []);
 
-  // basic validation with official email domain check
-const validate = () => {
-  if (!name.trim()) return "Name is required";
+  // 3️⃣ Validation Logic
+  const validate = () => {
+    const { name, email, password, rollNumber } = formData;
+    const { branch, semester, section } = selections;
 
-  if (!email.trim()) return "Email is required";
-
-  // simple email structure check (one @ and at least one dot after)
-  const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!basicEmailRegex.test(email)) return "Enter a valid email";
-
-  // domain check: after '@' must be exactly mitmeerut.ac.in
-  const parts = email.trim().toLowerCase().split("@");
-  if (parts.length !== 2) return "Enter a valid email";
-  const domain = parts[1];
-  if (domain !== "mitmeerut.ac.in") {
-    return "Please register with your official college email (must end with mitmeerut.ac.in)";
-  }
-
-  if (!password || password.length < 6) return "Password must be at least 6 characters";
-  if (!selectedBranch) return "Select a branch";
-  if (!selectedSemester) return "Select a semester";
-  if (!selectedSection) return "Select a section";
-  return null;
-};
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const err = validate();
-    if (err) {
-      Swal.fire("Validation error", err, "warning");
-      return;
+    if (!name.trim()) return "Full Name is required";
+    
+    // Email Validation
+    const emailParts = email.trim().toLowerCase().split("@");
+    if (emailParts.length !== 2 || emailParts[1] !== "mitmeerut.ac.in") {
+      return "Please use your official college email (@mitmeerut.ac.in)";
     }
 
-    setSubmitting(true);
+    if (password.length < 6) return "Password must be at least 6 characters";
+    if (!rollNumber.trim()) return "Roll Number is required";
+    if (!branch) return "Please select your Branch";
+    if (!semester) return "Please select your Semester";
+    if (!section) return "Please select your Section";
 
+    return null;
+  };
+
+  // 4️⃣ Handle Submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const error = validate();
+    if (error) return Swal.fire({ icon: 'warning', title: 'Invalid Input', text: error, background: '#1e293b', color: '#fff' });
+
+    setSubmitting(true);
     try {
       const payload = {
-        name,
-        email,
-        password,
-        contactNo,
-        rollNumber,
-        role: "STUDENT", // fixed
-        branchId: selectedBranch,
-        semesterId: selectedSemester,
-        sectionId: selectedSection,
+        ...formData,
+        role: "STUDENT",
+        branchId: selections.branch,
+        semesterId: selections.semester,
+        sectionId: selections.section,
       };
 
-      // update endpoint if different in backend  
       await axios.post(`${import.meta.env.VITE_API_URL}/register`, payload);
 
-      Swal.fire("Success", "Account created. Please login.", "success").then(() => {
-        navigate("/login");
-      });
+      Swal.fire({
+        icon: 'success',
+        title: 'Registration Successful!',
+        text: 'Your account has been created. Please login now.',
+        background: '#1e293b',
+        color: '#fff',
+        confirmButtonColor: '#10b981'
+      }).then(() => navigate("/login"));
+
     } catch (error) {
-      const msg =
-        error.response?.data?.message ||
-        error.response?.data ||
-        "Failed to register. Email might already be used.";
-      Swal.fire("Error", msg, "error");
+      Swal.fire({
+        icon: 'error',
+        title: 'Registration Failed',
+        text: error.response?.data?.message || "Something went wrong. Try again.",
+        background: '#1e293b',
+        color: '#fff'
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Helper for Input Change
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] p-4 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-emerald-500/20 rounded-full blur-[100px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-sky-500/20 rounded-full blur-[100px]" />
+
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="w-full max-w-3xl bg-slate-800/80 backdrop-blur p-8 rounded-2xl shadow-xl border border-slate-700"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-4xl bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
       >
-        <h2 className="text-2xl font-bold text-white mb-2 text-center">
-          Student Registration
-        </h2>
-        <p className="text-sm text-slate-300 mb-6 text-center">
-          Fill details and select branch / semester / section
-        </p>
+        
+        {/* Left Side: Branding / Info */}
+        <div className="md:w-1/3 bg-gradient-to-br from-emerald-600 to-teal-800 p-8 flex flex-col justify-between text-white relative overflow-hidden">
+           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+           <div className="relative z-10">
+             <h1 className="text-3xl font-extrabold tracking-tight mb-2">Join Us!</h1>
+             <p className="text-emerald-100 text-sm">Create your student account to access the dashboard, track tasks, and view your performance.</p>
+           </div>
+           
+           <div className="relative z-10 mt-10 md:mt-0">
+             <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
+               <p className="text-xs font-mono text-emerald-200 mb-1">Official Domain Required</p>
+               <p className="font-bold text-white">@mitmeerut.ac.in</p>
+             </div>
+           </div>
+        </div>
 
-        {loading ? (
-          <div className="text-center text-slate-300">Loading options...</div>
-        ) : (
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Name */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Full Name</label>
-              <input
-                className="w-full p-3 rounded-lg bg-slate-700 text-white"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
-              />
-            </div>
+        {/* Right Side: Form */}
+        <div className="md:w-2/3 p-8">
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+            Create Account <span className="text-emerald-500">.</span>
+          </h2>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Email</label>
-              <input
-                type="email"
-                className="w-full p-3 rounded-lg bg-slate-700 text-white"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-              />
-            </div>
+          {loading ? (
+            <LoaderOverlay />
+          ) : (
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              
+              {/* --- Full Name --- */}
+              <div className="relative group">
+                <HiUser className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
+                <input
+                  name="name"
+                  type="text"
+                  placeholder="Full Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full bg-slate-800/50 text-white pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-slate-500 text-sm"
+                />
+              </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Password</label>
-              <input
-                type="password"
-                className="w-full p-3 rounded-lg bg-slate-700 text-white"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 chars"
-              />
-            </div>
+              {/* --- Email --- */}
+              <div className="relative group">
+                <HiMail className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="Official Email ID"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full bg-slate-800/50 text-white pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-slate-500 text-sm"
+                />
+              </div>
 
-            {/* Contact */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Contact No</label>
-              <input
-                className="w-full p-3 rounded-lg bg-slate-700 text-white"
-                value={contactNo}
-                onChange={(e) => setContactNo(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
+              {/* --- Password --- */}
+              <div className="relative group">
+                <HiLockClosed className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full bg-slate-800/50 text-white pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-slate-500 text-sm"
+                />
+              </div>
 
-            {/* Roll number */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Roll No</label>
-              <input
-                className="w-full p-3 rounded-lg bg-slate-700 text-white"
-                value={rollNumber}
-                onChange={(e) => setRollNumber(e.target.value)}
-                placeholder="Enter roll number"
-              />
-            </div>
+              {/* --- Contact --- */}
+              <div className="relative group">
+                <HiPhone className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
+                <input
+                  name="contactNo"
+                  type="text"
+                  placeholder="Phone Number"
+                  value={formData.contactNo}
+                  onChange={handleChange}
+                  className="w-full bg-slate-800/50 text-white pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-slate-500 text-sm"
+                />
+              </div>
 
-            {/* Branch */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Branch</label>
-              <select
-                className="w-full p-3 rounded-lg bg-slate-700 text-white"
-                value={selectedBranch}
-                onChange={(e) => setSelectedBranch(e.target.value)}
-              >
-                <option value="">-- Select Branch --</option>
-                {branches.map((b) => (
-                  <option key={b.id ?? b.branchId} value={b.id ?? b.branchId}>
-                    {b.name ?? b.branchName}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {/* --- Roll Number --- */}
+              <div className="relative group md:col-span-2">
+                <HiIdentification className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
+                <input
+                  name="rollNumber"
+                  type="text"
+                  placeholder="University Roll Number"
+                  value={formData.rollNumber}
+                  onChange={handleChange}
+                  className="w-full bg-slate-800/50 text-white pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-slate-500 text-sm"
+                />
+              </div>
 
-            {/* Semester */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Semester</label>
-              <select
-                className="w-full p-3 rounded-lg bg-slate-700 text-white"
-                value={selectedSemester}
-                onChange={(e) => setSelectedSemester(e.target.value)}
-              >
-                <option value="">-- Select Semester --</option>
-                {semesters.map((s) => (
-                  <option key={s.id ?? s.semesterId} value={s.id ?? s.semesterId}>
-                    {s.name ?? s.semesterName ?? s.number}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {/* --- SEPARATIOR --- */}
+              <div className="md:col-span-2 border-t border-slate-700/50 my-1"></div>
 
-            {/* Section */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Section</label>
-              <select
-                className="w-full p-3 rounded-lg bg-slate-700 text-white"
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-              >
-                <option value="">-- Select Section --</option>
-                {sections.map((sec) => (
-                  <option key={sec.id ?? sec.sectionId} value={sec.id ?? sec.sectionId}>
-                    {sec.name ?? sec.sectionName}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {/* --- Branch Dropdown --- */}
+              <div className="relative group md:col-span-2">
+                <HiAcademicCap className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
+                <select
+                  value={selections.branch}
+                  onChange={(e) => setSelections({...selections, branch: e.target.value})}
+                  className="w-full bg-slate-800/50 text-white pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm"
+                >
+                  <option value="">Select Branch</option>
+                  {dropdowns.branches.map((b) => (
+                    <option key={b.id || b._id || b.branchId} value={b.id || b._id || b.branchId}>
+                      {b.name || b.branchName}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Hidden role */}
-            <input type="hidden" value="STUDENT" name="role" />
+              {/* --- Semester Dropdown --- */}
+              <div className="relative group">
+                 <div className="absolute left-3 top-3.5 text-slate-500 z-10 pointer-events-none">
+                    <span className="text-xs font-bold border border-slate-500 px-1 rounded">Sem</span>
+                 </div>
+                <select
+                  value={selections.semester}
+                  onChange={(e) => setSelections({...selections, semester: e.target.value})}
+                  className="w-full bg-slate-800/50 text-white pl-12 pr-4 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm"
+                >
+                  <option value="">Select Semester</option>
+                  {dropdowns.semesters.map((s) => (
+                    <option key={s.id || s._id || s.semesterId} value={s.id || s._id || s.semesterId}>
+                      {s.name || s.semesterName || `Semester ${s.number}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Buttons */}
-            <div className="md:col-span-2 flex gap-3 items-center">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 py-3 rounded-lg bg-emerald-500 hover:opacity-90 font-semibold text-slate-900 disabled:opacity-60"
-              >
-                {submitting ? "Creating account..." : "Register as Student"}
-              </button>
+              {/* --- Section Dropdown --- */}
+              <div className="relative group">
+                <HiOfficeBuilding className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors text-lg" />
+                <select
+                  value={selections.section}
+                  onChange={(e) => setSelections({...selections, section: e.target.value})}
+                  className="w-full bg-slate-800/50 text-white pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-emerald-500 outline-none appearance-none cursor-pointer text-sm"
+                >
+                  <option value="">Select Section</option>
+                  {dropdowns.sections.map((sec) => (
+                    <option key={sec.id || sec._id || sec.sectionId} value={sec.id || sec._id || sec.sectionId}>
+                      {sec.name || sec.sectionName}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="px-4 py-3 rounded-lg bg-slate-700 text-white border border-slate-600"
-              >
-                Already have an account?
-              </button>
-            </div>
-          </form>
-        )}
+              {/* --- Submit Button --- */}
+              <div className="md:col-span-2 mt-4">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    "Creating Account..."
+                  ) : (
+                    <>Register Now <HiArrowRight/></>
+                  )}
+                </button>
+              </div>
+
+              {/* --- Login Link --- */}
+              <div className="md:col-span-2 text-center mt-2">
+                <p className="text-slate-400 text-sm">
+                  Already have an account?{" "}
+                  <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-semibold hover:underline">
+                    Login here
+                  </Link>
+                </p>
+              </div>
+
+            </form>
+          )}
+        </div>
       </motion.div>
     </div>
   );
