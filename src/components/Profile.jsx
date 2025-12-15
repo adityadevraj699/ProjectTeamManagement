@@ -90,6 +90,8 @@ export default function Profile() {
 
   // share modal
   const [shareOpen, setShareOpen] = useState(false);
+  
+  // 🟢 REF FOR QR CODE (FIXED)
   const qrCanvasRef = useRef(null);
 
   const navigate = useNavigate();
@@ -286,24 +288,41 @@ export default function Profile() {
     navigate(`/profile/${encodeURIComponent(user.email)}`);
   };
 
+  // 🟢 1. CORRECTED DOWNLOAD FUNCTION
   const handleDownloadQr = () => {
-    const canvas =
-      qrCanvasRef.current?.querySelector("canvas") || null;
+    // Canvas ko ref ke through dhundenge
+    const canvas = qrCanvasRef.current?.querySelector("canvas");
+    
     if (!canvas) {
-      Swal.fire(
-        "Info",
-        "QR code is not ready to download yet.",
-        "info"
-      );
+      Swal.fire("Error", "QR Code generation failed. Please try again.", "error");
       return;
     }
-    const dataUrl = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = `profile-${user?.id || "me"}-qr.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    try {
+      // Image URL convert karein
+      const dataUrl = canvas.toDataURL("image/png");
+      
+      // Download link create karein
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      // File name set karein
+      link.download = `Student-Profile-${user?.name || "User"}.png`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Downloaded!',
+        text: 'QR Code saved to your device.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch (err) {
+      console.error("Download failed", err);
+      Swal.fire("Error", "Could not download image.", "error");
+    }
   };
 
   const handleNativeShare = async () => {
@@ -605,7 +624,13 @@ export default function Profile() {
   // ------------- SHARE MODAL (Insta-style, QR top, URL hidden) -------------
 
   const ShareModal = () => {
-    const publicUrl = getPublicProfileUrl();
+    // 🟢 2. FIX URL CONSTRUCTION
+    const currentOrigin = window.location.origin; // e.g., https://eduprojewct.site
+    const userEmail = user?.email || "";
+    
+    // Encode email properly for URL
+    const publicUrl = `${currentOrigin}/profile/${encodeURIComponent(userEmail)}`;
+
     if (!publicUrl) return null;
 
     const encodedUrl = encodeURIComponent(publicUrl);
@@ -663,10 +688,13 @@ export default function Profile() {
 
           {/* QR FIRST (top, full width) */}
           <div className="mb-4 flex flex-col items-center justify-center gap-3 border border-slate-800 rounded-xl bg-slate-950 p-4">
-            <div className="inline-block bg-white p-2 rounded-lg shadow-lg">
+            
+            {/* 🟢 3. IMPORTANT: Ref is here on the wrapper div */}
+            <div ref={qrCanvasRef} className="inline-block bg-white p-2 rounded-lg shadow-lg">
               <QRCodeCanvas
                 value={publicUrl}
-                size={140}
+                size={160} // Size adjusted for clarity
+                level={"H"} // High error correction
                 includeMargin={true}
               />
             </div>
