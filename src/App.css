@@ -39,3 +39,8 @@
     animation: spin 2s linear infinite;
   }
 }
+
+
+*{
+  user-select: none
+}
