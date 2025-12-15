@@ -1,18 +1,73 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { HiMail, HiMailOpen, HiCheckCircle, HiUserCircle, HiSearch } from "react-icons/hi";
+import { HiMail, HiMailOpen, HiCheckCircle } from "react-icons/hi";
 
-// 🔄 Reusable High-End Loader Overlay
-const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
-    <div className="relative w-24 h-24">
-      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
-      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+/* --- Icons --- */
+// (Icons object is preserved from previous context, though not directly used in the final JSX here)
+const Icons = {
+  Pdf: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l3 3 3-3"/><path d="M12 18v-6"/></svg>),
+  Excel: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9h4"/></svg>),
+  Upload: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>),
+  Search: () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>),
+  Spinner: () => (<svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>),
+  Edit: () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>),
+  View: () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>)
+};
+
+// 🔄 Reusable Action Loader Overlay (Used for ephemeral actions like markRead)
+const ActionLoaderOverlay = ({ message }) => (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] backdrop-blur-sm transition-all duration-300">
+    <div className="bg-slate-800 p-4 rounded-lg shadow-xl border border-slate-700 flex items-center gap-3">
+      <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm font-medium text-sky-400">{message || "Updating..."}</p>
     </div>
-    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
+
+// 💀 Message List Skeleton (Initial Load - Replacing the old circle loader)
+const MessageListSkeleton = () => (
+    <div className="max-w-5xl mx-auto min-h-screen p-4 md:p-8 font-sans">
+        
+        {/* Header and Tabs Skeleton */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 animate-pulse">
+            {/* Header Title */}
+            <div className="h-8 w-40 bg-slate-800 rounded"></div> 
+            
+            {/* Filter Tabs Placeholder */}
+            <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
+                <div className="h-10 w-24 bg-emerald-600/50 rounded-md mr-1"></div>
+                <div className="h-10 w-28 bg-slate-800 rounded-md"></div>
+            </div>
+        </div>
+
+        {/* Messages List Container Skeleton */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden min-h-[400px] divide-y divide-slate-800 animate-pulse">
+            {[...Array(6)].map((_, i) => (
+                <div key={i} className="p-4 flex items-start gap-4">
+                    {/* Avatar Placeholder */}
+                    <div className="w-12 h-12 rounded-full flex-shrink-0 bg-slate-700"></div>
+
+                    {/* Content Placeholder */}
+                    <div className="flex-1 min-w-0 space-y-2 pt-1">
+                        <div className="flex justify-between items-start">
+                            <div className="h-4 w-3/5 bg-slate-700 rounded"></div>
+                            <div className="h-3 w-1/6 bg-slate-700 rounded"></div>
+                        </div>
+                        <div className="h-3 w-1/4 bg-slate-800 rounded"></div>
+                        <div className="h-4 w-full bg-slate-700 rounded"></div>
+                    </div>
+                    
+                    {/* Action Placeholder */}
+                    <div className="flex flex-col items-end justify-center self-center pl-2">
+                         <div className="w-6 h-6 bg-emerald-500/10 rounded-full"></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
 
 export default function Query() {
   const [messages, setMessages] = useState([]);
@@ -86,10 +141,10 @@ export default function Query() {
     // Automatically mark as read when viewed if unread
     if (!m.readByGuide) {
         axios.put(`${BASE}/messages/${m.id}/mark-read`, {}, config)
-             .then(() => {
-                 setMessages((prev) => prev.map((msg) => (msg.id === m.id ? { ...msg, readByGuide: true } : msg)));
-             })
-             .catch(console.error);
+              .then(() => {
+                  setMessages((prev) => prev.map((msg) => (msg.id === m.id ? { ...msg, readByGuide: true } : msg)));
+              })
+              .catch(console.error);
     }
 
     Swal.fire({
@@ -140,11 +195,11 @@ export default function Query() {
   };
 
   // --- RENDER ---
-  if (loading) return <LoaderOverlay message="Loading Inbox..." />;
+  if (loading) return <MessageListSkeleton />;
 
   return (
     <div className="min-h-screen bg-slate-950 text-gray-100 p-4 md:p-8 font-sans">
-      {actionLoading && <LoaderOverlay message="Updating..." />}
+      {actionLoading && <ActionLoaderOverlay message="Updating..." />}
 
       <div className="max-w-5xl mx-auto">
         
@@ -228,7 +283,7 @@ export default function Query() {
                     </p>
                   </div>
 
-                  {/* Actions (Visible on Hover or if Unread) */}
+                  {/* Actions (Visible if Unread) */}
                   <div className="flex flex-col items-end justify-center self-center pl-2">
                     {!m.readByGuide && (
                       <button
