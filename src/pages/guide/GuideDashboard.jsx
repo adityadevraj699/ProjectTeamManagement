@@ -25,16 +25,75 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-// 🔄 High-End Loader Component
-const LoaderOverlay = ({ message }) => (
-  <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
-    <div className="relative w-24 h-24">
-      <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
-      <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
+// 💀 Sophisticated Skeleton Loader Component
+const DashboardSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-slate-950 px-6 pt-6 pb-8 space-y-8 font-sans selection:bg-sky-500/30">
+      {/* Header Skeleton */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-800/80 pb-4">
+        <div className="space-y-3">
+          <div className="w-32 h-6 bg-slate-800/50 rounded-full animate-pulse" />
+          <div className="w-64 h-10 bg-slate-800 rounded-lg animate-pulse" />
+          <div className="w-96 h-4 bg-slate-800/50 rounded animate-pulse" />
+        </div>
+        <div className="w-32 h-10 bg-slate-800 rounded-xl animate-pulse" />
+      </div>
+
+      {/* Summary Cards Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-[88px] bg-slate-900/80 border border-slate-800 rounded-3xl p-4 flex items-center justify-between animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-slate-800" />
+              <div className="space-y-2">
+                <div className="w-24 h-3 bg-slate-800 rounded" />
+                <div className="w-16 h-2 bg-slate-800/50 rounded" />
+              </div>
+            </div>
+            <div className="w-10 h-6 bg-slate-800 rounded" />
+          </div>
+        ))}
+      </div>
+
+      {/* Slider/Chart Section Skeleton */}
+      <div className="space-y-4">
+        {/* Controls */}
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="w-48 h-6 bg-slate-800 rounded animate-pulse" />
+            <div className="w-32 h-3 bg-slate-800/50 rounded animate-pulse" />
+          </div>
+          <div className="flex gap-2">
+            <div className="w-24 h-8 bg-slate-800 rounded-full animate-pulse" />
+            <div className="w-8 h-8 bg-slate-800 rounded-full animate-pulse" />
+            <div className="w-8 h-8 bg-slate-800 rounded-full animate-pulse" />
+          </div>
+        </div>
+
+        {/* Charts Container Skeleton */}
+        <div className="bg-slate-900/80 rounded-2xl border border-slate-800 p-4 h-[600px] animate-pulse">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="bg-slate-800/30 rounded-xl border border-slate-700/30 h-full p-4 flex flex-col gap-4">
+                 <div className="flex justify-between">
+                   <div className="w-32 h-5 bg-slate-700/50 rounded" />
+                   <div className="w-16 h-5 bg-slate-700/50 rounded" />
+                 </div>
+                 {/* Chart Placeholder Area */}
+                 <div className="flex-1 flex items-end justify-center gap-2 px-8 pb-4">
+                    <div className="w-full h-[60%] bg-slate-700/20 rounded-t-lg" />
+                    <div className="w-full h-[80%] bg-slate-700/20 rounded-t-lg" />
+                    <div className="w-full h-[40%] bg-slate-700/20 rounded-t-lg" />
+                    <div className="w-full h-[70%] bg-slate-700/20 rounded-t-lg" />
+                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
-    <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
-  </div>
-);
+  );
+};
 
 const COLORS = [
   "#38bdf8",
@@ -55,7 +114,6 @@ const formatNumber = (num) => {
   return num.toString();
 };
 
-// 🔹 Bold white tooltip for ALL charts
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
 
@@ -76,23 +134,21 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-const SLIDE_COUNT = 2; // 0 = Projects/Tasks/Meetings, 1 = Students
+const SLIDE_COUNT = 2; 
 
 export default function GuideDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Section filters (MUST be inside component)
+  // Section filters
   const [sectionFilters, setSectionFilters] = useState({
     course: "ALL",
     branch: "ALL",
     semester: "ALL",
   });
 
-  // 🔹 Safe access (stats null ho sakta hai)
   const sectionDetailed = stats?.studentsBySectionDetailed || [];
 
-  // 🔹 Smart merge + filter logic
   const studentsBySectionFiltered = useMemo(() => {
     const map = new Map();
 
@@ -116,7 +172,7 @@ export default function GuideDashboard() {
   const [autoPlay, setAutoPlay] = useState(true);
 
   const token = localStorage.getItem("token");
-  const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
+  const axiosConfig = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -144,7 +200,6 @@ export default function GuideDashboard() {
     }
   };
 
-  // 🔁 Auto slider (infinite) with pause
   useEffect(() => {
     if (!autoPlay) return;
 
@@ -157,35 +212,24 @@ export default function GuideDashboard() {
 
   const handleSummaryClick = (type) => {
     switch (type) {
-      case "students":
-        navigate("/guide/add-student");
-        break;
-      case "teams":
-        navigate("/guide/team");
-        break;
-      case "projects":
-        navigate("/guide/reports");
-        break;
-      case "tasks":
-        navigate("/guide/tasks");
-        break;
-      case "meetings":
-        navigate("/guide/meetings");
-        break;
-      default:
-        break;
+      case "students": navigate("/guide/add-student"); break;
+      case "teams": navigate("/guide/team"); break;
+      case "projects": navigate("/guide/reports"); break;
+      case "tasks": navigate("/guide/tasks"); break;
+      case "meetings": navigate("/guide/meetings"); break;
+      default: break;
     }
   };
 
+  /* ---------------------- 💀 Use Skeleton Loader ---------------------- */
   if (loading || !stats) {
-    return <LoaderOverlay message="Loading guide dashboard..." />;
+    return <DashboardSkeleton />;
   }
 
   // ---- Chart data ----
   const studentsByCourse = mapToChartArray(stats.studentsByCourse);
   const studentsByBranch = mapToChartArray(stats.studentsByBranch);
   const studentsBySemester = mapToChartArray(stats.studentsBySemester);
-  const studentsBySection = studentsBySectionFiltered;
   const projectsByStatus = mapToChartArray(stats.projectsByStatus);
   const tasksByStatus = mapToChartArray(stats.tasksByStatus);
   const tasksByPriority = mapToChartArray(stats.tasksByPriority);
@@ -194,18 +238,13 @@ export default function GuideDashboard() {
 
   const tasksStatusLineData = tasksByStatus;
 
-  // Slider controls
-  const goToNextSlide = () =>
-    setCurrentSlide((prev) => (prev + 1) % SLIDE_COUNT);
-  const goToPrevSlide = () =>
-    setCurrentSlide((prev) => (prev - 1 + SLIDE_COUNT) % SLIDE_COUNT);
+  const goToNextSlide = () => setCurrentSlide((prev) => (prev + 1) % SLIDE_COUNT);
+  const goToPrevSlide = () => setCurrentSlide((prev) => (prev - 1 + SLIDE_COUNT) % SLIDE_COUNT);
 
-  const slideTitle =
-    currentSlide === 0 ? "Project, Task & Meeting Overview" : "Student Insights";
-  const slideSubtitle =
-    currentSlide === 0
-      ? "Your projects, tasks and meetings at a glance."
-      : "Course, branch, semester & section distribution for your mentees.";
+  const slideTitle = currentSlide === 0 ? "Project, Task & Meeting Overview" : "Student Insights";
+  const slideSubtitle = currentSlide === 0 
+    ? "Your projects, tasks and meetings at a glance." 
+    : "Course, branch, semester & section distribution for your mentees.";
 
   return (
     <div className="min-h-screen bg-slate-950 text-gray-100 font-sans selection:bg-sky-500/30">
@@ -225,8 +264,7 @@ export default function GuideDashboard() {
               My Project Space
             </h1>
             <p className="text-sm text-slate-300 mt-1 max-w-xl">
-              Track your teams, students, projects, meetings & tasks – all in one
-              focused dashboard.
+              Track your teams, students, projects, meetings & tasks – all in one focused dashboard.
             </p>
           </div>
 
@@ -292,7 +330,7 @@ export default function GuideDashboard() {
           </div>
         </section>
 
-        {/* 🔹 MAIN SLIDER – 2 slides, 4 cards each (2x2 grid) */}
+        {/* 🔹 MAIN SLIDER */}
         <section className="mt-2 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -305,44 +343,18 @@ export default function GuideDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* autoplay status chip */}
-              <span
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] border ${
-                  autoPlay
-                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-200"
-                    : "bg-slate-800/70 border-slate-600 text-slate-200"
-                }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    autoPlay ? "bg-emerald-400 animate-pulse" : "bg-slate-400"
-                  }`}
-                />
+              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] border ${autoPlay ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-200" : "bg-slate-800/70 border-slate-600 text-slate-200"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${autoPlay ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`} />
                 {autoPlay ? "Auto sliding" : "Manual mode"}
               </span>
 
-              {/* Play / Pause button */}
-              <button
-                onClick={() => setAutoPlay((prev) => !prev)}
-                className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 text-[11px] text-slate-100 hover:border-sky-500 hover:bg-slate-800 transition"
-              >
+              <button onClick={() => setAutoPlay((prev) => !prev)} className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 text-[11px] text-slate-100 hover:border-sky-500 hover:bg-slate-800 transition">
                 {autoPlay ? "Pause slider" : "Play slider"}
               </button>
 
-              {/* Prev / Next buttons */}
               <div className="flex items-center gap-1">
-                <button
-                  onClick={goToPrevSlide}
-                  className="px-2 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:border-sky-500 hover:bg-slate-800 transition"
-                >
-                  ◀
-                </button>
-                <button
-                  onClick={goToNextSlide}
-                  className="px-2 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:border-sky-500 hover:bg-slate-800 transition"
-                >
-                  ▶
-                </button>
+                <button onClick={goToPrevSlide} className="px-2 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:border-sky-500 hover:bg-slate-800 transition">◀</button>
+                <button onClick={goToNextSlide} className="px-2 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:border-sky-500 hover:bg-slate-800 transition">▶</button>
               </div>
             </div>
           </div>
@@ -352,29 +364,11 @@ export default function GuideDashboard() {
               {/* Slide 0 – Projects, Tasks, Priority, Meetings */}
               {currentSlide === 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Projects by Status */}
-                  <ChartCard
-                    title="Projects by Status"
-                    subtitle="Health of your assigned projects"
-                    badge={
-                      stats.totalProjects ? `${stats.totalProjects} projects` : ""
-                    }
-                  >
+                  <ChartCard title="Projects by Status" subtitle="Health of your assigned projects" badge={stats.totalProjects ? `${stats.totalProjects} projects` : ""}>
                     <ResponsiveContainer width="100%" height={260}>
                       <PieChart>
-                        <Pie
-                          data={projectsByStatus}
-                          dataKey="value"
-                          nameKey="name"
-                          outerRadius={90}
-                          label
-                        >
-                          {projectsByStatus.map((entry, index) => (
-                            <Cell
-                              key={`proj-pie-${entry.name}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
+                        <Pie data={projectsByStatus} dataKey="value" nameKey="name" outerRadius={90} label>
+                          {projectsByStatus.map((entry, index) => <Cell key={`proj-pie-${entry.name}`} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
                         <Legend />
@@ -382,29 +376,11 @@ export default function GuideDashboard() {
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  {/* Tasks by Status */}
-                  <ChartCard
-                    title="Tasks by Status"
-                    subtitle="Pending, in-progress, completed tasks"
-                    badge={
-                      stats.totalTasks ? `${stats.totalTasks} tasks` : ""
-                    }
-                  >
+                  <ChartCard title="Tasks by Status" subtitle="Pending, in-progress, completed tasks" badge={stats.totalTasks ? `${stats.totalTasks} tasks` : ""}>
                     <ResponsiveContainer width="100%" height={260}>
                       <PieChart>
-                        <Pie
-                          data={tasksByStatus}
-                          dataKey="value"
-                          nameKey="name"
-                          outerRadius={90}
-                          label
-                        >
-                          {tasksByStatus.map((entry, index) => (
-                            <Cell
-                              key={`taskstat-pie-${entry.name}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
+                        <Pie data={tasksByStatus} dataKey="value" nameKey="name" outerRadius={90} label>
+                          {tasksByStatus.map((entry, index) => <Cell key={`taskstat-pie-${entry.name}`} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
                         <Legend />
@@ -412,107 +388,47 @@ export default function GuideDashboard() {
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  {/* Tasks by Priority – line + bar combo block */}
-                  <ChartCard
-                    title="Tasks by Priority"
-                    subtitle="Load split into Low / Medium / High / Critical"
-                  >
+                  <ChartCard title="Tasks by Priority" subtitle="Load split into Low / Medium / High / Critical">
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={tasksStatusLineData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke="#38bdf8"
-                          strokeWidth={2}
-                          dot={{ r: 3 }}
-                        />
+                        <Line type="monotone" dataKey="value" stroke="#38bdf8" strokeWidth={2} dot={{ r: 3 }} />
                       </LineChart>
                     </ResponsiveContainer>
-                    <div className="mt-2 text-[11px] text-slate-400">
-                      Line shows overall trend across different statuses. Bar chart
-                      below shows exact split by priority.
-                    </div>
                     <div className="mt-3 h-[130px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={tasksByPriority}>
-                          <XAxis
-                            dataKey="name"
-                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                          />
-                          <YAxis
-                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                          />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                          <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
                           <Tooltip content={<CustomTooltip />} />
                           <Bar dataKey="value">
-                            {tasksByPriority.map((entry, index) => (
-                              <Cell
-                                key={`prio-bar-${index}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
+                            {tasksByPriority.map((entry, index) => <Cell key={`prio-bar-${index}`} fill={COLORS[index % COLORS.length]} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
                   </ChartCard>
 
-                  {/* Meetings Overview */}
-                  <ChartCard
-                    title="Meetings Overview"
-                    subtitle="Status & mode of your meetings"
-                    badge={
-                      stats.totalMeetings
-                        ? `${stats.totalMeetings} meetings`
-                        : ""
-                    }
-                  >
+                  <ChartCard title="Meetings Overview" subtitle="Status & mode of your meetings" badge={stats.totalMeetings ? `${stats.totalMeetings} meetings` : ""}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie
-                            data={meetingsByStatus}
-                            dataKey="value"
-                            nameKey="name"
-                            outerRadius={70}
-                            label
-                          >
-                            {meetingsByStatus.map((entry, index) => (
-                              <Cell
-                                key={`meetstat-pie-${entry.name}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
+                          <Pie data={meetingsByStatus} dataKey="value" nameKey="name" outerRadius={70} label>
+                            {meetingsByStatus.map((entry, index) => <Cell key={`meetstat-pie-${entry.name}`} fill={COLORS[index % COLORS.length]} />)}
                           </Pie>
                           <Tooltip content={<CustomTooltip />} />
                         </PieChart>
                       </ResponsiveContainer>
-
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={meetingsByMode}>
-                          <XAxis
-                            dataKey="name"
-                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                          />
-                          <YAxis
-                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                          />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                          <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
                           <Tooltip content={<CustomTooltip />} />
                           <Bar dataKey="value">
-                            {meetingsByMode.map((entry, index) => (
-                              <Cell
-                                key={`meetmode-bar-${index}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
+                            {meetingsByMode.map((entry, index) => <Cell key={`meetmode-bar-${index}`} fill={COLORS[index % COLORS.length]} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -521,171 +437,67 @@ export default function GuideDashboard() {
                 </div>
               )}
 
-              {/* Slide 1 – Students (Course, Branch, Semester, Section) */}
+              {/* Slide 1 – Students */}
               {currentSlide === 1 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Students by Course */}
-                  <ChartCard
-                    title="Students by Course"
-                    subtitle="Course-wise distribution under your guidance"
-                  >
+                  <ChartCard title="Students by Course" subtitle="Course-wise distribution under your guidance">
                     <ResponsiveContainer width="100%" height={260}>
                       <BarChart data={studentsByCourse}>
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="value">
-                          {studentsByCourse.map((entry, index) => (
-                            <Cell
-                              key={`course-bar-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Bar>
+                        <Bar dataKey="value">{studentsByCourse.map((entry, index) => <Cell key={`course-bar-${index}`} fill={COLORS[index % COLORS.length]} />)}</Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  {/* Students by Branch */}
-                  <ChartCard
-                    title="Students by Branch"
-                    subtitle="See how your students are split by branch"
-                  >
+                  <ChartCard title="Students by Branch" subtitle="See how your students are split by branch">
                     <ResponsiveContainer width="100%" height={260}>
                       <BarChart data={studentsByBranch}>
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="value">
-                          {studentsByBranch.map((entry, index) => (
-                            <Cell
-                              key={`branch-bar-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Bar>
+                        <Bar dataKey="value">{studentsByBranch.map((entry, index) => <Cell key={`branch-bar-${index}`} fill={COLORS[index % COLORS.length]} />)}</Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  {/* Students by Semester */}
-                  <ChartCard
-                    title="Students by Semester"
-                    subtitle="Semester-wise load under you"
-                  >
+                  <ChartCard title="Students by Semester" subtitle="Semester-wise load under you">
                     <ResponsiveContainer width="100%" height={260}>
                       <BarChart data={studentsBySemester}>
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                        />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "#e5e7eb" }} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="value">
-                          {studentsBySemester.map((entry, index) => (
-                            <Cell
-                              key={`sem-bar-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Bar>
+                        <Bar dataKey="value">{studentsBySemester.map((entry, index) => <Cell key={`sem-bar-${index}`} fill={COLORS[index % COLORS.length]} />)}</Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
                   
-                  {/* Students by Section */}
-                  <ChartCard
-                    title="Students by Section"
-                    subtitle="Section-wise student split (Course / Branch / Semester filter)"
-                  >
-                    {/* 🔹 Section Filters */}
+                  <ChartCard title="Students by Section" subtitle="Section-wise student split (Course / Branch / Semester filter)">
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {/* Course */}
-                      <select
-                        value={sectionFilters.course}
-                        onChange={(e) =>
-                          setSectionFilters((f) => ({ ...f, course: e.target.value }))
-                        }
-                        className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500"
-                      >
+                      <select value={sectionFilters.course} onChange={(e) => setSectionFilters((f) => ({ ...f, course: e.target.value }))} className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500">
                         <option value="ALL">All Courses</option>
-                        {[...new Set(sectionDetailed.map(s => s.courseName))].map(course => (
-                          <option key={course} value={course}>
-                            {course}
-                          </option>
-                        ))}
+                        {[...new Set(sectionDetailed.map(s => s.courseName))].map(course => <option key={course} value={course}>{course}</option>)}
                       </select>
-
-                      {/* Branch */}
-                      <select
-                        value={sectionFilters.branch}
-                        onChange={(e) =>
-                          setSectionFilters((f) => ({ ...f, branch: e.target.value }))
-                        }
-                        className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500"
-                      >
+                      <select value={sectionFilters.branch} onChange={(e) => setSectionFilters((f) => ({ ...f, branch: e.target.value }))} className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500">
                         <option value="ALL">All Branches</option>
-                        {[...new Set(sectionDetailed.map(s => s.branchName))].map(branch => (
-                          <option key={branch} value={branch}>
-                            {branch}
-                          </option>
-                        ))}
+                        {[...new Set(sectionDetailed.map(s => s.branchName))].map(branch => <option key={branch} value={branch}>{branch}</option>)}
                       </select>
-
-                      {/* Semester */}
-                      <select
-                        value={sectionFilters.semester}
-                        onChange={(e) =>
-                          setSectionFilters((f) => ({ ...f, semester: e.target.value }))
-                        }
-                        className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500"
-                      >
+                      <select value={sectionFilters.semester} onChange={(e) => setSectionFilters((f) => ({ ...f, semester: e.target.value }))} className="bg-slate-800 text-xs px-2 py-1 rounded border border-slate-600 text-slate-200 outline-none focus:border-sky-500">
                         <option value="ALL">All Semesters</option>
-                        {[...new Set(sectionDetailed.map(s => s.semesterName))].map(sem => (
-                          <option key={sem} value={sem}>
-                            {sem}
-                          </option>
-                        ))}
+                        {[...new Set(sectionDetailed.map(s => s.semesterName))].map(sem => <option key={sem} value={sem}>{sem}</option>)}
                       </select>
                     </div>
 
-                    {/* 🔹 Chart / Empty State */}
                     {studentsBySectionFiltered.length === 0 ? (
-                      <div className="flex items-center justify-center h-[260px] text-sm text-slate-400">
-                        No section data available
-                      </div>
+                      <div className="flex items-center justify-center h-[260px] text-sm text-slate-400">No section data available</div>
                     ) : (
                       <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={studentsBySectionFiltered}>
-                          <XAxis
-                            dataKey="name"
-                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                          />
-                          <YAxis
-                            allowDecimals={false}
-                            tick={{ fontSize: 11, fill: "#e5e7eb" }}
-                          />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#e5e7eb" }} />
+                          <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#e5e7eb" }} />
                           <Tooltip content={<CustomTooltip />} />
-                          <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                            {studentsBySectionFiltered.map((entry, index) => (
-                              <Cell
-                                key={`sec-bar-${entry.name}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
-                          </Bar>
+                          <Bar dataKey="value" radius={[6, 6, 0, 0]}>{studentsBySectionFiltered.map((entry, index) => <Cell key={`sec-bar-${entry.name}`} fill={COLORS[index % COLORS.length]} />)}</Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     )}
@@ -694,16 +506,9 @@ export default function GuideDashboard() {
               )}
             </div>
 
-            {/* Slider dots */}
             <div className="flex items-center justify-center gap-2 pb-3">
               {Array.from({ length: SLIDE_COUNT }).map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlide(idx)}
-                  className={`w-2.5 h-2.5 rounded-full transition ${
-                    currentSlide === idx ? "bg-sky-400" : "bg-slate-600"
-                  }`}
-                />
+                <button key={idx} onClick={() => setCurrentSlide(idx)} className={`w-2.5 h-2.5 rounded-full transition ${currentSlide === idx ? "bg-sky-400" : "bg-slate-600"}`} />
               ))}
             </div>
           </div>
@@ -714,16 +519,10 @@ export default function GuideDashboard() {
           <div className="bg-slate-900/80 rounded-2xl border border-sky-500/10 shadow-xl shadow-sky-500/20 p-4 flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h2 className="text-lg font-semibold text-sky-300">
-                  Teams & Project Activity
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  How each team is performing under your guidance.
-                </p>
+                <h2 className="text-lg font-semibold text-sky-300">Teams & Project Activity</h2>
+                <p className="text-xs text-slate-400 mt-0.5">How each team is performing under your guidance.</p>
               </div>
-              <span className="text-[11px] px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-200 border border-sky-500/30">
-                {stats.teamSummaries?.length || 0} teams
-              </span>
+              <span className="text-[11px] px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-200 border border-sky-500/30">{stats.teamSummaries?.length || 0} teams</span>
             </div>
 
             <div className="max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-transparent">
@@ -731,62 +530,26 @@ export default function GuideDashboard() {
                 <thead className="text-[11px] text-gray-400 sticky top-0 bg-slate-900/90 backdrop-blur z-10">
                   <tr>
                     <th className="py-2 px-2 text-left font-medium">Team</th>
-                    <th className="py-2 px-2 text-left font-medium">
-                      Project
-                    </th>
-                    <th className="py-2 px-2 text-right font-medium">
-                      Students
-                    </th>
+                    <th className="py-2 px-2 text-left font-medium">Project</th>
+                    <th className="py-2 px-2 text-right font-medium">Students</th>
                     <th className="py-2 px-2 text-right font-medium">Tasks</th>
-                    <th className="py-2 px-2 text-right font-medium">
-                      Meetings
-                    </th>
-                    <th className="py-2 px-2 text-right font-medium">
-                      Actions
-                    </th>
+                    <th className="py-2 px-2 text-right font-medium">Meetings</th>
+                    <th className="py-2 px-2 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {!stats.teamSummaries ||
-                  stats.teamSummaries.length === 0 ? (
-                    <tr>
-                      <td
-                        className="py-4 px-2 text-center text-gray-500"
-                        colSpan={6}
-                      >
-                        No team data available.
-                      </td>
-                    </tr>
+                  {!stats.teamSummaries || stats.teamSummaries.length === 0 ? (
+                    <tr><td className="py-4 px-2 text-center text-gray-500" colSpan={6}>No team data available.</td></tr>
                   ) : (
                     stats.teamSummaries.map((t) => (
-                      <tr
-                        key={t.teamId}
-                        className="border-t border-slate-800 hover:bg-slate-800/60 transition"
-                      >
-                        <td className="py-2 px-2 text-slate-100 font-medium">
-                          {t.teamName || "-"}
-                        </td>
-                        <td className="py-2 px-2 text-slate-300">
-                          {t.projectTitle || "-"}
-                        </td>
+                      <tr key={t.teamId} className="border-t border-slate-800 hover:bg-slate-800/60 transition">
+                        <td className="py-2 px-2 text-slate-100 font-medium">{t.teamName || "-"}</td>
+                        <td className="py-2 px-2 text-slate-300">{t.projectTitle || "-"}</td>
+                        <td className="py-2 px-2 text-right">{t.studentCount}</td>
+                        <td className="py-2 px-2 text-right">{t.taskCount}</td>
+                        <td className="py-2 px-2 text-right">{t.meetingCount}</td>
                         <td className="py-2 px-2 text-right">
-                          {t.studentCount}
-                        </td>
-                        <td className="py-2 px-2 text-right">
-                          {t.taskCount}
-                        </td>
-                        <td className="py-2 px-2 text-right">
-                          {t.meetingCount}
-                        </td>
-                        <td className="py-2 px-2 text-right">
-                          <button
-                            onClick={() =>
-                              navigate(`/guide/TeamDetail/${t.teamId}`)
-                            }
-                            className="text-[11px] px-3 py-1 rounded-full bg-sky-500/10 text-sky-200 border border-sky-500/40 hover:bg-sky-500/20 transition"
-                          >
-                            View team
-                          </button>
+                          <button onClick={() => navigate(`/guide/TeamDetail/${t.teamId}`)} className="text-[11px] px-3 py-1 rounded-full bg-sky-500/10 text-sky-200 border border-sky-500/40 hover:bg-sky-500/20 transition">View team</button>
                         </td>
                       </tr>
                     ))
@@ -805,34 +568,17 @@ function SummaryCard({ label, value, icon, accent, chip, onClick }) {
   const clickable = !!onClick;
   return (
     <div className="relative group">
-      <div
-        className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${accent} opacity-0 group-hover:opacity-100 blur-xl transition duration-300`}
-      />
-      <div
-        onClick={onClick}
-        className={`relative bg-slate-900/80 rounded-3xl border border-sky-500/10 px-4 py-3 flex flex-col gap-2 shadow-lg shadow-sky-500/10 ${
-          clickable
-            ? "hover:shadow-sky-500/30 hover:-translate-y-1 cursor-pointer"
-            : ""
-        } transition`}
-      >
+      <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${accent} opacity-0 group-hover:opacity-100 blur-xl transition duration-300`} />
+      <div onClick={onClick} className={`relative bg-slate-900/80 rounded-3xl border border-sky-500/10 px-4 py-3 flex flex-col gap-2 shadow-lg shadow-sky-500/10 ${clickable ? "hover:shadow-sky-500/30 hover:-translate-y-1 cursor-pointer" : ""} transition`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-2xl bg-sky-500/10 text-sky-300 border border-sky-500/30">
-              {icon}
-            </div>
+            <div className="p-2 rounded-2xl bg-sky-500/10 text-sky-300 border border-sky-500/30">{icon}</div>
             <div className="flex flex-col">
-              <span className="text-[11px] uppercase tracking-wide text-slate-400">
-                {label}
-              </span>
-              {chip && (
-                <span className="text-[11px] text-slate-500">{chip}</span>
-              )}
+              <span className="text-[11px] uppercase tracking-wide text-slate-400">{label}</span>
+              {chip && <span className="text-[11px] text-slate-500">{chip}</span>}
             </div>
           </div>
-          <span className="text-xl font-semibold text-sky-100">
-            {formatNumber(value)}
-          </span>
+          <span className="text-xl font-semibold text-sky-100">{formatNumber(value)}</span>
         </div>
       </div>
     </div>
@@ -845,15 +591,9 @@ function ChartCard({ title, subtitle, badge, children }) {
       <div className="flex items-center justify-between mb-3 gap-2">
         <div>
           <h2 className="text-base font-semibold text-sky-200">{title}</h2>
-          {subtitle && (
-            <p className="text-[11px] text-slate-400 mt-0.5">{subtitle}</p>
-          )}
+          {subtitle && <p className="text-[11px] text-slate-400 mt-0.5">{subtitle}</p>}
         </div>
-        {badge && (
-          <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-600">
-            {badge}
-          </span>
-        )}
+        {badge && <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-600">{badge}</span>}
       </div>
       <div className="flex-1 min-h-[220px]">{children}</div>
     </div>
