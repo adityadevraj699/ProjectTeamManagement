@@ -27,7 +27,7 @@ import { useNavigate } from "react-router-dom";
 
 // 🔄 Reusable High-End Loader Overlay (Original Loader, now used only for its visual style/overlay)
 const LoaderOverlay = ({ message }) => (
-  <div className className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
+  <div  className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
       <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-700 rounded-full"></div>
       <div className="absolute top-0 left-0 w-full h-full border-t-4 border-sky-500 rounded-full animate-spin"></div>
