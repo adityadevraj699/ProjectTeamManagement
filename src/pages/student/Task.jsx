@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../context/api";
 import Swal from "sweetalert2";
-import { HiSearch, HiFilter, HiRefresh, HiUpload, HiCheck, HiExternalLink } from "react-icons/hi";
+import { HiSearch, HiFilter, HiRefresh, HiUpload, HiCheck, HiExternalLink, HiLockClosed } from "react-icons/hi";
 
 // 🔄 Reusable High-End Loader Overlay
 const LoaderOverlay = ({ message }) => (
@@ -45,6 +45,16 @@ function classForType(t) { return TYPE_STYLES[t] || TYPE_STYLES.DEFAULT; }
 function formatDate(iso) {
   if (!iso) return "-";
   try { return new Date(iso).toLocaleDateString(); } catch { return iso; }
+}
+
+// 🕒 Helper to check if deadline is passed
+function isTaskExpired(deadline) {
+  if (!deadline) return false;
+  const deadlineDate = new Date(deadline);
+  const now = new Date();
+  // Set time to end of day to be fair, or exact comparison depending on requirement.
+  // Here assuming strict datetime comparison.
+  return now > deadlineDate;
 }
 
 export default function Task() {
@@ -310,12 +320,18 @@ export default function Task() {
               {filteredTasks.length === 0 ? (
                   <tr><td colSpan={7} className="text-center py-8 text-slate-500">No tasks found.</td></tr>
               ) : (
-                  filteredTasks.map((t) => (
+                  filteredTasks.map((t) => {
+                    const isExpired = isTaskExpired(t.deadline);
+                    const isSubmitted = !!t.attachmentUrl;
+                    
+                    return (
                     <tr key={t.id} className="hover:bg-slate-700/30 transition-all group">
                       <td className="px-6 py-4 max-w-xs">
                         <div className="font-bold text-white line-clamp-2">{t.taskDescription}</div>
                         {t.comments && <div className="text-xs text-slate-400 mt-1 italic line-clamp-1">"{t.comments}"</div>}
-                        <div className="text-[10px] text-slate-500 mt-2 font-mono">Due: {formatDate(t.deadline)}</div>
+                        <div className={`text-[10px] mt-2 font-mono ${isExpired && !isSubmitted ? "text-red-400 font-bold" : "text-slate-500"}`}>
+                            Due: {formatDate(t.deadline)} {isExpired && !isSubmitted && "(EXPIRED)"}
+                        </div>
                       </td>
 
                       <td className="px-6 py-4 text-slate-300">
@@ -346,19 +362,26 @@ export default function Task() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <select
-                            value={t.status || "PENDING"}
-                            onChange={(e) => updateStatus(t.id, e.target.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border bg-slate-900 outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer ${
-                                t.status === 'COMPLETED' ? 'text-green-400 border-green-500/30' :
-                                t.status === 'IN_PROGRESS' ? 'text-yellow-400 border-yellow-500/30' :
-                                'text-slate-400 border-slate-600'
-                            }`}
-                        >
-                            <option value="PENDING">Pending</option>
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="COMPLETED">Completed</option>
-                        </select>
+                        {/* 🔥 STATUS LOCKED LOGIC: Locked if Expired OR Submitted */}
+                        <div className="relative">
+                            <select
+                                value={t.status || "PENDING"}
+                                onChange={(e) => updateStatus(t.id, e.target.value)}
+                                disabled={isExpired || isSubmitted} 
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border bg-slate-900 outline-none focus:ring-1 focus:ring-sky-500 
+                                ${isExpired || isSubmitted ? "opacity-50 cursor-not-allowed border-slate-700 text-slate-500" : "cursor-pointer"}
+                                ${
+                                    t.status === 'COMPLETED' ? 'text-green-400 border-green-500/30' :
+                                    t.status === 'IN_PROGRESS' ? 'text-yellow-400 border-yellow-500/30' :
+                                    'text-slate-400 border-slate-600'
+                                }`}
+                            >
+                                <option value="PENDING">Pending</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="COMPLETED">Completed</option>
+                            </select>
+                            {(isExpired || isSubmitted) && <HiLockClosed className="absolute right-2 top-2 text-slate-500" />}
+                        </div>
                       </td>
 
                       <td className="px-6 py-4">
@@ -374,27 +397,37 @@ export default function Task() {
                       <td className="px-6 py-4 text-right">
                          <div className="flex flex-col gap-2 items-end">
                             {!t.attachmentUrl && (
-                                <div className="flex items-center gap-2">
-                                    <label className="cursor-pointer p-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors border border-slate-600" title="Select File">
-                                        <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileChange(e, t.id)} />
-                                        <HiUpload className="text-lg"/>
-                                    </label>
-                                    
-                                    {files[t.id] && (
-                                        <button
-                                            onClick={() => submitFile(t.id, true)}
-                                            disabled={uploadingId === t.id}
-                                            className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg transition-all flex items-center gap-1"
-                                        >
-                                            {uploadingId === t.id ? "..." : <><HiCheck/> Submit</>}
-                                        </button>
+                                <>
+                                    {/* 🔥 SUBMIT LOCKED LOGIC: Hide upload if expired */}
+                                    {isExpired ? (
+                                        <div className="flex items-center gap-1 text-red-500 text-xs font-bold bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
+                                            <HiLockClosed /> Deadline Expired
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <label className="cursor-pointer p-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors border border-slate-600" title="Select File">
+                                                <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileChange(e, t.id)} />
+                                                <HiUpload className="text-lg"/>
+                                            </label>
+                                            
+                                            {files[t.id] && (
+                                                <button
+                                                    onClick={() => submitFile(t.id, true)}
+                                                    disabled={uploadingId === t.id}
+                                                    className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg transition-all flex items-center gap-1"
+                                                >
+                                                    {uploadingId === t.id ? "..." : <><HiCheck/> Submit</>}
+                                                </button>
+                                            )}
+                                        </div>
                                     )}
-                                </div>
+                                </>
                             )}
                          </div>
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
               )}
             </tbody>
           </table>
@@ -403,56 +436,75 @@ export default function Task() {
         {/* MOBILE CARDS */}
         <div className="md:hidden space-y-4">
           {filteredTasks.length === 0 ? <p className="text-center text-slate-500">No tasks found.</p> :
-            filteredTasks.map((t) => (
-            <div key={t.id} className="bg-slate-800/60 border border-slate-700 rounded-xl p-5 shadow-lg relative overflow-hidden">
-              {/* Priority Stripe */}
-              <div className={`absolute top-0 left-0 w-1.5 h-full ${
-                  t.priority === 'CRITICAL' ? 'bg-red-500' : 
-                  t.priority === 'HIGH' ? 'bg-orange-500' : 'bg-sky-500'
-              }`}></div>
+            filteredTasks.map((t) => {
+              const isExpired = isTaskExpired(t.deadline);
+              const isSubmitted = !!t.attachmentUrl;
 
-              <div className="pl-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-sm font-bold text-white leading-tight">{t.taskDescription}</h3>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${classForStatus(t.status)}`}>{t.status}</span>
-                  </div>
+              return (
+                <div key={t.id} className="bg-slate-800/60 border border-slate-700 rounded-xl p-5 shadow-lg relative overflow-hidden">
+                {/* Priority Stripe */}
+                <div className={`absolute top-0 left-0 w-1.5 h-full ${
+                    t.priority === 'CRITICAL' ? 'bg-red-500' : 
+                    t.priority === 'HIGH' ? 'bg-orange-500' : 'bg-sky-500'
+                }`}></div>
 
-                  <div className="text-xs text-slate-400 mb-3 font-mono">Due: {formatDate(t.deadline)}</div>
+                <div className="pl-3">
+                    <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-sm font-bold text-white leading-tight">{t.taskDescription}</h3>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${classForStatus(t.status)}`}>{t.status}</span>
+                    </div>
 
-                  <div className="flex flex-wrap gap-2 mb-4">
-                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${classForType(t.type)}`}>{t.type}</span>
-                  </div>
+                    <div className={`text-xs mb-3 font-mono ${isExpired && !isSubmitted ? "text-red-400 font-bold" : "text-slate-400"}`}>
+                        Due: {formatDate(t.deadline)} {isExpired && !isSubmitted && " (EXPIRED)"}
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
-                     <div><span className="text-slate-500 block text-[10px] uppercase">Project</span>{t.projectTitle || "-"}</div>
-                     <div><span className="text-slate-500 block text-[10px] uppercase">Assigned To</span>{t.assignedToName || "Team"}</div>
-                  </div>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${classForType(t.type)}`}>{t.type}</span>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-700/50">
-                      <select
-                        value={t.status || "PENDING"}
-                        onChange={(e) => updateStatus(t.id, e.target.value)}
-                        className="bg-slate-900 text-white text-xs border border-slate-600 rounded px-2 py-1.5 outline-none focus:border-sky-500"
-                      >
-                        <option value="PENDING">PENDING</option>
-                        <option value="IN_PROGRESS">IN PROGRESS</option>
-                        <option value="COMPLETED">COMPLETED</option>
-                      </select>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                        <div><span className="text-slate-500 block text-[10px] uppercase">Project</span>{t.projectTitle || "-"}</div>
+                        <div><span className="text-slate-500 block text-[10px] uppercase">Assigned To</span>{t.assignedToName || "Team"}</div>
+                    </div>
 
-                      {!t.attachmentUrl && (
-                          <div className="flex items-center gap-2">
-                             <label className="p-1.5 rounded bg-slate-700 text-white cursor-pointer"><input type="file" className="hidden" onChange={(e) => handleFileChange(e, t.id)} /><HiUpload/></label>
-                             <button onClick={() => submitFile(t.id, true)} className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold">Submit</button>
-                          </div>
-                      )}
-                      
-                      {t.attachmentUrl && (
-                          <button onClick={() => window.open(t.attachmentUrl, "_blank")} className="text-sky-400 text-xs font-bold hover:underline">View File</button>
-                      )}
-                  </div>
-              </div>
-            </div>
-          ))}
+                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-700/50">
+                        {/* 🔥 STATUS MOBILE: Disabled if Expired or Submitted */}
+                        <select
+                            value={t.status || "PENDING"}
+                            onChange={(e) => updateStatus(t.id, e.target.value)}
+                            disabled={isExpired || isSubmitted}
+                            className={`bg-slate-900 text-white text-xs border border-slate-600 rounded px-2 py-1.5 outline-none focus:border-sky-500 ${isExpired || isSubmitted ? 'opacity-50' : ''}`}
+                        >
+                            <option value="PENDING">PENDING</option>
+                            <option value="IN_PROGRESS">IN PROGRESS</option>
+                            <option value="COMPLETED">COMPLETED</option>
+                        </select>
+
+                        {!t.attachmentUrl && (
+                            <div className="flex items-center gap-2">
+                                {/* 🔥 SUBMIT MOBILE: Hide if Expired */}
+                                {isExpired ? (
+                                    <span className="text-[10px] font-bold text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10 uppercase">Expired</span>
+                                ) : (
+                                    <>
+                                        <label className="p-1.5 rounded bg-slate-700 text-white cursor-pointer">
+                                            <input type="file" className="hidden" onChange={(e) => handleFileChange(e, t.id)} />
+                                            <HiUpload/>
+                                        </label>
+                                        <button onClick={() => submitFile(t.id, true)} className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold">Submit</button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                        
+                        {t.attachmentUrl && (
+                            <button onClick={() => window.open(t.attachmentUrl, "_blank")} className="text-sky-400 text-xs font-bold hover:underline">View File</button>
+                        )}
+                    </div>
+                </div>
+                </div>
+              );
+          })}
         </div>
 
       </div>
