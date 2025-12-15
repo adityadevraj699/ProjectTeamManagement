@@ -12,7 +12,7 @@ import {
   HiInformationCircle 
 } from "react-icons/hi";
 
-// 🔄 Reusable High-End Loader Component
+// 🔄 Reusable High-End Loader Component (Still used for 'Saving...' state)
 const LoaderOverlay = ({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
@@ -22,6 +22,73 @@ const LoaderOverlay = ({ message }) => (
     <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
+
+// 💀 Edit Team Detail Skeleton Loader
+const EditTeamDetailSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-[#0f172a] p-6 md:p-10 font-sans relative">
+      <div className="max-w-4xl mx-auto space-y-8 animate-pulse">
+        
+        {/* Header Skeleton */}
+        <div className="space-y-3">
+          <div className="h-8 w-64 bg-slate-800 rounded-lg"></div>
+          <div className="h-4 w-96 bg-slate-800/50 rounded"></div>
+        </div>
+
+        {/* Form Card Skeleton */}
+        <div className="bg-slate-800/40 border border-slate-700/50 rounded-3xl p-8 space-y-8">
+          
+          {/* Team Name Field */}
+          <div className="space-y-2">
+            <div className="h-3 w-24 bg-slate-700 rounded"></div>
+            <div className="h-12 w-full bg-slate-700/50 rounded-xl"></div>
+          </div>
+
+          {/* Project Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <div className="h-3 w-32 bg-slate-700 rounded"></div>
+              <div className="h-12 w-full bg-slate-700/50 rounded-xl"></div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-24 bg-slate-700 rounded"></div>
+              <div className="h-12 w-full bg-slate-700/50 rounded-xl"></div>
+            </div>
+          </div>
+
+          {/* Description Field */}
+          <div className="space-y-2">
+            <div className="h-3 w-24 bg-slate-700 rounded"></div>
+            <div className="h-32 w-full bg-slate-700/50 rounded-xl"></div>
+          </div>
+
+          {/* Tech & Dates Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-3 space-y-2">
+              <div className="h-3 w-40 bg-slate-700 rounded"></div>
+              <div className="h-12 w-full bg-slate-700/50 rounded-xl"></div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-slate-700 rounded"></div>
+              <div className="h-12 w-full bg-slate-700/50 rounded-xl"></div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-slate-700 rounded"></div>
+              <div className="h-12 w-full bg-slate-700/50 rounded-xl"></div>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-4 pt-6 border-t border-slate-700/30">
+            <div className="h-12 w-32 bg-slate-700 rounded-xl"></div>
+            <div className="h-12 w-40 bg-slate-700 rounded-xl"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function EditTeamDetail() {
   const { id } = useParams();
@@ -118,11 +185,13 @@ export default function EditTeamDetail() {
     }
   };
 
-  // ✅ Show Page Loader
-  if (loading) return <LoaderOverlay message="Retrieving Data..." />;
+  // ✅ Show Skeleton Loader while fetching data
+  if (loading) return <EditTeamDetailSkeleton />;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 p-6 md:p-10 font-sans selection:bg-sky-500/30 relative">
+      
+      {/* Show Overlay Loader ONLY when saving */}
       {actionLoading && <LoaderOverlay message="Saving Changes..." />}
 
       <div className="max-w-4xl mx-auto">

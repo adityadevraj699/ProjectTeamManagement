@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { HiChevronDown, HiSearch, HiX } from "react-icons/hi"; 
 
-// 🔄 Reusable High-End Loader Overlay
+// 🔄 Reusable High-End Loader Overlay (Still used for 'Processing Request...')
 const LoaderOverlay = ({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] backdrop-blur-xl transition-all duration-300">
     <div className="relative w-24 h-24">
@@ -14,6 +14,46 @@ const LoaderOverlay = ({ message }) => (
     <p className="mt-6 text-sky-400 text-lg font-bold tracking-widest uppercase animate-pulse">{message || "Loading..."}</p>
   </div>
 );
+
+// 💀 Sophisticated Skeleton Loader for Meetings Page
+const MeetingsSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-slate-900 p-8 relative animate-pulse">
+      {/* Title Skeleton */}
+      <div className="h-8 w-64 bg-slate-800 rounded mb-6"></div>
+
+      {/* Team Selector Skeleton */}
+      <div className="mb-6 flex flex-col md:flex-row md:items-center">
+        <div className="h-4 w-24 bg-slate-800 rounded mb-2 md:mb-0 mr-3"></div>
+        <div className="h-10 w-full md:w-1/2 bg-slate-800 rounded-lg"></div>
+      </div>
+
+      {/* Form Skeleton */}
+      <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="h-10 w-full bg-slate-700 rounded-lg"></div>
+          <div className="h-10 w-full bg-slate-700 rounded-lg"></div>
+          <div className="h-10 w-full bg-slate-700 rounded-lg"></div>
+          <div className="h-10 w-full bg-slate-700 rounded-lg"></div>
+          <div className="h-10 w-full bg-slate-700 rounded-lg"></div>
+        </div>
+        <div className="h-24 w-full bg-slate-700 rounded-lg mt-4"></div>
+        <div className="h-10 w-40 bg-slate-700 rounded-lg mt-5"></div>
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700">
+        <div className="h-6 w-48 bg-slate-700 rounded mb-4"></div>
+        <div className="w-full border border-slate-700 rounded-xl overflow-hidden">
+          <div className="h-10 bg-slate-700 w-full"></div> {/* Table Header */}
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-12 bg-slate-800 border-b border-slate-700 w-full"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Custom Searchable Dropdown Component
 const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }) => {
@@ -132,8 +172,8 @@ export default function GuideMeetings() {
   const [teams, setTeams] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
-  const [loading, setLoading] = useState(true); // Page loader
-  const [actionLoading, setActionLoading] = useState(false); // Action loader
+  const [loading, setLoading] = useState(true); // Page loader (Skeleton)
+  const [actionLoading, setActionLoading] = useState(false); // Action loader (Overlay)
 
   const [form, setForm] = useState({
     title: "",
@@ -359,8 +399,8 @@ export default function GuideMeetings() {
     label: t.teamName
   }));
 
-  // ✅ Show page loader
-  if (loading) return <LoaderOverlay message="Loading Teams and Meetings..." />;
+  // ✅ Use Skeleton Loader instead of Overlay Loader for initial fetch
+  if (loading) return <MeetingsSkeleton />;
 
   // ✅ JSX
   return (
