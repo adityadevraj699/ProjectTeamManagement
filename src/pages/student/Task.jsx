@@ -50,11 +50,51 @@ function formatDate(iso) {
 // 🕒 Helper to check if deadline is passed
 function isTaskExpired(deadline) {
   if (!deadline) return false;
-  const deadlineDate = new Date(deadline);
+  
+  // 1. Get the current time in milliseconds (UTC or local, doesn't matter for the next step)
   const now = new Date();
-  // Set time to end of day to be fair, or exact comparison depending on requirement.
-  // Here assuming strict datetime comparison.
-  return now > deadlineDate;
+  
+  // 2. Parse the deadline date string (e.g., '2025-12-31').
+  // When parsing a 'YYYY-MM-DD' string, JavaScript treats it as midnight UTC (00:00:00 UTC) of that day.
+  const deadlineDateUTC = new Date(deadline); 
+
+  // 3. Define the expiry time (1:00 PM IST).
+  // IST is UTC+5:30. 1:00 PM IST is 07:30 AM UTC.
+  // Add 13 hours to move from midnight (00:00) to 1:00 PM local time.
+  // Then, adjust for the 5 hours and 30 minutes IST offset if necessary, but the cleanest way 
+  // is to set the 'cutoff' point explicitly in IST.
+
+  // Let's create the cutoff time: Midnight (00:00:00) of the deadline date + 13 hours.
+  // The 'deadline' variable likely contains an ISO date string like 'YYYY-MM-DD'.
+  
+  // Parse the deadline string again to get a date object, then set the time to 13:00 (1 PM) in IST's timezone context.
+  // We will construct an IST-aware timestamp to compare against `now`.
+  
+  // --- New Logic to respect 1:00 PM IST on the deadline day ---
+  
+  // 1. Create the base date from the deadline string (e.g., '2025-12-31T00:00:00.000Z')
+  const baseDate = new Date(deadline);
+  
+  // 2. Convert the base date to the IST timezone representation and set time to 13:00 (1 PM).
+  // This is tricky with standard JS date functions, which prefer local/UTC.
+  // A robust method is to calculate the deadline timestamp in UTC first.
+  
+  // IST is UTC+5:30. 1:00 PM IST is 13:00 IST.
+  // UTC equivalent time: 13:00 - 5:30 = 07:30 UTC
+  
+  // Get milliseconds for the deadline day (midnight UTC)
+  const deadlineDayTime = baseDate.getTime();
+  
+  // IST 1 PM cutoff time: deadlineDayTime (midnight UTC) + 7.5 hours (for 7:30 AM UTC)
+  // 7.5 hours in milliseconds = 7 * 3600 * 1000 + 30 * 60 * 1000 = 27,000,000 ms
+  const cutoffTimestamp = deadlineDayTime + (7.5 * 3600 * 1000); 
+  
+  // Convert the cutoff timestamp back to a Date object for clear comparison
+  const cutoffDate = new Date(cutoffTimestamp);
+  
+  // 4. Check if the current time is after the cutoff time.
+  // The Date object for `now` is created in the user's local timezone.
+  return now.getTime() > cutoffDate.getTime();
 }
 
 export default function Task() {
