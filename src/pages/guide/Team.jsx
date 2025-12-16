@@ -203,7 +203,7 @@ export default function Team() {
           </div>
           
           <button 
-            onClick={() => navigate('/guide/create-team')} 
+            onClick={() => navigate('/guide/teams')} 
             className="hidden md:flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-sky-900/20 hover:shadow-sky-900/40 active:scale-95"
           >
             <HiPlus className="text-xl" />
