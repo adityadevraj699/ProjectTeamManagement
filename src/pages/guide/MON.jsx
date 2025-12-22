@@ -161,56 +161,72 @@ export default function MON() {
   };
 
   // ✅ Submit MOM + Attendance + Next Meeting
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (actionLoading) return;
-    
-    if (!form.summary || !form.actionItems || !form.nextSteps) {
-      Swal.fire("Warning", "Please fill all required MOM fields!", "warning");
-      return;
-    }
+  // ✅ Submit MOM + Attendance + Next Meeting
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (actionLoading) return;
 
-    setActionLoading(true); // START SPINNER
+  // 🔴 MOM required validation
+  if (!form.summary || !form.actionItems || !form.nextSteps) {
+    Swal.fire("Warning", "Please fill all required MOM fields!", "warning");
+    return;
+  }
 
-    try {
-      const payload = {
-        mom: form,
-        attendance: attendance.map((a) => ({
-          userId: a.userId,
-          present: a.present,
-          remarks: a.remarks,
-        })),
-        nextMeeting:
-          nextMeeting.title && nextMeeting.meetingDateTime
-            ? nextMeeting
-            : null,
-      };
+  // 🔴 NEXT MEETING duration validation (IMPORTANT)
+  if (
+    (nextMeeting.title || nextMeeting.meetingDateTime) &&
+    !nextMeeting.durationMinutes
+  ) {
+    Swal.fire(
+      "Warning",
+      "Please enter duration for the next meeting.",
+      "warning"
+    );
+    return;
+  }
 
-      await axios.post(`${BASE_URL}/mom/${meetingId}`, payload, axiosConfig);
+  setActionLoading(true); // START SPINNER
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Complete!',
-        text: "MOM saved, attendance recorded & next meeting scheduled!",
-        background: '#1e293b',
-        color: '#fff',
-        timer: 2000,
-        showConfirmButton: false
-      });
-      navigate("/guide/meetings");
-    } catch (err) {
-      console.error("❌ MOM submit error:", err);
-      Swal.fire(
-        "Error",
-        err.response?.data?.message ||
-          err.response?.data ||
-          "Failed to complete MOM process!",
-        "error"
-      );
-    } finally {
-      setActionLoading(false); // STOP SPINNER
-    }
-  };
+  try {
+    const payload = {
+      mom: form,
+      attendance: attendance.map((a) => ({
+        userId: a.userId,
+        present: a.present,
+        remarks: a.remarks,
+      })),
+      nextMeeting:
+        nextMeeting.title && nextMeeting.meetingDateTime
+          ? nextMeeting
+          : null,
+    };
+
+    await axios.post(`${BASE_URL}/mom/${meetingId}`, payload, axiosConfig);
+
+    Swal.fire({
+      icon: "success",
+      title: "Complete!",
+      text: "MOM saved, attendance recorded & next meeting scheduled!",
+      background: "#1e293b",
+      color: "#fff",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    navigate("/guide/meetings");
+  } catch (err) {
+    console.error("❌ MOM submit error:", err);
+    Swal.fire(
+      "Error",
+      err.response?.data?.message ||
+        err.response?.data ||
+        "Failed to complete MOM process!",
+      "error"
+    );
+  } finally {
+    setActionLoading(false); // STOP SPINNER
+  }
+};
 
   // ✅ Show SKELETON while loading data
   if (pageLoading) return <MOMSkeleton />;
@@ -426,17 +442,24 @@ export default function MON() {
                 name="meetingDateTime"
                 value={nextMeeting.meetingDateTime}
                 onChange={(e) => handleChange(e, setNextMeeting)}
+                required={Boolean(
+    nextMeeting.title || nextMeeting.meetingDateTime
+  )}
                 className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-sky-500 focus:outline-none"
               />
               <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="number"
-                  name="durationMinutes"
-                  value={nextMeeting.durationMinutes}
-                  onChange={(e) => handleChange(e, setNextMeeting)}
-                  placeholder="Duration (min)"
-                  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-sky-500 focus:outline-none"
-                />
+               <input
+  type="number"
+  name="durationMinutes"
+  value={nextMeeting.durationMinutes}
+  onChange={(e) => handleChange(e, setNextMeeting)}
+  placeholder="Duration (min)"
+  required={Boolean(
+    nextMeeting.title || nextMeeting.meetingDateTime
+  )}
+  className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-sky-500 focus:outline-none"
+/>
+
                 <select
                   name="mode"
                   value={nextMeeting.mode}

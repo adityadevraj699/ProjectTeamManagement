@@ -256,10 +256,10 @@ export default function GuideMeetings() {
   // ✅ Create Meeting
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedTeamId || !form.title || !form.meetingDateTime) {
-      Swal.fire("Warning", "Please fill all required fields", "warning");
-      return;
-    }
+    if (!selectedTeamId || !form.title || !form.meetingDateTime || !form.durationMinutes) {
+    Swal.fire("Warning", "Please fill all required fields (Title, Date, and Duration)", "warning");
+    return;
+  }
 
     setActionLoading(true);
     try {
@@ -454,13 +454,14 @@ export default function GuideMeetings() {
               className="bg-slate-700 text-white p-3 rounded-lg w-full focus:outline-none focus:border-sky-500 border border-slate-600"
             />
             <input
-              type="number"
-              name="durationMinutes"
-              placeholder="Duration (minutes)"
-              value={form.durationMinutes}
-              onChange={handleChange}
-              className="bg-slate-700 text-white p-3 rounded-lg w-full focus:outline-none focus:border-sky-500 border border-slate-600"
-            />
+  type="number"
+  name="durationMinutes"
+  placeholder="Duration (minutes) *" // Added asterisk
+  value={form.durationMinutes}
+  onChange={handleChange}
+  required // Added HTML5 required attribute
+  className="bg-slate-700 text-white p-3 rounded-lg w-full focus:outline-none focus:border-sky-500 border border-slate-600"
+/>
             <input
               type="text"
               name="location"
