@@ -95,55 +95,153 @@ const TeamMemberInput = ({
   sections,
   token,
 }) => {
-  const handleEmailBlur = async (email) => {
-    if (!email) return;
+const handleEmailBlur = async (email) => {
+  if (!email) return;
 
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/users/check-email`,
-        {
-          params: { email },
-          headers: { Authorization: `Bearer ${token}` },
+  try {
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/users/check-email`, {
+      params: { email },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const { exists, isStudent, data } = res.data;
+    if (!exists) return;
+
+    if (isStudent) {
+      const perf = data.performance || {};
+      const score = perf.score || 0;
+      const attendance = perf.attendanceRate || 0;
+      const reliabilityIndex = perf.reliabilityIndex || 0;
+      
+      // ⭐ Star Rating Logic (0-5 scale from backend)
+      const starsCount = perf.stars || 0;
+      const starsHTML = `<span style="color: #f59e0b; font-size: 1.5rem;">${"★".repeat(starsCount)}${"☆".repeat(5 - starsCount)}</span>`;
+      
+      const statusColor = score >= 7.5 ? "#10b981" : score >= 5 ? "#f59e0b" : "#ef4444";
+
+      await Swal.fire({
+        title: null,
+        background: "#0b1120",
+        color: "#fff",
+        width: '95vw',
+        padding: '0',
+        showConfirmButton: false,
+        customClass: {
+          popup: 'rounded-[24px] border border-slate-700/50 shadow-2xl overflow-hidden',
+        },
+        html: `
+          <div style="display: flex; flex-direction: row; height: 500px; font-family: 'Inter', sans-serif; overflow: hidden;">
+            
+            <div style="flex: 0.3; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); padding: 40px; border-right: 1px solid #334155; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+              <div style="position: relative; margin-bottom: 20px;">
+                <svg width="150" height="150" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="45" stroke="#0f172a" stroke-width="8" fill="transparent" />
+                  <circle cx="50" cy="50" r="45" stroke="${statusColor}" stroke-width="8" fill="transparent" 
+                    stroke-dasharray="283" stroke-dashoffset="${283 - (283 * score / 10)}" 
+                    stroke-linecap="round" style="transition: stroke-dashoffset 2s ease;" />
+                </svg>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                  <span style="font-size: 2.5rem; font-weight: 900; color: #fff;">${score.toFixed(1)}</span>
+                </div>
+              </div>
+              <h3 style="margin: 0; font-size: 1.8rem; font-weight: 800;">${data.name}</h3>
+              <p style="color: #64748b; font-size: 1rem; margin: 5px 0 15px 0;">Roll: ${data.rollNumber}</p>
+              
+              <div style="margin-bottom: 10px;">${starsHTML}</div>
+              <p style="color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;">Expert Reliability Stars</p>
+
+              <div style="margin-top: 20px; background: ${statusColor}20; color: ${statusColor}; padding: 8px 25px; border-radius: 99px; font-size: 0.8rem; font-weight: 800; border: 1px solid ${statusColor}40;">
+                ${perf.experienceLevel || 'QUALIFIED RESEARCHER'}
+              </div>
+            </div>
+
+            <div style="flex: 0.7; padding: 40px; background: #0b1120; display: flex; flex-direction: column; justify-content: space-between;">
+              
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; color: #0ea5e9;">Research Intelligence Analysis</h4>
+                  <p style="margin: 5px 0 0 0; color: #475569; font-size: 0.9rem;">Analytical data mapped to SDG-4 (Quality Education) Standards.</p>
+                </div>
+                <div style="background: rgba(14, 165, 233, 0.1); padding: 12px 25px; border-radius: 16px; border: 1px solid rgba(14, 165, 233, 0.2); text-align: right;">
+                   <span style="display: block; font-size: 0.7rem; color: #0ea5e9; text-transform: uppercase; font-weight: 800; margin-bottom: 2px;">Reliability Index</span>
+                   <span style="font-size: 1.8rem; font-weight: 900; color: #0ea5e9;">${reliabilityIndex}%</span>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: rgba(30, 41, 59, 0.3); padding: 20px; border-radius: 20px; border: 1px solid #1e293b;">
+                   <span style="display: block; font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin-bottom: 12px; font-weight: 700;">Meeting Attendance</span>
+                   <div style="display: flex; align-items: center; gap: 15px;">
+                      <div style="flex: 1; height: 10px; background: #0f172a; border-radius: 10px; overflow: hidden;">
+                         <div style="width: ${attendance}%; height: 100%; background: linear-gradient(90deg, #0ea5e9, #2dd4bf);"></div>
+                      </div>
+                      <span style="font-size: 1.1rem; font-weight: 800; color: #fff;">${attendance.toFixed(0)}%</span>
+                   </div>
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.3); padding: 20px; border-radius: 20px; border: 1px solid #1e293b;">
+                   <span style="display: block; font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px; font-weight: 700;">Contribution History</span>
+                   <div style="display: flex; align-items: baseline; gap: 8px;">
+                      <span style="font-size: 1.8rem; font-weight: 900; color: #10b981;">${perf.totalProjects}</span>
+                      <span style="font-size: 0.9rem; color: #64748b;">Previous Projects</span>
+                   </div>
+                </div>
+              </div>
+
+              <div style="background: rgba(15, 23, 42, 0.4); padding: 25px; border-radius: 20px; border: 1px solid #1e293b; display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center;">
+                 <div style="border-right: 1px solid #334155;">
+                    <span style="display: block; font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Tasks Completed</span>
+                    <span style="font-size: 1.6rem; font-weight: 800; color: #fff;">${perf.tasksCompleted}</span>
+                 </div>
+                 <div style="border-right: 1px solid #334155;">
+                    <span style="display: block; font-size: 0.65rem; color: #ef4444; text-transform: uppercase; margin-bottom: 5px;">Overdue Alerts</span>
+                    <span style="font-size: 1.6rem; font-weight: 800; color: #ef4444;">${perf.overdueCount}</span>
+                 </div>
+                 <div>
+                    <span style="display: block; font-size: 0.65rem; color: #10b981; text-transform: uppercase; margin-bottom: 5px;">Work Efficiency</span>
+                    <span style="font-size: 1.3rem; font-weight: 800; color: #10b981;">${perf.taskEfficiency || 'Steady'}</span>
+                 </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1e293b; padding-top: 25px;">
+                <div style="font-size: 0.9rem; color: #94a3b8; font-style: italic; max-width: 450px;">
+                   "Insight: ${perf.tagline}"
+                </div>
+                <div style="display: flex; gap: 15px;">
+                  <button id="swal-cancel" style="padding: 12px 30px; background: transparent; color: #94a3b8; border: 1px solid #334155; border-radius: 12px; cursor: pointer; font-weight: 600;">Decline</button>
+                  <button id="swal-confirm" style="padding: 12px 40px; background: #0ea5e9; color: #fff; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; box-shadow: 0 10px 20px -10px rgba(14, 165, 233, 0.5);">Recruit Student</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        `,
+        didOpen: () => {
+          document.getElementById('swal-confirm').onclick = () => Swal.clickConfirm();
+          document.getElementById('swal-cancel').onclick = () => Swal.clickDeny();
         }
-      );
-
-      const { exists, isStudent, data } = res.data;
-
-      if (!exists) return;
-
-      if (isStudent) {
-        const result = await Swal.fire({
-          title: "Student Found",
-          text: `Autofill details for ${data.name}?`,
-          icon: "info",
-          showCancelButton: true,
-          confirmButtonColor: "#0ea5e9",
-          cancelButtonColor: "#64748b",
-          confirmButtonText: "Yes, Autofill",
-          background: "#1e293b",
-          color: "#fff"
-        });
-
-        if (result.isConfirmed && data) {
+      }).then((result) => {
+        if (result.isConfirmed) {
           handleChange(index, "name", data.name);
           handleChange(index, "rollNumber", data.rollNumber);
           handleChange(index, "branchId", data.branchId);
           handleChange(index, "semesterId", data.semesterId);
           handleChange(index, "sectionId", data.sectionId);
         }
-      } else {
-        Swal.fire({
-            icon: 'info',
-            title: 'Info',
-            text: "Email exists but not a Student role",
-            background: "#1e293b",
-            color: "#fff"
-        });
-      }
-    } catch (err) {
-        // Silent fail or toast
+      });
+    } else {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Non-Student Role',
+        text: "Only students can be assigned to research project teams.",
+        background: "#0b1120",
+        color: "#fff",
+        confirmButtonColor: "#0ea5e9"
+      });
     }
-  };
+  } catch (err) {
+    console.error("Profile Retrieval Error:", err);
+  }
+};
 
   return (
     <motion.div 

@@ -25,8 +25,97 @@ import {
   FaUsers,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion"; // Marquee ke liye zaroori hai
 
 /* ----------------------- Utilities & Constants ---------------------- */
+
+const MeetingMarquee = ({ meetings }) => {
+  if (!meetings || meetings.length === 0) return null;
+
+  const now = new Date();
+  const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  // 1. ✅ Filter Logic: 
+  // - Ya toh meeting aane wali ho (Future)
+  // - Ya meeting purani ho lekin uska MOM (meetingMinutes) missing ho
+  const filteredMeetings = meetings.filter((m) => {
+    const mDate = new Date(m.meetingDateTime);
+    const isFuture = mDate > now;
+    const isPastMissingMOM = mDate <= now && (!m.meetingMinutes || m.meetingMinutes === null);
+    return isFuture || isPastMissingMOM;
+  });
+
+  if (filteredMeetings.length === 0) return null;
+
+  const doubledMeetings = [...filteredMeetings, ...filteredMeetings];
+
+  return (
+    <div className="bg-slate-900/50 border-y border-slate-800/50 py-2.5 overflow-hidden whitespace-nowrap group relative z-10">
+      <motion.div
+        initial={{ x: 0 }}
+        animate={{ x: "-50%" }}
+        transition={{ 
+          repeat: Infinity, 
+          duration: filteredMeetings.length > 3 ? 30 : 15, 
+          ease: "linear" 
+        }}
+        whileHover={{ animationPlayState: "paused" }} 
+        className="inline-flex items-center gap-12 cursor-default"
+      >
+        {doubledMeetings.map((m, idx) => {
+          const mDate = new Date(m.meetingDateTime);
+          const isUrgent = mDate > now && mDate <= next24Hours;
+          const isMissedMOM = mDate <= now; // Past meeting logic
+
+          return (
+            <div key={idx} className="flex items-center gap-3">
+              {/* Indicator Dot Logic */}
+              <span className={`flex h-2 w-2 rounded-full shadow-[0_0_8px] ${
+                isMissedMOM 
+                ? "bg-amber-500 shadow-amber-500 animate-pulse" // Past missed MOM alert
+                : isUrgent 
+                  ? "bg-rose-500 shadow-rose-500 animate-pulse" // Urgent future
+                  : "bg-emerald-400 shadow-emerald-400"        // Normal future
+              }`} />
+              
+              <p className={`text-sm font-bold tracking-wide uppercase ${
+                isMissedMOM ? "text-amber-400" : isUrgent ? "text-rose-400" : "text-sky-300"
+              }`}>
+                {/* Text Label Logic */}
+                {isMissedMOM ? "📌 ACTION REQUIRED: " : isUrgent ? "⚠️ URGENT: " : "Upcoming: "}
+                
+                <span className="text-white font-black">
+                  {m.title || "Untitled Meeting"}
+                </span> 
+
+                <span className="mx-2 text-slate-600">|</span> 
+
+                📅 {mDate.toLocaleString('en-IN', { 
+                     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+                   })}
+                
+                {/* Dynamic Badges */}
+                {isMissedMOM && (
+                  <span className="ml-3 px-2 py-0.5 bg-amber-500/20 text-amber-500 rounded text-[10px] border border-amber-500/30 font-black">
+                    MISS MEETING
+                  </span>
+                )}
+                {isUrgent && (
+                  <span className="ml-3 px-2 py-0.5 bg-rose-500/20 text-rose-500 rounded text-[10px] border border-rose-500/30 font-black">
+                    WITHIN 24H
+                  </span>
+                )}
+              </p>
+            </div>
+          );
+        })}
+      </motion.div>
+      
+      <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-slate-950 to-transparent pointer-events-none z-20" />
+      <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-slate-950 to-transparent pointer-events-none z-20" />
+    </div>
+  );
+};
 
 const COLORS = [
   "#38bdf8", "#6366f1", "#22c55e", "#eab308", "#f97316", "#ec4899", "#a855f7",
@@ -59,6 +148,9 @@ const DashboardSkeleton = () => {
         </div>
         <div className="w-32 h-10 bg-slate-800 rounded-xl animate-pulse" />
       </div>
+
+    {/* Placeholder for Marquee during loading */}
+      <div className="w-full h-10 bg-slate-900/50 border-y border-slate-800 animate-pulse" />
 
       {/* Summary Cards Skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
@@ -454,6 +546,9 @@ export default function Dashboard() {
           </div>
         </header>
       </div>
+
+      {/* ✅ Marquee only shows when data is loaded */}
+      <MeetingMarquee meetings={stats.upcomingMeetings} />
 
       <main className="px-6 pb-8 pt-2 space-y-6">
         {/* Summary */}

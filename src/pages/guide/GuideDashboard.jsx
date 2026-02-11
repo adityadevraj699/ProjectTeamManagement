@@ -24,6 +24,117 @@ import {
   FaCalendarCheck,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion"; // Marquee ke liye zaroori hai
+
+
+const MeetingMarquee = ({ meetings }) => {
+  const navigate = useNavigate();
+
+  if (!meetings || meetings.length === 0) return null;
+
+  const now = new Date();
+  const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  // 1. Future meetings aur Past missing MOM meetings filter karein
+  const filteredMeetings = meetings.filter((m) => {
+    const mDate = new Date(m.meetingDateTime);
+    const isFuture = mDate > now;
+    const isPastMissingMOM = mDate <= now && !m.momPresent;
+    return isFuture || isPastMissingMOM;
+  });
+
+  if (filteredMeetings.length === 0) return null;
+
+  // 2. Infinity Loop Content (Ensuring no gaps)
+  const loopCount = filteredMeetings.length < 3 ? 4 : 2; 
+  const loopedMeetings = Array(loopCount).fill(filteredMeetings).flat();
+
+  return (
+    <div className="relative z-10 w-full overflow-hidden py-1">
+      {/* 🎇 Top Glow Line */}
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-slate-700/40 to-transparent" />
+      
+      <div className="bg-transparent py-2 whitespace-nowrap relative">
+        <motion.div
+          initial={{ x: "0%" }}
+          animate={{ x: `-${100 / loopCount}%` }} 
+          transition={{ 
+            repeat: Infinity, 
+            /* 🚀 ULTRA SPEED: Multiplier 2 rakha hai (Smaller = Faster) 
+               Math.max ensures it doesn't get too dizzying with very few items */
+            duration: Math.max(loopedMeetings.length * 2, 8), 
+            ease: "linear" 
+          }}
+          whileHover={{ animationPlayState: "paused" }} 
+          className="inline-flex items-center gap-8"
+        >
+          {loopedMeetings.map((m, idx) => {
+            const mDate = new Date(m.meetingDateTime);
+            const isUrgent = mDate > now && mDate <= next24Hours;
+            const isMissedMOM = mDate <= now && !m.momPresent;
+
+            let bgColor = "bg-slate-900/50";
+            let textColor = "text-sky-400";
+            let borderColor = "border-slate-800";
+            let label = "Upcoming";
+
+            if (isMissedMOM) {
+              bgColor = "bg-amber-500/15";
+              textColor = "text-amber-500";
+              borderColor = "border-amber-500/30";
+              label = "MOM PENDING";
+            } else if (isUrgent) {
+              bgColor = "bg-rose-500/15";
+              textColor = "text-rose-500";
+              borderColor = "border-rose-500/30";
+              label = "DUE SOON";
+            }
+
+            return (
+              <div 
+                key={`${m.id}-${idx}`} 
+                onClick={() => navigate(`/guide/meeting/${m.id}`)}
+                className={`flex-shrink-0 flex items-center gap-3 cursor-pointer ${bgColor} px-5 py-1.5 rounded-full border ${borderColor} transition-all duration-300 group/item hover:border-white/40 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]`}
+              >
+                <div className="flex items-center justify-center">
+                   <span className={`h-2 w-2 rounded-full ${
+                     isMissedMOM ? "bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]" : 
+                     isUrgent ? "bg-rose-500 animate-pulse shadow-[0_0_8px_#ef4444]" : 
+                     "bg-sky-500"
+                   }`} />
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-black uppercase tracking-tighter ${textColor}`}>
+                    {label}
+                  </span>
+                  <span className="text-slate-700 font-thin">|</span>
+                  <p className="text-xs font-bold flex items-center gap-2">
+                    <span className="text-slate-100 group-hover/item:text-white transition-colors tracking-tight">
+                      {m.title}
+                    </span> 
+                    <span className="text-slate-500 font-medium text-[10px]">
+                      {mDate.toLocaleString('en-IN', { 
+                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
+                      })}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </motion.div>
+      </div>
+
+      {/* 🌫️ Seamless Edge Fades */}
+      <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-slate-950 via-slate-950/40 to-transparent pointer-events-none z-20" />
+      <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-slate-950 via-slate-950/40 to-transparent pointer-events-none z-20" />
+
+      {/* 🎇 Bottom Glow Line */}
+      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-slate-700/40 to-transparent" />
+    </div>
+  );
+};
 
 // 💀 Sophisticated Skeleton Loader Component
 const DashboardSkeleton = () => {
@@ -192,6 +303,7 @@ export default function GuideDashboard() {
         axiosConfig
       );
       setStats(res.data);
+      console.log("Guide dashboard data:", res.data);
     } catch (err) {
       console.error(err);
       Swal.fire("Error", "Failed to load guide dashboard", "error");
@@ -282,6 +394,9 @@ export default function GuideDashboard() {
           </div>
         </header>
       </div>
+
+      {/* Marquee with real data integration */}
+    <MeetingMarquee meetings={stats?.upcomingMeetings} />
 
       <main className="px-6 pb-8 pt-2 space-y-6">
         {/* Top summary cards */}
