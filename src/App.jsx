@@ -47,6 +47,8 @@ import TeamReports from "./pages/guide/TeamReports";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import PublicQuerry from "./pages/admin/PublicQuerry";
 import ChatWidget from "./components/ChatWidget";
+import ArtificatePage from "./pages/admin/ArtificatePage";
+import ArtifactViewer from "./components/ArtifactViewer";
 
 function App() {
   return (
@@ -75,6 +77,16 @@ function App() {
               }
             />
 
+             {/* Protected admin routes */}
+            <Route
+              path="/admin/artifact"
+              element={
+                <ProtectedRoute role="ADMIN">
+                  <ArtificatePage />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
             path="/admin/reports"
              element={
@@ -93,6 +105,7 @@ function App() {
     </ProtectedRoute>
   }
 />
+
 
  <Route
   path="/admin/user-detail"
@@ -208,6 +221,17 @@ element ={
     </ProtectedRoute>
   }
 />
+
+
+                        <Route
+  path="/projects/:id/artifacts"
+  element={
+    <ProtectedRoute role={["GUIDE", "STUDENT"]}>
+      <ArtifactViewer/>
+    </ProtectedRoute>
+  }
+/>
+
             <Route
               path="/guide/EditTeamDetail/:id"
               element={

@@ -73,6 +73,7 @@ const Navbar = () => {
     { name: "Add Branch", to: "/admin/add-branch" },
     { name: "Add Semester", to: "/admin/add-semester" },
     { name: "Add Section", to: "/admin/add-section" },
+    {name: "Artifact", to:"/admin/artifact"},
     { name: "Add Teacher", to: "/admin/add-teacher" },
     { name: "Student", to: "/admin/user-detail" },
     { name: "All Reports", to: "/admin/reports" },

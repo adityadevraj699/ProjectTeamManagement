@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { HiOutlinePresentationChartBar } from "react-icons/hi";
+import { motion, AnimatePresence } from "framer-motion"; 
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -182,22 +184,56 @@ export default function TeamDetail() {
     );
   }
 
+  const handleGoToArtifacts = () => {
+  navigate(`/projects/${team.projectId}/artifacts`, {
+    state: {
+      projectId: team.projectId,
+      projectTitle: team.projectTitle,
+      description: team.description,
+      techStack: team.technologiesUsed,
+      teamName: team.teamName
+    }
+  });
+};
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 p-6 md:p-10 font-sans selection:bg-sky-500/30 relative">
       {updating && <LoaderOverlay message="Updating Status..." />}
 
       <div className="max-w-7xl mx-auto">
         
-        {/* Back Button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
-        >
-          <div className="p-2 bg-slate-800 rounded-full group-hover:bg-slate-700 transition-colors">
-            <HiArrowLeft />
-          </div>
-          <span className="font-medium">Back to Teams</span>
-        </button>
+ {/* --- Header: Back Button & Execute Artifacts --- */}
+<div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
+  
+  {/* Left Side: Back Button */}
+  <button
+    onClick={() => navigate(-1)}
+    className="flex items-center gap-2 text-slate-400 hover:text-white transition-all group"
+  >
+    <div className="p-2 bg-slate-800 rounded-full group-hover:bg-slate-700 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all border border-slate-700/50">
+      <HiArrowLeft />
+    </div>
+    <span className="font-semibold tracking-wide text-sm">Back to Teams</span>
+  </button>
+
+  {/* Right Side: Execute Artifacts Button */}
+  <motion.button
+    whileHover={{ 
+      scale: 1.05, 
+      boxShadow: "0 0 25px rgba(14, 165, 233, 0.4)",
+      borderColor: "rgba(125, 211, 252, 0.5)"
+    }}
+    whileTap={{ scale: 0.95 }}
+    onClick={handleGoToArtifacts}
+    className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-sky-900/40 transition-all border border-sky-400/20 group relative overflow-hidden"
+  >
+    {/* Subtle Glow Effect inside button */}
+    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+    
+    <HiOutlinePresentationChartBar className="text-xl relative z-10" />
+    <span className="tracking-tight relative z-10 uppercase text-xs">Execute Artifacts</span>
+  </motion.button>
+</div>
 
         {/* --- Team + Project Section --- */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
