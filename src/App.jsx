@@ -49,6 +49,7 @@ import PublicQuerry from "./pages/admin/PublicQuerry";
 import ChatWidget from "./components/ChatWidget";
 import ArtificatePage from "./pages/admin/ArtificatePage";
 import ArtifactViewer from "./components/ArtifactViewer";
+import AiDetailProject from "./components/AiDetailProject";
 
 function App() {
   return (
@@ -228,6 +229,15 @@ element ={
   element={
     <ProtectedRoute role={["GUIDE", "STUDENT"]}>
       <ArtifactViewer/>
+    </ProtectedRoute>
+  }
+/>
+
+                      <Route
+  path="/project/:id/ai/artifact/:artifactId"
+  element={
+    <ProtectedRoute role={["GUIDE", "STUDENT"]}>
+      <AiDetailProject/>
     </ProtectedRoute>
   }
 />

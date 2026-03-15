@@ -49,95 +49,108 @@ export default function ArtifactViewer() {
     }
   };
 
-  const handleExecution = (node, type) => {
-    if (type === 'READ') {
-      Swal.fire({
-        width: '60%',
-        background: "#0f172a", 
-        color: "#f1f5f9",
-        confirmButtonText: "DONE",
-        confirmButtonColor: "#334155",
-        customClass: {
-          popup: 'border border-slate-700 rounded-[2rem] shadow-2xl p-0 overflow-hidden',
-        },
-        html: `
-          <div class="text-left font-sans">
-            <div class="p-6 bg-slate-900/50 border-b border-slate-800 flex items-center gap-4">
-               <div class="p-2 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
-                 <HiOutlineDocumentText size={20} />
-               </div>
-               <div>
-                 <p class="text-[9px] text-slate-500 font-mono uppercase tracking-widest leading-none mb-1">Component_Insight</p>
-                 <h2 class="text-lg font-bold text-white uppercase italic tracking-tight">${node.name}</h2>
-               </div>
-            </div>
-            <div class="p-8">
-              <div class="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 shadow-inner">
-                <p class="text-slate-300 text-sm leading-relaxed font-light italic">
-                  ${node.description || "System metadata indicates no description available for this node."}
-                </p>
+  const handleExecution = async (node, type) => {
+  if (type === 'READ') {
+    // READ logic remains as it is (Popup)
+    Swal.fire({
+      width: '60%',
+      background: "#0f172a",
+      color: "#f1f5f9",
+      confirmButtonText: "DONE",
+      confirmButtonColor: "#334155",
+      customClass: {
+        popup: 'border border-slate-700 rounded-[2rem] shadow-2xl p-0 overflow-hidden',
+      },
+      html: `
+        <div class="text-left font-sans">
+          <div class="p-6 bg-slate-900/50 border-b border-slate-800 flex items-center gap-4">
+              <div class="p-2 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
+                <HiOutlineDocumentText size={20} />
               </div>
+              <div>
+                <p class="text-[9px] text-slate-500 font-mono uppercase tracking-widest leading-none mb-1">Component_Insight</p>
+                <h2 class="text-lg font-bold text-white uppercase italic tracking-tight">${node.name}</h2>
+              </div>
+          </div>
+          <div class="p-8">
+            <div class="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 shadow-inner">
+              <p class="text-slate-300 text-sm leading-relaxed font-light italic">
+                ${node.description || "System metadata indicates no description available for this node."}
+              </p>
             </div>
           </div>
-        `
-      });
-    } else {
-      Swal.fire({
-        width: '75%',
-        background: "#0f172a",
-        color: "#f8fafc",
-        showCancelButton: true,
-        confirmButtonText: "GENERATE",
-        cancelButtonText: "CANCEL",
-        confirmButtonColor: "#10b981",
-        cancelButtonColor: "#334155",
-        customClass: {
-          popup: 'border border-emerald-500/20 rounded-[2.5rem] shadow-2xl p-0 overflow-hidden',
-        },
-        html: `
-          <div class="text-left font-sans flex flex-col max-h-[80vh]">
-            <div class="p-5 bg-emerald-500/5 border-b border-emerald-500/10 flex justify-between items-center text-center">
-              <p class="text-emerald-500 font-mono text-[9px] tracking-widest uppercase font-bold italic w-full">Initialize_AI_Compute_Protocol</p>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto p-8 space-y-5 custom-scrollbar">
-              <div class="grid grid-cols-2 gap-4">
-                <div class="p-4 bg-slate-950/50 border border-slate-800 rounded-xl">
-                  <p class="text-[8px] text-slate-500 font-black uppercase mb-1">Project Identifier</p>
-                  <p class="text-sky-400 font-mono text-[10px] truncate uppercase">${projectId}</p>
-                </div>
-                <div class="p-4 bg-slate-950/50 border border-slate-800 rounded-xl">
-                  <p class="text-[8px] text-slate-500 font-black uppercase mb-1 tracking-widest">Stack Blueprint</p>
-                   <p class="text-slate-200 font-bold text-[9px] uppercase truncate">${techStack || 'Standard_Stack'}</p>
-                </div>
-              </div>
-
+        </div>
+      `
+    });
+  } else {
+    // GENERATE Sequence
+    const result = await Swal.fire({
+      width: '75%',
+      background: "#0f172a",
+      color: "#f8fafc",
+      showCancelButton: true,
+      confirmButtonText: "INITIALIZE GENERATION", // Text updated for better feel
+      cancelButtonText: "CANCEL",
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#334155",
+      customClass: {
+        popup: 'border border-emerald-500/20 rounded-[2.5rem] shadow-2xl p-0 overflow-hidden',
+      },
+      html: `
+        <div class="text-left font-sans flex flex-col max-h-[80vh]">
+          <div class="p-5 bg-emerald-500/5 border-b border-emerald-500/10 flex justify-between items-center text-center">
+            <p class="text-emerald-500 font-mono text-[9px] tracking-widest uppercase font-bold italic w-full">Initialize_AI_Compute_Protocol</p>
+          </div>
+          
+          <div class="flex-1 overflow-y-auto p-8 space-y-5 custom-scrollbar">
+            <div class="grid grid-cols-2 gap-4">
               <div class="p-4 bg-slate-950/50 border border-slate-800 rounded-xl">
-                <p class="text-[8px] text-slate-500 font-black uppercase mb-1 tracking-widest">Project Title</p>
-                <p class="text-sm font-bold text-white italic tracking-tight">${projectTitle}</p>
+                <p class="text-[8px] text-slate-500 font-black uppercase mb-1">Project Identifier</p>
+                <p class="text-sky-400 font-mono text-[10px] truncate uppercase">${projectId}</p>
               </div>
-
               <div class="p-4 bg-slate-950/50 border border-slate-800 rounded-xl">
-                <p class="text-[8px] text-slate-500 font-black uppercase mb-2 tracking-widest">Global Logic Context</p>
-                <p class="text-slate-400 text-xs leading-relaxed italic line-clamp-4">"${projectDesc || "Awaiting telemetry description..."}"</p>
-              </div>
-
-              <div class="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl shadow-inner">
-                <p class="text-[8px] text-emerald-500 font-black uppercase mb-2 tracking-widest">Target Node & Component Metadata</p>
-                <p class="text-slate-100 text-sm font-bold uppercase underline italic decoration-emerald-500/30 mb-2">${node.name}</p>
-                <p class="text-slate-400 text-xs leading-relaxed font-light italic">
-                  ${node.description || "Component logic is currently undefined. AI will extrapolate details from global context."}
-                </p>
+                <p class="text-[8px] text-slate-500 font-black uppercase mb-1 tracking-widest">Stack Blueprint</p>
+                 <p class="text-slate-200 font-bold text-[9px] uppercase truncate">${techStack || 'Standard_Stack'}</p>
               </div>
             </div>
-            <div class="p-3 bg-slate-950/50 text-center border-t border-slate-800">
-               <p class="text-[8px] font-mono text-slate-600 uppercase tracking-[0.4em]">Ready for Generation Sequence</p>
+
+            <div class="p-4 bg-slate-950/50 border border-slate-800 rounded-xl">
+              <p class="text-[8px] text-slate-500 font-black uppercase mb-1 tracking-widest">Project Title</p>
+              <p class="text-sm font-bold text-white italic tracking-tight">${projectTitle}</p>
+            </div>
+
+            <div class="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl shadow-inner">
+              <p class="text-[8px] text-emerald-500 font-black uppercase mb-2 tracking-widest">Target Node & Component Metadata</p>
+              <p class="text-slate-100 text-sm font-bold uppercase underline italic decoration-emerald-500/30 mb-2">${node.name}</p>
+              <p class="text-slate-400 text-xs leading-relaxed font-light italic">
+                ${node.description || "Component logic is currently undefined. AI will extrapolate details from global context."}
+              </p>
             </div>
           </div>
-        `
+          <div class="p-3 bg-slate-950/50 text-center border-t border-slate-800">
+             <p class="text-[8px] font-mono text-slate-600 uppercase tracking-[0.4em]">Ready for Generation Sequence</p>
+          </div>
+        </div>
+      `
+    });
+
+    // --- REDIRECTION LOGIC ---
+    if (result.isConfirmed) {
+      // Navigating to the processing page with all required data in state
+      navigate(`/project/${projectId}/ai/artifact/${node.id}`, {
+        state: {
+          artifactId: node.id,
+          artifactName: node.name,
+          artifactDescription: node.description,
+          projectId: projectId,
+          projectTitle: projectTitle,
+          projectDescription: projectDesc,
+          projectTechStack: techStack
+        }
       });
     }
-  };
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-sky-500/30 overflow-x-hidden pb-12">
