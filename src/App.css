@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
 
+/* 💡 v4 mein plugins aise add hote hain */
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* Aapke custom colors yahan honge */
+}
+
+
 /* App.css */
 
 /* Entire scrollbar width */

@@ -4,265 +4,267 @@ import axios from "axios";
 import plantumlEncoder from "plantuml-encoder";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { 
   HiOutlineChevronLeft, HiOutlineLightningBolt, HiOutlineCube, 
-  HiOutlineCode, HiOutlineClipboardCheck, HiOutlineDocumentText, 
-  HiOutlineTerminal, HiOutlineRefresh, HiOutlineEye, HiOutlineVariable
+  HiOutlineTerminal, HiOutlineRefresh, HiOutlineEye, HiOutlineDownload,
+  HiOutlineClipboardCopy, HiOutlineTable, HiOutlineCollection
 } from "react-icons/hi";
+
+/**
+ * 🧠 ARCHITECT'S DNA ENGINE v2.0
+ * Handles nested JSON, Markdown Tables, and Extracts UML from Text
+ */
+const analyzeArtifactDNA = (rawText) => {
+  if (!rawText) return { type: "EMPTY", content: "" };
+
+  let workingText = rawText.replace(/```json|```/g, "").trim();
+  const results = {
+    type: "MARKDOWN",
+    content: workingText,
+    uml: null,
+    structuredData: null,
+    isTabular: false
+  };
+
+  // 1. NESTED JSON DETECTION (For TCS/NFR artifacts)
+  try {
+    if (workingText.startsWith("{") || workingText.startsWith("[")) {
+      const parsed = JSON.parse(workingText);
+      if (parsed.data) workingText = parsed.data; // Extract data string if wrapped
+      if (parsed.format === "TABLE") results.type = "MARKDOWN_TABLE";
+      results.structuredData = parsed;
+    }
+  } catch (e) { /* Not a JSON object, proceed as string */ }
+
+  // 2. UML EXTRACTION (Finds @startuml anywhere in the text)
+  const plantUmlRegex = /(@startuml[\s\S]*?@enduml)/g;
+  const umlMatch = workingText.match(plantUmlRegex);
+  
+  if (umlMatch) {
+    results.uml = umlMatch[0];
+    results.type = "DIAGRAM_WITH_DOCS";
+    // Remove UML code from content so it doesn't show as raw text in docs
+    results.content = workingText.replace(plantUmlRegex, "").trim();
+  }
+
+  // 3. TABLE DETECTION
+  if (results.content.includes("|---|") || results.content.includes("| :")) {
+    results.isTabular = true;
+  }
+
+  return results;
+};
 
 export default function AiDetailProject() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("overview"); // overview, diagram, source
-  
-  // Refined Data Structure
-  const [parsedArtifact, setParsedArtifact] = useState({
-    name: "",
-    description: "",
-    rawContent: "",
-    documentation: "",
-    umlCode: "",
-    hasDiagram: false
-  });
+  const [activeTab, setActiveTab] = useState("overview");
+  const [artifact, setArtifact] = useState(null);
 
   const API_URL = `${import.meta.env.VITE_AI_API_CALL}/generate`;
 
   useEffect(() => {
     if (!state) { navigate(-1); return; }
-    generateArtifact();
+    fetchSequence();
   }, []);
 
-  const generateArtifact = async () => {
+  const fetchSequence = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await axios.post(API_URL, {
-        artifactId: state.artifactId,
-        projectId: state.projectId,
-        artifactName: state.artifactName,
-        artifactDescription: state.artifactDescription,
-        projectTitle: state.projectTitle,
-        projectTechStack: state.projectTechStack,
-        projectDescription: state.projectDescription
-      }, {
+      const res = await axios.post(API_URL, { ...state }, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-
       if (res.data.success) {
-        processContent(res.data.data.aiOutputContent.data);
+        const dna = analyzeArtifactDNA(res.data.data.aiOutputContent.data);
+        setArtifact(dna);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Neural link failure.");
+      setError(err.response?.data?.message || "Neural Link Failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  // The Magic Parser: Splits Documentation and UML
-  const processContent = (rawText) => {
-    let cleanText = rawText;
-    
-    // Handle cases where AI wraps everything in a JSON code block (like TCS)
-    if (rawText.includes("```json")) {
-      const jsonMatch = rawText.match(/```json\n([\s\S]*?)\n```/);
-      if (jsonMatch) {
-        try {
-          const parsed = JSON.parse(jsonMatch[1]);
-          cleanText = parsed.data || rawText;
-        } catch (e) { console.error("JSON Parse Error"); }
-      }
-    }
-
-    const umlRegex = /(@startuml[\s\S]*?@enduml)/g;
-    const umlMatch = cleanText.match(umlRegex);
-    const umlCode = umlMatch ? umlMatch[0] : "";
-    const documentation = cleanText.replace(umlRegex, "").trim();
-
-    setParsedArtifact({
-      name: state.artifactName,
-      description: state.artifactDescription,
-      rawContent: rawText,
-      documentation: documentation,
-      umlCode: umlCode,
-      hasDiagram: !!umlCode
-    });
+  const getUmlImage = (code) => {
+    const encoded = plantumlEncoder.encode(code);
+    return `https://www.plantuml.com/plantuml/svg/${encoded}`;
   };
 
-  const getDiagramUrl = (code) => {
-    try {
-      const encoded = plantumlEncoder.encode(code);
-      return `https://www.plantuml.com/plantuml/svg/${encoded}`;
-    } catch (e) { return null; }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(parsedArtifact.umlCode || parsedArtifact.rawContent);
-    alert("Source logic copied to clipboard!");
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert("Logic sequence copied!");
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
-      {/* Cinematic Aura */}
+    <div className="min-h-screen bg-[#020617] text-slate-300 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
+      {/* 🌌 Cinematic Aura */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-600/10 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-sky-600/10 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-600/5 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-blue-600/5 blur-[120px] rounded-full animate-pulse" />
       </div>
 
-      <div className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
+      <div className="relative max-w-[1400px] mx-auto px-6 py-10">
         
-        {/* Navigation Bar */}
-        <nav className="flex items-center justify-between mb-12">
-          <button onClick={() => navigate(-1)} className="group flex items-center gap-2 text-slate-500 hover:text-emerald-400 transition-all">
-            <HiOutlineChevronLeft className="group-hover:-translate-x-1" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Exit_Engine</span>
-          </button>
-          
-          <div className="flex p-1 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-inner">
-            <button onClick={() => setActiveTab("overview")} className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'overview' ? 'bg-emerald-500 text-black' : 'text-slate-500 hover:text-slate-300'}`}>Overview</button>
-            {parsedArtifact.hasDiagram && (
-              <>
-                <button onClick={() => setActiveTab("diagram")} className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'diagram' ? 'bg-sky-500 text-black' : 'text-slate-500 hover:text-slate-300'}`}>Visual</button>
-                <button onClick={() => setActiveTab("code")} className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'code' ? 'bg-indigo-500 text-black' : 'text-slate-500 hover:text-slate-300'}`}>Logic</button>
-              </>
-            )}
+        {/* 📟 Navigation & Tabs */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-16">
+          <div className="space-y-4">
+            <button onClick={() => navigate(-1)} className="group flex items-center gap-2 text-slate-500 hover:text-emerald-400 transition-all text-[10px] font-black tracking-[0.3em] uppercase">
+              <HiOutlineChevronLeft className="group-hover:-translate-x-1" /> Return_To_Core
+            </button>
+            <h1 className="text-5xl md:text-7xl font-black text-white leading-none uppercase italic tracking-tighter">
+              {state?.artifactName || "Artifact"}
+            </h1>
           </div>
-        </nav>
 
-        {/* Hero Section */}
-        <header className="mb-16 relative">
-          <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-            <HiOutlineLightningBolt className="text-emerald-400 animate-pulse" />
-            <span className="text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-[0.3em]">Neural Compute v3.2</span>
+          <div className="flex bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 backdrop-blur-xl shadow-2xl">
+            {['overview'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
-          <h1 className="text-6xl sm:text-8xl font-black text-white italic tracking-tighter uppercase leading-[0.85] mb-8">
-            {parsedArtifact.name || "Loading..."}
-          </h1>
-          <p className="text-slate-400 text-lg font-light border-l-2 border-slate-800 pl-8 max-w-3xl italic">
-            {parsedArtifact.description}
-          </p>
         </header>
 
-        {/* Workbench Area */}
-        <main className="relative min-h-[600px]">
+        <main className="min-h-[600px]">
           {loading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/20 border border-slate-800/50 rounded-[4rem] backdrop-blur-3xl">
-              <HiOutlineCube className="text-emerald-500 animate-spin mb-6" size={50} />
-              <div className="h-1 w-48 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 animate-progress origin-left" />
-              </div>
+            <div className="flex flex-col items-center justify-center h-[500px] bg-slate-950/50 border border-slate-800/50 rounded-[4rem] border-dashed animate-pulse">
+              <HiOutlineCube size={50} className="text-emerald-500 animate-spin mb-6" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.5em] text-slate-500">Decrypting_Neural_Stream...</span>
             </div>
           ) : error ? (
-            <div className="p-20 bg-red-500/5 border border-red-500/20 rounded-[4rem] text-center">
-              <HiOutlineRefresh className="mx-auto text-red-400 mb-6 animate-spin-slow" size={40} />
+            <div className="p-20 bg-red-500/5 border border-red-500/20 rounded-[4rem] text-center backdrop-blur-md">
+              <HiOutlineRefresh className="mx-auto text-red-500 mb-6 animate-spin-slow" size={40} />
               <p className="text-red-400 font-mono text-sm uppercase tracking-widest mb-8">{error}</p>
-              <button onClick={generateArtifact} className="px-12 py-4 bg-red-500/10 text-red-400 rounded-2xl border border-red-500/20 hover:bg-red-400 hover:text-black transition-all font-black text-xs uppercase">Re-Sync_Sequence</button>
+              <button onClick={fetchSequence} className="px-12 py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all">Retry_Sequence</button>
             </div>
           ) : (
-            <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000">
+            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-1000">
               
-              <div className="bg-slate-900/40 border border-slate-800 rounded-[3rem] sm:rounded-[5rem] overflow-hidden backdrop-blur-3xl shadow-[0_0_100px_-50px_rgba(16,185,129,0.3)] ring-1 ring-white/5">
-                
-                {/* Tab: Overview (Combines Documentation + Diagram) */}
-                {activeTab === "overview" && (
-                  <div className="p-8 sm:p-20 space-y-20">
-                    
-                    {/* Documentation Area (Handled all: Functional, CD, TCS) */}
-                    {parsedArtifact.documentation && (
-                      <section className="max-w-5xl mx-auto">
-                        <div className="flex items-center gap-3 text-emerald-400 mb-10">
-                          <HiOutlineDocumentText size={24} />
-                          <span className="text-xs font-black uppercase tracking-[0.5em]">Project_Intel_Report</span>
-                        </div>
-                        <div className="prose prose-invert prose-emerald max-w-none 
-                          prose-table:border prose-table:border-slate-800 prose-th:bg-slate-950 prose-th:p-5 prose-th:text-emerald-400 prose-th:uppercase prose-th:text-[11px]
-                          prose-td:p-5 prose-td:border prose-td:border-slate-800 prose-td:text-slate-300
-                          prose-h3:text-white prose-h3:italic prose-h3:font-black prose-h3:text-3xl
-                          prose-p:text-slate-400 prose-p:text-lg prose-p:leading-relaxed">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{parsedArtifact.documentation}</ReactMarkdown>
-                        </div>
-                      </section>
-                    )}
-
-                    {/* Integrated Visual (If available) */}
-                    {parsedArtifact.hasDiagram && (
-                      <section className="space-y-10 pt-20 border-t border-slate-800/50">
-                        <div className="flex items-center justify-between max-w-5xl mx-auto">
-                           <div className="flex items-center gap-3 text-sky-400">
-                             <HiOutlineEye size={24} />
-                             <span className="text-xs font-black uppercase tracking-[0.5em]">Architecture_Mapping</span>
-                           </div>
-                           <button onClick={handleCopy} className="text-[9px] font-mono text-slate-500 hover:text-white uppercase tracking-widest border border-slate-800 px-3 py-1 rounded-lg transition-all">Copy_UML</button>
-                        </div>
-                        <div className="bg-white p-6 sm:p-16 rounded-[3rem] border-[12px] border-slate-950 shadow-2xl flex justify-center overflow-x-auto mx-auto max-w-[1100px]">
-                           <img 
-                            src={getDiagramUrl(parsedArtifact.umlCode)} 
-                            alt="UML Logic" 
-                            className="max-w-full h-auto transition-transform duration-700 hover:scale-[1.02]"
-                           />
-                        </div>
-                      </section>
-                    )}
-                  </div>
-                )}
-
-                {/* Tab: Visual Focus */}
-                {activeTab === "diagram" && (
-                  <div className="p-8 sm:p-24 flex flex-col items-center">
-                    <div className="bg-white p-10 sm:p-24 rounded-[4rem] border-[20px] border-slate-950 shadow-inner-2xl w-full flex justify-center overflow-x-auto ring-1 ring-slate-800">
-                       <img src={getDiagramUrl(parsedArtifact.umlCode)} alt="Diagram Full" className="max-w-none sm:max-w-full h-auto scale-110 sm:scale-100" />
-                    </div>
-                    <div className="mt-12 flex gap-4">
-                        <span className="px-4 py-1.5 bg-slate-950 rounded-full text-[10px] font-mono text-slate-500 tracking-widest uppercase">Format: SVG Vector</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab: Logic / Source */}
-                {activeTab === "code" && (
-                  <div className="bg-[#010409]">
-                    <div className="flex items-center justify-between px-10 py-5 border-b border-slate-800 bg-slate-950/80">
-                      <div className="flex gap-2">
-                        <div className="w-3 h-3 rounded-full bg-slate-800" />
-                        <div className="w-3 h-3 rounded-full bg-slate-800" />
-                        <div className="w-3 h-3 rounded-full bg-slate-800" />
+              {activeTab === "overview" && (
+                <>
+                  {/* 🖼️ DIAGRAM VISUALIZER (Top Priority) */}
+                  {artifact?.uml && (
+                    <section className="group relative">
+                      <div className="flex items-center gap-3 text-sky-400 mb-6 px-4">
+                        <HiOutlineEye size={22} className="animate-pulse" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.4em]">Architecture_Visualization</span>
                       </div>
-                      <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest flex items-center gap-2"><HiOutlineTerminal /> UML_Logic_Source</span>
-                      <button onClick={() => handleCopy()} className="text-[10px] font-black text-slate-500 hover:text-emerald-400 transition-colors uppercase tracking-widest">Copy_Block</button>
+
+                      <div className="bg-white p-6 md:p-16 rounded-[3rem] border-[12px] border-slate-950 shadow-[0_0_80px_-20px_rgba(16,185,129,0.2)] overflow-hidden relative">
+                         {/* Download Action */}
+                         <div className="absolute top-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => window.open(getUmlImage(artifact.uml))}
+                              className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-emerald-500 transition-all shadow-2xl"
+                            >
+                              <HiOutlineDownload size={22} />
+                            </button>
+                         </div>
+
+                         {/* Actual PlantUML Render */}
+                         <img 
+                            src={getUmlImage(artifact.uml)} 
+                            alt="UML Diagram" 
+                            className="mx-auto max-w-full h-auto transition-transform duration-700 group-hover:scale-[1.01]" 
+                         />
+
+                         <div className="mt-12 pt-8 border-t border-slate-100 flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="flex items-center gap-2">Format: SVG_Vector</span>
+                            <span>Engine: PlantUML_v1.2026</span>
+                         </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* 📑 INTEL DOCUMENTATION (The Prose Area) */}
+                  <section className="bg-slate-900/40 border border-slate-800 p-8 md:p-20 rounded-[4rem] backdrop-blur-3xl shadow-inner relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-10 opacity-5">
+                      <HiOutlineTable size={200} />
                     </div>
-                    <div className="p-10 sm:p-16 overflow-x-auto">
-                      <pre className="text-emerald-400/80 font-mono text-sm leading-[2.2] selection:bg-emerald-500 selection:text-black">
-                        {parsedArtifact.umlCode}
-                      </pre>
+
+                    <div className="flex items-center gap-4 text-emerald-400 mb-12 border-b border-slate-800 pb-8 relative">
+                       {artifact?.isTabular ? <HiOutlineTable size={28}/> : <HiOutlineCollection size={28}/>}
+                       <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase tracking-[0.5em]">Intel_Documentation_Stream</span>
+                          <span className="text-[9px] text-slate-500 font-mono mt-1 italic italic">Structure Verified by AI Oracle</span>
+                       </div>
                     </div>
+
+                    <article className="prose prose-invert prose-emerald max-w-none relative
+                      prose-h2:text-4xl prose-h2:font-black prose-h2:italic prose-h2:text-white prose-h2:mb-12
+                      prose-h3:text-emerald-400 prose-h3:uppercase prose-h3:text-sm prose-h3:tracking-[0.3em] prose-h3:mt-16
+                      prose-p:text-slate-400 prose-p:text-xl prose-p:leading-relaxed
+                      prose-li:text-slate-300 prose-li:text-lg prose-li:my-3
+                      prose-table:border prose-table:border-slate-800 prose-th:bg-slate-950 prose-th:p-6 prose-th:text-emerald-500 prose-th:text-xs prose-th:uppercase
+                      prose-td:p-6 prose-td:border prose-td:border-slate-800 prose-td:text-slate-300 prose-tr:hover:bg-emerald-500/5 transition-all">
+                      
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {artifact.content}
+                      </ReactMarkdown>
+
+                      {/* Fallback for Custom JSON structured data */}
+                      {artifact.type === "JSON_OBJECT" && !artifact.content && (
+                        <div className="mt-10">
+                          <SyntaxHighlighter language="json" style={vscDarkPlus} className="rounded-[2rem] border border-slate-800 p-8 text-sm shadow-2xl">
+                            {JSON.stringify(artifact.structuredData, null, 2)}
+                          </SyntaxHighlighter>
+                        </div>
+                      )}
+                    </article>
+                  </section>
+                </>
+              )}
+
+              {/* {activeTab === "source" && (
+                <div className="bg-slate-950 rounded-[3rem] border border-slate-800 overflow-hidden shadow-2xl">
+                  <div className="flex items-center justify-between px-10 py-6 bg-slate-900/80 border-b border-slate-800">
+                    <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-[0.4em] flex items-center gap-2"><HiOutlineTerminal /> Raw_Logic_Sequence</span>
+                    <button 
+                      onClick={() => copyToClipboard(artifact.uml || artifact.content)}
+                      className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-emerald-400 transition-all uppercase tracking-widest"
+                    >
+                      <HiOutlineClipboardCopy size={18}/> Copy_Logic
+                    </button>
                   </div>
-                )}
-              </div>
-
-              {/* Advanced Status Footer */}
-              <footer className="grid grid-cols-1 sm:grid-cols-3 items-center gap-8 py-16 px-6 opacity-60">
-                 <div className="flex flex-col gap-2">
-                   <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">Logic_Hash</span>
-                   <span className="text-xs text-slate-400 truncate font-mono">0x{Math.random().toString(16).slice(2, 18).toUpperCase()}</span>
-                 </div>
-                 <div className="flex flex-col items-center gap-3">
-                    <div className="flex gap-4">
-                       <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                       <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                       <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                    </div>
-                    <span className="text-[8px] font-mono text-slate-600 uppercase tracking-[0.5em]">Synchronized_with_Gemini_AI</span>
-                 </div>
-                 <div className="flex flex-col sm:items-end gap-2 text-right">
-                   <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">Sequence_Version</span>
-                   <span className="text-xs text-slate-400 font-mono">2026.03.FINAL.STABLE</span>
-                 </div>
-              </footer>
-
+                  <div className="p-10 overflow-x-auto h-[650px] scrollbar-hide">
+                    <SyntaxHighlighter language={artifact.uml ? "java" : "markdown"} style={vscDarkPlus} customStyle={{background: 'transparent', padding: '0', fontSize: '14px', lineHeight: '1.8'}}>
+                      {artifact.uml || artifact.content}
+                    </SyntaxHighlighter>
+                  </div>
+                </div>
+              )} */}
             </div>
           )}
         </main>
+
+        {/* 🏁 Advance Footer Status Bar */}
+        <footer className="mt-32 pt-12 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-8 opacity-30 hover:opacity-100 transition-opacity duration-1000">
+           <div className="font-mono text-[10px] uppercase tracking-widest space-y-2">
+              <p>Project_Node: <span className="text-white">{state?.projectTitle}</span></p>
+              <p>Neural_Stack: <span className="text-emerald-500">{state?.projectTechStack}</span></p>
+           </div>
+           
+           <div className="flex flex-col items-center gap-3">
+              <div className="flex gap-4">
+                 {[1,2,3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" style={{animationDelay: `${i*0.3}s`}} />)}
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-[0.6em] text-slate-500">Neural_Synchronization_Active</span>
+           </div>
+
+           <div className="text-right font-mono text-[10px] uppercase tracking-widest space-y-2">
+              <p>Security_Clearance: <span className="text-emerald-400">Level_Alpha</span></p>
+              <p>Timestamp: <span className="text-blue-500 font-bold">{new Date().toLocaleDateString()} // {new Date().toLocaleTimeString()}</span></p>
+           </div>
+        </footer>
       </div>
     </div>
   );

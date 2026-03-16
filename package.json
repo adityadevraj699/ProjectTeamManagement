@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@stomp/stompjs": "^7.2.1",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.16",
     "axios": "^1.13.1",
     "bootstrap": "^5.3.8",
@@ -25,6 +26,7 @@
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.4",
+    "react-syntax-highlighter": "^16.1.1",
     "recharts": "^3.5.1",
     "remark-gfm": "^4.0.1",
     "sockjs-client": "^1.6.1",
