@@ -122,7 +122,7 @@ export default function AiDetailProject() {
           </div>
 
           <div className="flex bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 backdrop-blur-xl shadow-2xl">
-            {['overview'].map((tab) => (
+            {['overview','source'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -224,7 +224,7 @@ export default function AiDetailProject() {
                 </>
               )}
 
-              {/* {activeTab === "source" && (
+              {activeTab === "source" && (
                 <div className="bg-slate-950 rounded-[3rem] border border-slate-800 overflow-hidden shadow-2xl">
                   <div className="flex items-center justify-between px-10 py-6 bg-slate-900/80 border-b border-slate-800">
                     <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-[0.4em] flex items-center gap-2"><HiOutlineTerminal /> Raw_Logic_Sequence</span>
@@ -241,7 +241,7 @@ export default function AiDetailProject() {
                     </SyntaxHighlighter>
                   </div>
                 </div>
-              )} */}
+              )}
             </div>
           )}
         </main>
